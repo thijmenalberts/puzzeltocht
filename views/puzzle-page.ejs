@@ -288,7 +288,7 @@ async function uploadPhoto(input, puzzleId, pageIndex, moduleIndex){
   try{
     fb.textContent = "Uploaden…";
 
-    const res = await fetch("/admin-upload-media", {
+    const res = await fetch("/upload-photo", {
       method:"POST",
       body:fd
     });
