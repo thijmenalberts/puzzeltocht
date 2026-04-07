@@ -747,20 +747,18 @@ function createBlock(type){
         <div data-mc style="display:none; margin-top:8px;">
           <label>Antwoordopties</label>
     
-          <div data-option>
-            <input placeholder="Antwoord" data-text>
-            <label>
-              <input type="checkbox" data-correct> Juist
-            </label>
+          <div data-option style="display:grid; gap:4px; margin-bottom:10px;">
+            <label style="font-size:12px; color:#6b7280;">Juist</label>
+          
+            <div style="display:flex; align-items:center; gap:8px;">
+              <input
+                data-text
+                placeholder="Antwoord"
+                style="flex:1;"
+              >
+              <input type="checkbox" data-correct>
+            </div>
           </div>
-    
-          <div data-option>
-            <input placeholder="Antwoord" data-text>
-            <label>
-              <input type="checkbox" data-correct> Juist
-            </label>
-          </div>
-        </div>
     
         <div data-open>
           <label>Antwoord:</label>
