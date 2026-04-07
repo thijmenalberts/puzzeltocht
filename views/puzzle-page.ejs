@@ -3,17 +3,19 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><%= puzzle?.name || "Puzzle" %> — <%= page?.title || "" %></title>
+
+  <title><%= puzzle.name %> — <%= page.title %></title>
 
   <style>
     body {
       font-family: system-ui, sans-serif;
-      background: #f5f7fa;
+      margin: 0;
       padding: 24px;
+      background: #f5f7fa;
     }
 
     .card {
-      background: #fff;
+      background: white;
       border-radius: 12px;
       padding: 16px;
       margin-bottom: 16px;
@@ -21,27 +23,26 @@
     }
 
     .btn {
+      display: inline-block;
+      margin-top: 12px;
       padding: 10px 16px;
-      border-radius: 8px;
       border: none;
+      border-radius: 8px;
+      background: #2563eb;
+      color: white;
       cursor: pointer;
       font-size: 15px;
-      background: #2563eb;
-      color: #fff;
-    }
-
-    .btn.secondary {
-      background: #334155;
     }
 
     .feedback {
-      margin-top: 8px;
+      margin-top: 10px;
       font-weight: 600;
     }
 
     label {
       display: flex;
       gap: 8px;
+      align-items: center;
       margin-top: 6px;
       cursor: pointer;
     }
@@ -50,48 +51,62 @@
 
 <body>
 
-<h1><%= puzzle?.name %></h1>
-<h2><%= page?.title %></h2>
+<h1><%= puzzle.name %></h1>
+<h2><%= page.title %></h2>
 
-<% (page?.modules || []).forEach((mod, i) => { %>
+<% (page.modules || []).forEach((mod, qIndex) => { %>
 
   <% if (mod.type === "text") { %>
-    <div class="card"><%- mod.data?.text || "" %></div>
+    <div class="card">
+      <%- mod.data?.text || "" %>
+    </div>
   <% } %>
 
   <% if (mod.type === "question") { %>
     <div class="card">
-      <strong><%= mod.data?.question %></strong>
+      <strong><%= mod.data?.question || "" %></strong>
 
       <% if (mod.data?.questionType === "mc") { %>
 
-        <div data-mc
+        <!-- ===== MULTIPLE CHOICE ===== -->
+        <div
+          data-mc
+          data-puzzle="<%= puzzle._id %>"
+          data-good="<%= Number.isInteger(mod.data.goodPage) ? mod.data.goodPage : '' %>"
+          data-bad="<%= Number.isInteger(mod.data.badPage) ? mod.data.badPage : '' %>"
           data-options='<%- JSON.stringify(mod.data.options || []) %>'
-          data-good="<%= mod.data.goodPage ?? '' %>"
-          data-bad="<%= mod.data.badPage ?? '' %>"
-          data-puzzle="<%= puzzle._id %>">
+          style="margin-top:10px;"
+        >
 
-          <% (mod.data.options || []).forEach((o, x) => { %>
+          <% (mod.data.options || []).forEach((opt, i) => { %>
             <label>
-              <input type="radio" name="mc-<%= i %>" value="<%= x %>">
-              <%= o.text %>
+              <input
+                type="radio"
+                name="mc-<%= qIndex %>"
+                value="<%= i %>"
+              >
+              <%= opt.text %>
             </label>
           <% }) %>
 
-          <button class="btn" onclick="handleMC(this)">Controleer</button>
+          <button class="btn" onclick="handleMC(this)">
+            Controleer
+          </button>
+
           <div class="feedback"></div>
         </div>
 
       <% } else { %>
 
-        <form onsubmit="return handleOpen(event,this)">
-          <input name="answer" placeholder="Jouw antwoord">
-          <button class="btn">Controleer</button>
+        <!-- ===== OPEN VRAAG ===== -->
+        <form onsubmit="return handleOpen(this)">
+          <input type="text" name="answer" placeholder="Jouw antwoord">
+          <button class="btn" type="submit">Controleer</button>
           <div class="feedback"></div>
 
-          <input type="hidden" name="correct" value="<%= mod.data.answer %>">
-          <input type="hidden" name="good" value="<%= mod.data.goodPage ?? '' %>">
-          <input type="hidden" name="bad" value="<%= mod.data.badPage ?? '' %>">
+          <input type="hidden" name="correct" value="<%= mod.data.answer || '' %>">
+          <input type="hidden" name="good" value="<%= Number.isInteger(mod.data.goodPage) ? mod.data.goodPage : '' %>">
+          <input type="hidden" name="bad"  value="<%= Number.isInteger(mod.data.badPage)  ? mod.data.badPage  : '' %>">
           <input type="hidden" name="puzzle" value="<%= puzzle._id %>">
         </form>
 
@@ -101,60 +116,75 @@
 
 <% }) %>
 
-<!-- ✅ UNIVERSELE VOLGENDE PAGINA KNOP -->
-<%
-  const nextPage =
-    page?.nextPage ??
-    page?.settings?.nextPage ??
-    page?.next?.page ??
-    null;
-%>
-
-<div style="margin-top:32px">
-  <% if (Number.isInteger(nextPage)) { %>
-    /puzzle/<%= puzzle._id %>/<%= nextPage %>
-      Volgende pagina →
-    </button>
-  <% } else { %>
-    <!-- Debug fallback (tijdelijk zichtbaar) -->
-    <div style="color:#555;font-size:12px">
-      ⚠️ Geen volgende pagina gevonden in page‑data
-    </div>
-  <% } %>
-</div>
-
 <script>
+/* ===== MULTIPLE CHOICE ===== */
 function handleMC(btn) {
-  const b = btn.closest('[data-mc]');
-  const fb = b.querySelector('.feedback');
-  const r = b.querySelector('input:checked');
-  if (!r) return fb.textContent='Kies een antwoord';
+  const block = btn.closest('[data-mc]');
+  const fb = block.querySelector('.feedback');
 
-  const opts = JSON.parse(b.dataset.options);
-  const ok = !!opts[r.value]?.correct;
+  const radios = block.querySelectorAll('input[type="radio"]');
+  let checked = null;
 
-  const go = ok ? b.dataset.good : b.dataset.bad;
-  if (go) return location.href=`/puzzle/${b.dataset.puzzle}/${go}`;
+  radios.forEach(r => {
+    if (r.checked) checked = r;
+  });
 
-  fb.textContent = ok?'Goed!':'Fout!';
-  fb.style.color = ok?'green':'red';
+  if (!checked) {
+    fb.textContent = "Kies eerst een antwoord.";
+    fb.style.color = "red";
+    return;
+  }
+
+  const options = JSON.parse(block.dataset.options || "[]");
+  const index = Number(checked.value);
+  const correct = !!options[index]?.correct;
+
+  const good = block.dataset.good;
+  const bad  = block.dataset.bad;
+  const puzzle = block.dataset.puzzle;
+
+  const target =
+    correct && good !== "" ? good :
+    !correct && bad !== "" ? bad :
+    null;
+
+  if (target !== null) {
+    window.location.href = `/puzzle/${puzzle}/${target}`;
+    return;
+  }
+
+  fb.textContent = correct ? "Goed!" : "Fout!";
+  fb.style.color = correct ? "green" : "red";
 }
 
-function handleOpen(e,f) {
-  e.preventDefault();
-  const a=f.answer.value.trim().toLowerCase();
-  const c=f.correct.value.trim().toLowerCase();
-  const ok=a===c;
-  const go=ok?f.good.value:f.bad.value;
-  if(go) return location.href=`/puzzle/${f.puzzle.value}/${go}`;
+/* ===== OPEN VRAAG ===== */
+function handleOpen(form) {
+  event.preventDefault();
 
-  const fb=f.querySelector('.feedback');
-  fb.textContent=ok?'Goed!':'Fout!';
-  fb.style.color=ok?'green':'red';
+  const fb = form.querySelector('.feedback');
+  const answer = form.answer.value.trim().toLowerCase();
+  const correct = form.correct.value.trim().toLowerCase();
+
+  const good = form.good.value;
+  const bad = form.bad.value;
+  const puzzle = form.puzzle.value;
+
+  const ok = answer === correct;
+  const target =
+    ok && good ? good :
+    !ok && bad ? bad :
+    null;
+
+  if (target !== null) {
+    window.location.href = `/puzzle/${puzzle}/${target}`;
+    return false;
+  }
+
+  fb.textContent = ok ? "Goed!" : "Fout!";
+  fb.style.color = ok ? "green" : "red";
   return false;
 }
 </script>
 
 </body>
 </html>
-``
