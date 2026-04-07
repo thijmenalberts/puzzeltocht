@@ -1055,9 +1055,12 @@ const pEmpty = qs("#panel-empty");
         div.style.flexDirection = "column";
         div.style.gap = "6px";
         div.style.marginBottom = "12px";
-    
+      
         div.innerHTML = `
-          <label style="font-size:12px; font-weight:600; color:#6b7280;">Juist</label>
+          <label style="font-size:12px; font-weight:600; color:#6b7280;">
+            Juist
+          </label>
+      
           <div style="display:flex; align-items:center; gap:10px;">
             <input
               type="text"
@@ -1065,13 +1068,54 @@ const pEmpty = qs("#panel-empty");
               placeholder="Antwoord"
               style="flex:1; padding:8px 10px; border-radius:8px; border:1px solid #d1d5db;"
             >
-            <input type="checkbox" data-correct style="width:18px; height:18px;">
+      
+            <input
+              type="checkbox"
+              data-correct
+              style="width:18px; height:18px;"
+            >
+      
+            <button
+              type="button"
+              data-remove
+              title="Antwoord verwijderen"
+              style="
+                background:#fee2e2;
+                color:#991b1b;
+                border:1px solid #fecaca;
+                border-radius:6px;
+                width:28px;
+                height:28px;
+                font-weight:700;
+                cursor:pointer;
+              "
+            >
+              ✕
+            </button>
           </div>
         `;
-    
-        div.querySelector('[data-text]').value = text;
-        div.querySelector('[data-correct]').checked = !!correct;
-    
+      
+        const textInput   = div.querySelector('[data-text]');
+        const correctBox  = div.querySelector('[data-correct]');
+        const removeBtn   = div.querySelector('[data-remove]');
+      
+        textInput.value = text;
+        correctBox.checked = !!correct;
+      
+        // 🗑️ verwijderen
+        removeBtn.onclick = () => {
+          const wrap = div.parentElement;
+          if (!wrap) return;
+      
+          // minimaal 1 optie laten bestaan
+          if (wrap.querySelectorAll('[data-option]').length <= 1) {
+            alert("Je moet minimaal één antwoord hebben.");
+            return;
+          }
+      
+          div.remove();
+        };
+      
         return div;
       }
     
