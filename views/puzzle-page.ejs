@@ -1,45 +1,54 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><%= puzzle.name %> — <%= page.title %></title>
 
   <style>
     body {
       font-family: system-ui, sans-serif;
-      background: #f5f7fa;
+      margin: 0;
       padding: 24px;
+      background: #f5f7fa;
     }
+
     .card {
       background: #fff;
-      padding: 16px;
       border-radius: 12px;
+      padding: 16px;
       margin-bottom: 16px;
       box-shadow: 0 4px 12px rgba(0,0,0,.08);
     }
+
     .btn {
-      padding: 10px 16px;
+      display: inline-block;
+      padding: 12px 18px;
       border-radius: 8px;
-      border: none;
       background: #2563eb;
-      color: #fff;
+      color: white;
+      text-decoration: none;
+      font-size: 16px;
       cursor: pointer;
-      margin-top: 12px;
-      font-size: 15px;
+      border: none;
     }
+
     .btn.secondary {
       background: #334155;
+      margin-top: 24px;
     }
+
     .feedback {
-      margin-top: 8px;
+      margin-top: 10px;
       font-weight: 600;
     }
+
     label {
       display: flex;
       gap: 8px;
       margin-top: 6px;
       cursor: pointer;
+      align-items: center;
     }
   </style>
 </head>
@@ -49,7 +58,7 @@
 <h1><%= puzzle.name %></h1>
 <h2><%= page.title %></h2>
 
-<% (page.modules || []).forEach((mod, i) => { %>
+<% (page.modules || []).forEach((mod, qIndex) => { %>
 
   <% if (mod.type === "text") { %>
     <div class="card">
@@ -59,39 +68,47 @@
 
   <% if (mod.type === "question") { %>
     <div class="card">
-      <strong><%= mod.data.question %></strong>
+      <strong><%= mod.data?.question || "" %></strong>
 
-      <% if (mod.data.questionType === "mc") { %>
+      <% if (mod.data?.questionType === "mc") { %>
+
+        <!-- MULTIPLE CHOICE -->
         <div
           data-mc
           data-options='<%- JSON.stringify(mod.data.options || []) %>'
-          data-good="<%= mod.data.goodPage ?? "" %>"
-          data-bad="<%= mod.data.badPage ?? "" %>"
-          data-puzzle="<%= puzzle.id %>"
+          data-good="<%= mod.data.goodPage ?? '' %>"
+          data-bad="<%= mod.data.badPage  ?? '' %>"
+          data-puzzle="<%= puzzle._id %>"
         >
 
-          <% (mod.data.options || []).forEach((opt, x) => { %>
+          <% (mod.data.options || []).forEach((opt, i) => { %>
             <label>
-              <input type="radio" name="mc-<%= i %>" value="<%= x %>">
+              <input type="radio" name="mc-<%= qIndex %>" value="<%= i %>">
               <%= opt.text %>
             </label>
           <% }) %>
 
-          <button class="btn" onclick="handleMC(this)">Controleer</button>
+          <button class="btn" onclick="handleMC(this)">
+            Controleer
+          </button>
+
           <div class="feedback"></div>
         </div>
 
       <% } else { %>
+
+        <!-- OPEN VRAAG -->
         <form onsubmit="return handleOpen(event, this)">
-          <input name="answer" placeholder="Jouw antwoord">
-          <button class="btn">Controleer</button>
+          <input type="text" name="answer" placeholder="Jouw antwoord">
+          <button class="btn" type="submit">Controleer</button>
           <div class="feedback"></div>
 
-          <input type="hidden" name="correct" value="<%= mod.data.answer %>">
+          <input type="hidden" name="correct" value="<%= mod.data.answer || '' %>">
           <input type="hidden" name="good" value="<%= mod.data.goodPage ?? '' %>">
-          <input type="hidden" name="bad" value="<%= mod.data.badPage ?? '' %>">
-          <input type="hidden" name="puzzle" value="<%= puzzle.id %>">
+          <input type="hidden" name="bad"  value="<%= mod.data.badPage  ?? '' %>">
+          <input type="hidden" name="puzzle" value="<%= puzzle._id %>">
         </form>
+
       <% } %>
     </div>
   <% } %>
@@ -99,53 +116,63 @@
 <% }) %>
 
 <%
-  const hasNextPage = page.showNext === true
-    && Array.isArray(puzzle.pages)
-    && typeof pageIndex === "number"
-    && pageIndex + 1 < puzzle.pages.length;
+  const hasNext =
+    page.showNext === true &&
+    typeof pageIndex === "number" &&
+    pageIndex + 1 < puzzle.pages.length;
 %>
 
-<% if (hasNextPage) { %>
-  <button
+<% if (hasNext) { %>
+  <a
+    href="/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>"
     class="btn secondary"
-    onclick
+  >
     Volgende pagina →
-  </button>
+  </a>
 <% } %>
 
 <script>
+/* MULTIPLE CHOICE */
 function handleMC(btn) {
-  const b = btn.closest('[data-mc]');
-  const fb = b.querySelector('.feedback');
-  const r = b.querySelector('input:checked');
-  if (!r) return fb.textContent = "Kies een antwoord.";
+  const block = btn.closest('[data-mc]');
+  const fb = block.querySelector('.feedback');
 
-  const opts = JSON.parse(b.dataset.options);
-  const ok = !!opts[r.value]?.correct;
-
-  const go = ok ? b.dataset.good : b.dataset.bad;
-  if (go !== "") {
-    location.href = `/puzzle/${b.dataset.puzzle}/${go}`;
+  const checked = block.querySelector('input[type="radio"]:checked');
+  if (!checked) {
+    fb.textContent = "Kies eerst een antwoord.";
+    fb.style.color = "red";
     return;
   }
 
-  fb.textContent = ok ? "Goed!" : "Fout!";
-  fb.style.color = ok ? "green" : "red";
+  const options = JSON.parse(block.dataset.options || "[]");
+  const correct = !!options[checked.value]?.correct;
+
+  const target = correct ? block.dataset.good : block.dataset.bad;
+  if (target !== "") {
+    location.href = `/puzzle/${block.dataset.puzzle}/${target}`;
+    return;
+  }
+
+  fb.textContent = correct ? "Goed!" : "Fout!";
+  fb.style.color = correct ? "green" : "red";
 }
 
-function handleOpen(e, f) {
-  e.preventDefault();
-  const a = f.answer.value.trim().toLowerCase();
-  const c = f.correct.value.trim().toLowerCase();
-  const ok = a === c;
+/* OPEN VRAAG */
+function handleOpen(event, form) {
+  event.preventDefault();
 
-  const go = ok ? f.good.value : f.bad.value;
-  if (go !== "") {
-    location.href = `/puzzle/${f.puzzle.value}/${go}`;
+  const fb = form.querySelector('.feedback');
+  const answer = form.answer.value.trim().toLowerCase();
+  const correct = form.correct.value.trim().toLowerCase();
+
+  const ok = answer === correct;
+  const target = ok ? form.good.value : form.bad.value;
+
+  if (target !== "") {
+    location.href = `/puzzle/${form.puzzle.value}/${target}`;
     return false;
   }
 
-  const fb = f.querySelector('.feedback');
   fb.textContent = ok ? "Goed!" : "Fout!";
   fb.style.color = ok ? "green" : "red";
   return false;
