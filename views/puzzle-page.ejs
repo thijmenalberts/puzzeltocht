@@ -113,6 +113,7 @@
               <!-- MULTIPLE CHOICE -->
               <form
                 onsubmit="checkMCBranch(
+                  events,
                   this,
                   <%- JSON.stringify(mod.data?.options || []) %>,
                   <%= Number.isInteger(mod.data?.goodPage) ? mod.data.goodPage : 'null' %>,
@@ -263,8 +264,8 @@ function playSfx(url) {
 </script>
 
 <script>
-function checkMCBranch(form, options, goodPage, badPage, puzzleId) {
-  event.preventDefault(); // ⭐️ BELANGRIJK
+function checkMCBranch(evt, form, options, goodPage, badPage, puzzleId) {
+  evt.preventDefault(); // ✅ NU WERKT DIT ALTIJD
 
   const fb = form.querySelector('[data-feedback]');
   const checked = form.querySelector('input[name="answer"]:checked');
@@ -278,9 +279,15 @@ function checkMCBranch(form, options, goodPage, badPage, puzzleId) {
   const index = Number(checked.value);
   const isCorrect = !!options[index]?.correct;
 
-  const targetPage = isCorrect
-    ? (goodPage !== null ? Number(goodPage) : null)
-    : (badPage  !== null ? Number(badPage)  : null);
+  let targetPage = null;
+
+  if (isCorrect && Number.isInteger(goodPage)) {
+    targetPage = Number(goodPage);
+  }
+
+  if (!isCorrect && Number.isInteger(badPage)) {
+    targetPage = Number(badPage);
+  }
 
   if (Number.isInteger(targetPage)) {
     window.location.href = `/puzzle/${puzzleId}/${targetPage}`;
