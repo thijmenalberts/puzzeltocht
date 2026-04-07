@@ -280,6 +280,17 @@
     border-top:1px solid #eee;
     margin:16px 0;
   }
+
+  .mc-option {
+    cursor: grab;
+  }
+  .mc-option.dragging {
+    opacity: 0.5;
+  }
+  .mc-option .drag-handle {
+    cursor: grab;
+    user-select: none;
+  }
 </style>
 
 <div class="builder-wrap">
@@ -1050,7 +1061,9 @@ const pEmpty = qs("#panel-empty");
       /* ===== MULTIPLE CHOICE OPTIES ===== */
       function createOption(text = "", correct = false) {
         const div = document.createElement("div");
+        div.className = "mc-option";
         div.setAttribute("data-option", "");
+        div.draggable = true;
         div.style.display = "flex";
         div.style.flexDirection = "column";
         div.style.gap = "6px";
@@ -1062,6 +1075,8 @@ const pEmpty = qs("#panel-empty");
           </label>
       
           <div style="display:flex; align-items:center; gap:10px;">
+            <span class="drag-handle" title="Sleep om te sorteren">☰</span>
+      
             <input
               type="text"
               data-text
@@ -1095,24 +1110,22 @@ const pEmpty = qs("#panel-empty");
           </div>
         `;
       
-        const textInput   = div.querySelector('[data-text]');
-        const correctBox  = div.querySelector('[data-correct]');
-        const removeBtn   = div.querySelector('[data-remove]');
+        const textInput  = div.querySelector('[data-text]');
+        const correctBox = div.querySelector('[data-correct]');
+        const removeBtn  = div.querySelector('[data-remove]');
       
         textInput.value = text;
         correctBox.checked = !!correct;
       
-        // 🗑️ verwijderen
+        // ❌ verwijderen (minimaal 1 optie behouden)
         removeBtn.onclick = () => {
           const wrap = div.parentElement;
           if (!wrap) return;
       
-          // minimaal 1 optie laten bestaan
           if (wrap.querySelectorAll('[data-option]').length <= 1) {
             alert("Je moet minimaal één antwoord hebben.");
             return;
           }
-      
           div.remove();
         };
       
@@ -1127,7 +1140,47 @@ const pEmpty = qs("#panel-empty");
       addBtn.onclick = () => {
         optWrap.appendChild(createOption());
       };
-    
+
+      let draggedOption = null;
+
+      optWrap.addEventListener("dragstart", (e) => {
+        const opt = e.target.closest(".mc-option");
+        if (!opt) return;
+        draggedOption = opt;
+        opt.classList.add("dragging");
+        e.dataTransfer.effectAllowed = "move";
+      });
+      
+      optWrap.addEventListener("dragend", () => {
+        if (draggedOption) draggedOption.classList.remove("dragging");
+        draggedOption = null;
+      });
+      
+      optWrap.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        const after = getDragAfterElement(optWrap, e.clientY);
+        if (!draggedOption) return;
+      
+        if (after == null) {
+          optWrap.appendChild(draggedOption);
+        } else {
+          optWrap.insertBefore(draggedOption, after);
+        }
+      });
+      
+      function getDragAfterElement(container, y) {
+        const items = [...container.querySelectorAll(".mc-option:not(.dragging)")];
+      
+        return items.reduce((closest, child) => {
+          const box = child.getBoundingClientRect();
+          const offset = y - box.top - box.height / 2;
+          if (offset < 0 && offset > closest.offset) {
+            return { offset, element: child };
+          }
+          return closest;
+        }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
+      }
+
       /* ===== DOORSTUREN BIJ GOED / FOUT ===== */
     
       // GOOD PAGE
