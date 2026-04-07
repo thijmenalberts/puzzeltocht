@@ -604,13 +604,31 @@
 
       if(m.type==="question"){
         qs('[data-field="question"]', block).value = data?.question || "";
-        qs('[data-field="answer"]',  block).value = data?.answer  || "";
-        qs('[data-field="goodPage"]', block).value = (
-          Number.isInteger(data?.goodPage) ? data.goodPage : ""
-        );
-        qs('[data-field="badPage"]', block).value = (
-          Number.isInteger(data?.badPage) ? data.badPage : ""
-        );
+        qs('[data-field="questionType"]', block).value = data?.questionType || "open";
+      
+        const openWrap = qs('[data-open]', block);
+        const mcWrap   = qs('[data-mc]', block);
+      
+        if(data?.questionType === "mc"){
+          openWrap.style.display = "none";
+          mcWrap.style.display = "block";
+      
+          qsa('[data-option]', mcWrap).forEach((opt, i) => {
+            opt.querySelector('[data-text]').value =
+              data?.options?.[i]?.text || "";
+            opt.querySelector('[data-correct]').checked =
+              !!data?.options?.[i]?.correct;
+          });
+        } else {
+          openWrap.style.display = "block";
+          mcWrap.style.display = "none";
+          qs('[data-field="answer"]', block).value = data?.answer || "";
+        }
+      
+        qs('[data-field="goodPage"]', block).value =
+          Number.isInteger(data?.goodPage) ? data.goodPage : "";
+        qs('[data-field="badPage"]', block).value =
+          Number.isInteger(data?.badPage) ? data.badPage : "";
       }
 
       if(m.type==="location"){
@@ -719,11 +737,36 @@ function createBlock(type){
       content.innerHTML = `
         <label>Vraag:</label>
         <input data-field="question">
-
-        <label>Antwoord:</label>
-        <input data-field="answer">
-
-        <!-- Verborgen target pages -->
+    
+        <label>Vraagtype:</label>
+        <select data-field="questionType">
+          <option value="open">Open vraag</option>
+          <option value="mc">Multiple choice</option>
+        </select>
+    
+        <div data-mc style="display:none; margin-top:8px;">
+          <label>Antwoordopties</label>
+    
+          <div data-option>
+            <input placeholder="Antwoord" data-text>
+            <label>
+              <input type="checkbox" data-correct> Juist
+            </label>
+          </div>
+    
+          <div data-option>
+            <input placeholder="Antwoord" data-text>
+            <label>
+              <input type="checkbox" data-correct> Juist
+            </label>
+          </div>
+        </div>
+    
+        <div data-open>
+          <label>Antwoord:</label>
+          <input data-field="answer">
+        </div>
+    
         <input type="hidden" data-field="goodPage">
         <input type="hidden" data-field="badPage">
       `;
@@ -961,58 +1004,43 @@ const pEmpty = qs("#panel-empty");
 
     // QUESTION BLOCK
     if(type === "question"){
-      const q = qs('input[data-field="question"]', block);
-      const a = qs('input[data-field="answer"]',  block);
-      const goodHidden = qs('input[data-field="goodPage"]', block);
-      const badHidden  = qs('input[data-field="badPage"]',  block);
-
-      const frag = document.createDocumentFragment();
-
+      const q = qs('[data-field="question"]', block);
+      const qt = qs('[data-field="questionType"]', block);
+      const openWrap = qs('[data-open]', block);
+      const mcWrap = qs('[data-mc]', block);
+    
+      pDyn.innerHTML = "";
+    
       // Vraag
-      const lblQ = document.createElement("label");
-      lblQ.textContent = "Vraag";
-
-      const inQ = document.createElement("input");
-      inQ.id = "p-q";
-      inQ.type = "text";
-      inQ.value = q?.value || "";
-      inQ.oninput = () => { if(q) q.value = inQ.value; };
-
-      frag.append(lblQ, inQ);
-
-      // Antwoord
-      const lblA = document.createElement("label");
-      lblA.textContent = "Antwoord";
-
-      const inA = document.createElement("input");
-      inA.id = "p-a";
-      inA.type = "text";
-      inA.value = a?.value || "";
-      inA.oninput = () => { if(a) a.value = inA.value; };
-
-      frag.append(lblA, inA);
-
-      // GOOD PAGE
-      const lblGood = document.createElement("label");
-      lblGood.textContent = "Bij goed antwoord → ga naar pagina";
-
-      const selGood = buildPageSelect("p-good");
-      selGood.value = (goodHidden?.value ?? "");
-      selGood.onchange = () => { if(goodHidden) goodHidden.value = selGood.value; };
-
-      frag.append(lblGood, selGood);
-
-      // BAD PAGE
-      const lblBad = document.createElement("label");
-      lblBad.textContent = "Bij fout antwoord → ga naar pagina";
-
-      const selBad = buildPageSelect("p-bad");
-      selBad.value = (badHidden?.value ?? "");
-      selBad.onchange = () => { if(badHidden) badHidden.value = selBad.value; };
-
-      frag.append(lblBad, selBad);
-
-      pDyn.appendChild(frag);
+      pDyn.innerHTML += `<label>Vraag</label><input id="p-q">`;
+      qs("#p-q").value = q.value;
+      qs("#p-q").oninput = () => q.value = qs("#p-q").value;
+    
+      // Vraagtype
+      pDyn.innerHTML += `
+        <label>Vraagtype</label>
+        <select id="p-qt">
+          <option value="open">Open vraag</option>
+          <option value="mc">Multiple choice</option>
+        </select>
+      `;
+      qs("#p-qt").value = qt.value || "open";
+    
+      const syncType = () => {
+        const v = qs("#p-qt").value;
+        qt.value = v;
+        openWrap.style.display = v === "open" ? "block" : "none";
+        mcWrap.style.display   = v === "mc"   ? "block" : "none";
+      };
+      qs("#p-qt").onchange = syncType;
+      syncType();
+    
+      // Antwoorden MC syncen
+      qsa('[data-option]', mcWrap).forEach((opt, i) => {
+        const text = opt.querySelector('[data-text]');
+        const correct = opt.querySelector('[data-correct]');
+        text.oninput = correct.onchange = () => {};
+      });
     }
 
     // LOCATION BLOCK
@@ -1072,14 +1100,20 @@ function collect(){
       }
 
       if(type === "question"){
-        data.question = qs('input[data-field="question"]', b)?.value || "";
-        data.answer   = qs('input[data-field="answer"]',  b)?.value || "";
-
-        const gp = qs('input[data-field="goodPage"]', b)?.value;
-        const bp = qs('input[data-field="badPage"]',  b)?.value;
-
-        data.goodPage = (gp !== "" && !Number.isNaN(+gp)) ? Number(gp) : null;
-        data.badPage  = (bp !== "" && !Number.isNaN(+bp)) ? Number(bp) : null;
+        data.question = qs('[data-field="question"]', b)?.value || "";
+        data.questionType = qs('[data-field="questionType"]', b)?.value || "open";
+      
+        if(data.questionType === "open"){
+          data.answer = qs('[data-field="answer"]', b)?.value || "";
+        } else {
+          data.options = qsa('[data-option]', b).map(opt => ({
+            text: opt.querySelector('[data-text]')?.value || "",
+            correct: !!opt.querySelector('[data-correct]')?.checked
+          }));
+        }
+      
+        data.goodPage = Number(qs('[data-field="goodPage"]', b)?.value) || null;
+        data.badPage  = Number(qs('[data-field="badPage"]',  b)?.value) || null;
       }
 
       if(type === "location"){
