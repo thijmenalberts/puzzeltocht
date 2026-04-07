@@ -112,7 +112,7 @@
         
               <!-- MULTIPLE CHOICE -->
               <form
-                onsubmit="return checkMCBranch(
+                onsubmit="checkMCBranch(
                   this,
                   <%- JSON.stringify(mod.data?.options || []) %>,
                   <%= Number.isInteger(mod.data?.goodPage) ? mod.data.goodPage : 'null' %>,
