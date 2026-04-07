@@ -164,6 +164,22 @@ app.post(
 );
 
 // ------------------------------------------
+// 8b. PLAYER UPLOAD ENDPOINT (alleen images)
+// ------------------------------------------
+app.post(
+  "/upload-photo",
+  uploadMedia.single("file"),
+  (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: "Geen bestand ontvangen" });
+    }
+
+    const url = `/uploads/${req.file.filename}`;
+    res.json({ url });
+  }
+);
+
+// ------------------------------------------
 // 9. ROUTES
 // ------------------------------------------
 
