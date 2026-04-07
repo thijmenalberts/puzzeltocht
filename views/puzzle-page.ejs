@@ -4,10 +4,10 @@
   const isMap    = (typeof page?.isMap === 'boolean')    ? page.isMap    : false;
 
   const showTarget   = (typeof page?.showTarget === 'boolean') ? page.showTarget : true;
-  const autoNext     = (typeof page?.autoNext   === 'boolean') ? page.autoNext   : false;
+  const autoNext     = (typeof page?.autoNext === 'boolean') ? page.autoNext : false;
   const soundUrl     = page?.soundUrl || "";
-  const playSoundOnStart = (typeof page?.playSoundOnStart === 'boolean')
-    ? page.playSoundOnStart : false;
+  const playSoundOnStart =
+    (typeof page?.playSoundOnStart === 'boolean') ? page.playSoundOnStart : false;
 %>
 
 <!DOCTYPE html>
@@ -15,12 +15,12 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-
   <title><%= puzzle.name %> — <%= page.title %></title>
 
-  <link rel="stylesheet"
-        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        crossorigin=""/>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
 
   <style>
     :root{
@@ -32,21 +32,21 @@
       --accent:#ef4444;
     }
 
-    body {
+    body{
       margin:0;
-      font-family: Inter, system-ui;
+      font-family:Inter, system-ui;
       color:var(--text);
     }
 
-    .container {
-      max-width:880px;
+    .container{
+      max-width:900px;
       margin:0 auto;
       padding:16px;
       display:grid;
       gap:16px;
     }
 
-    .card {
+    .card{
       background:var(--card);
       border:1px solid var(--border);
       border-radius:14px;
@@ -54,23 +54,23 @@
       box-shadow:0 4px 12px rgba(0,0,0,.06);
     }
 
-    .muted { color:var(--muted); }
-
-    .next-btn {
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
+    .next-btn{
       padding:10px 14px;
       background:var(--primary);
       color:white;
       border:none;
       border-radius:10px;
       cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
     }
 
-    #map {
-      height:65vh;
-      min-height:380px;
+    .muted{ color:var(--muted); }
+
+    #map{
+      height:60vh;
+      min-height:360px;
       border-radius:14px;
       border:1px solid var(--border);
     }
@@ -82,7 +82,6 @@
 <audio id="global-sound-player" style="display:none;"></audio>
 
 <div class="container">
-
   <header>
     <h1><%= puzzle.name %></h1>
     <h2><%= page.title %></h2>
@@ -95,14 +94,14 @@
       <div id="map"></div>
       <div style="padding:12px;">
         <p class="muted">
-          Ga automatisch door zodra je binnen de radius bent.
+          Loop naar de juiste locatie om automatisch door te gaan.
         </p>
       </div>
     </div>
 
     <% if (hasNext && showNext) { %>
       <a class="next-btn"
-         href="/puzzle/<%= puzzle._id %>/<%= pageIndex+1 %>">
+         href="/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>">
         Volgende pagina →
       </a>
     <% } %>
@@ -110,7 +109,7 @@
   <% } else { %>
 
     <!-- ================= NORMALE PAGINA ================= -->
-    <% (page.modules || []).forEach(mod => { %>
+    <% (page.modules || []).forEach((mod, idx) => { %>
 
       <% if (mod.type === "text") { %>
         <div class="card"><%- mod.data?.text || "" %></div>
@@ -132,23 +131,27 @@
           <% if (mod.data?.questionType === "mc") { %>
 
             <!-- ===== MULTIPLE CHOICE ===== -->
-            <div data-mc-block style="display:grid; gap:8px;">
-
+            <div
+              class="mc-block"
+              data-mc-block
+              style="display:grid; gap:8px;"
+            >
               <% (mod.data?.options || []).forEach((opt, i) => { %>
-                <label style="display:flex; gap:8px;">
-                  <input type="radio" name="mc-answer"
+                <label style="display:flex; gap:8px; align-items:center;">
+                  <input type="radio"
+                         name="mc-<%= pageIndex %>-<%= idx %>"
                          value="<%= i %>">
                   <%= opt.text %>
                 </label>
               <% }) %>
 
-              <button class="next-btn"
-                type="button"
+              <button type="button"
+                class="next-btn"
                 onclick="checkMCBranch(
                   this,
                   <%- JSON.stringify(mod.data?.options || []) %>,
                   <%= Number.isInteger(mod.data?.goodPage) ? mod.data.goodPage : 'null' %>,
-                  <%= Number.isInteger(mod.data?.badPage)  ? mod.data.badPage  : 'null' %>,
+                  <%= Number.isInteger(mod.data?.badPage) ? mod.data.badPage : 'null' %>,
                   '<%= puzzle._id %>'
                 )">
                 Controleer
@@ -162,9 +165,9 @@
             <!-- ===== OPEN VRAAG ===== -->
             <form onsubmit="return checkOpenBranch(
               this,
-              '<%= (mod.data?.answer||'').replace(/"/g,'&quot;') %>',
+              '<%= (mod.data?.answer || '').replace(/"/g,'&quot;') %>',
               <%= Number.isInteger(mod.data?.goodPage) ? mod.data.goodPage : 'null' %>,
-              <%= Number.isInteger(mod.data?.badPage)  ? mod.data.badPage  : 'null' %>,
+              <%= Number.isInteger(mod.data?.badPage) ? mod.data.badPage : 'null' %>,
               '<%= puzzle._id %>'
             )">
               <input type="text" name="answer"
@@ -181,7 +184,7 @@
 
     <% if (hasNext && showNext) { %>
       <a class="next-btn"
-         href="/puzzle/<%= puzzle._id %>/<%= pageIndex+1 %>">
+         href="/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>">
         Volgende pagina →
       </a>
     <% } %>
@@ -192,6 +195,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
+/* ===== MULTIPLE CHOICE ===== */
 function checkMCBranch(button, options, goodPage, badPage, puzzleId) {
   const block = button.closest('[data-mc-block]');
   const fb = block.querySelector('[data-feedback]');
@@ -219,12 +223,12 @@ function checkMCBranch(button, options, goodPage, badPage, puzzleId) {
   fb.style.color = isCorrect ? "green" : "var(--accent)";
 }
 
+/* ===== OPEN VRAAG ===== */
 function checkOpenBranch(form, answer, goodPage, badPage, puzzleId){
   event.preventDefault();
   const fb = form.querySelector('[data-feedback]');
-  const val = form.answer.value.trim();
-
-  const ok = val.toLowerCase() === answer.toLowerCase();
+  const val = form.answer.value.trim().toLowerCase();
+  const ok = val === answer.toLowerCase();
 
   let target = null;
   if (ok && Number.isInteger(goodPage)) target = goodPage;
