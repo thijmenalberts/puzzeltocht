@@ -746,19 +746,25 @@ function createBlock(type){
     
         <div data-mc style="display:none; margin-top:8px;">
           <label>Antwoordopties</label>
-    
-          <div data-option style="display:grid; gap:4px; margin-bottom:10px;">
-            <label style="font-size:12px; color:#6b7280;">Juist</label>
-          
-            <div style="display:flex; align-items:center; gap:8px;">
-              <input
-                data-text
-                placeholder="Antwoord"
-                style="flex:1;"
-              >
-              <input type="checkbox" data-correct>
-            </div>
-          </div>
+        
+          <div data-options></div>
+        
+          <button
+            type="button"
+            data-add-option
+            style="
+              margin-top:6px;
+              background:#eef2ff;
+              border:1px dashed #6366f1;
+              border-radius:8px;
+              padding:6px;
+              font-weight:600;
+              cursor:pointer;
+            "
+          >
+            + Antwoord toevoegen
+          </button>
+        </div>
     
         <div data-open>
           <label>Antwoord:</label>
@@ -1001,17 +1007,22 @@ const pEmpty = qs("#panel-empty");
     }
 
     // QUESTION BLOCK
-    if(type === "question"){
-      const q = qs('[data-field="question"]', block);
-      const qt = qs('[data-field="questionType"]', block);
+    if (type === "question") {
+      const q        = qs('[data-field="question"]', block);
+      const qt       = qs('[data-field="questionType"]', block);
       const openWrap = qs('[data-open]', block);
-      const mcWrap = qs('[data-mc]', block);
+      const mcWrap   = qs('[data-mc]', block);
+      const optWrap  = qs('[data-options]', block);
+      const addBtn   = qs('[data-add-option]', block);
     
       pDyn.innerHTML = "";
     
       // Vraag
-      pDyn.innerHTML += `<label>Vraag</label><input id="p-q">`;
-      qs("#p-q").value = q.value;
+      pDyn.innerHTML += `
+        <label>Vraag</label>
+        <input id="p-q">
+      `;
+      qs("#p-q").value = q.value || "";
       qs("#p-q").oninput = () => q.value = qs("#p-q").value;
     
       // Vraagtype
@@ -1028,17 +1039,49 @@ const pEmpty = qs("#panel-empty");
         const v = qs("#p-qt").value;
         qt.value = v;
         openWrap.style.display = v === "open" ? "block" : "none";
-        mcWrap.style.display   = v === "mc"   ? "block" : "none";
+        mcWrap.style.display   = v === "mc" ? "block" : "none";
       };
+    
       qs("#p-qt").onchange = syncType;
       syncType();
     
-      // Antwoorden MC syncen
-      qsa('[data-option]', mcWrap).forEach((opt, i) => {
-        const text = opt.querySelector('[data-text]');
-        const correct = opt.querySelector('[data-correct]');
-        text.oninput = correct.onchange = () => {};
-      });
+      // ===== MULTIPLE CHOICE =====
+    
+      function createOption(text = "", correct = false) {
+        const div = document.createElement("div");
+        div.setAttribute("data-option", "");
+        div.style.display = "grid";
+        div.style.gap = "4px";
+        div.style.marginBottom = "10px";
+    
+        div.innerHTML = `
+          <label style="font-size:12px; color:#6b7280;">Juist</label>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <input
+              data-text
+              placeholder="Antwoord"
+              style="flex:1;"
+            >
+            <input type="checkbox" data-correct>
+          </div>
+        `;
+    
+        div.querySelector('[data-text]').value     = text;
+        div.querySelector('[data-correct]').checked = correct;
+    
+        return div;
+      }
+    
+      // Zorg dat er altijd minimaal 2 opties zijn
+      if (optWrap.children.length === 0) {
+        optWrap.appendChild(createOption());
+        optWrap.appendChild(createOption());
+      }
+    
+      // Optie toevoegen
+      addBtn.onclick = () => {
+        optWrap.appendChild(createOption());
+      };
     }
 
     // LOCATION BLOCK
