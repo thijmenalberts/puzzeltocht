@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><%= puzzle.name %> — <%= page.title %></title>
 
+  <!-- Leaflet -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
   <style>
     body {
       font-family: system-ui, sans-serif;
@@ -14,11 +21,16 @@
     }
 
     .card {
-      background: #fff;
+      background: white;
       border-radius: 12px;
       padding: 16px;
       margin-bottom: 16px;
       box-shadow: 0 4px 12px rgba(0,0,0,.08);
+    }
+
+    #map {
+      height: 320px;
+      border-radius: 12px;
     }
 
     .btn {
@@ -35,49 +47,12 @@
 
     .btn.secondary {
       background: #334155;
-      margin-top: 24px;
+      margin-top: 16px;
     }
 
     .feedback {
-      margin-top: 8px;
+      margin-top: 12px;
       font-weight: 600;
-    }
-
-    label {
-      display: flex;
-      gap: 8px;
-      margin-top: 6px;
-      cursor: pointer;
-      align-items: center;
-    }
-
-    /* Image viewer */
-    .img-thumb {
-      max-width: 100%;
-      border-radius: 8px;
-      cursor: zoom-in;
-    }
-
-    .img-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.75);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-    }
-
-    .img-overlay img {
-      max-width: 90%;
-      max-height: 90%;
-      border-radius: 12px;
-    }
-
-    /* Map */
-    #map {
-      height: 300px;
-      border-radius: 12px;
     }
   </style>
 </head>
@@ -87,70 +62,17 @@
 <h1><%= puzzle.name %></h1>
 <h2><%= page.title %></h2>
 
-<% /* ===================== MAP PAGINA ===================== */ %>
+<!-- ================= MAP PAGINA ================= -->
 <% if (page.isMap) { %>
   <div class="card">
     <div id="map"></div>
-    <p class="feedback" id="mapFeedback"></p>
+    <div class="feedback" id="mapFeedback">
+      Lokatie bepalen…
+    </div>
   </div>
 <% } %>
 
-<% /* ===================== MODULES ===================== */ %>
-<% (page.modules || []).forEach((mod, qIndex) => { %>
-
-  <% if (mod.type === "text") { %>
-    <div class="card"><%- mod.data?.text || "" %></div>
-  <% } %>
-
-  <% if (mod.type === "image") { %>
-    <div class="card">
-      <img
-        src="<%= mod.data.url %>"
-        alt=""
-        class="img-thumb"
-        onclick="openImage(this.src)">
-    </div>
-  <% } %>
-
-  <% if (mod.type === "question") { %>
-    <div class="card">
-      <strong><%= mod.data.question %></strong>
-
-      <% if (mod.data.questionType === "mc") { %>
-        <div
-          data-mc
-          data-options='<%- JSON.stringify(mod.data.options || []) %>'
-          data-good="<%= mod.data.goodPage ?? '' %>"
-          data-bad="<%= mod.data.badPage ?? '' %>"
-          data-puzzle="<%= puzzle._id %>"
-        >
-          <% mod.data.options.forEach((o,i)=>{ %>
-            <label>
-              <input type="radio" name="mc-<%= qIndex %>" value="<%= i %>">
-              <%= o.text %>
-            </label>
-          <% }) %>
-
-          <button class="btn" onclick="handleMC(this)">Controleer</button>
-          <div class="feedback"></div>
-        </div>
-      <% } else { %>
-        <form onsubmit="return handleOpen(event,this)">
-          <input name="answer" placeholder="Jouw antwoord">
-          <button class="btn">Controleer</button>
-          <div class="feedback"></div>
-
-          <input type="hidden" name="correct" value="<%= mod.data.answer %>">
-          <input type="hidden" name="good" value="<%= mod.data.goodPage ?? '' %>">
-          <input type="hidden" name="bad" value="<%= mod.data.badPage ?? '' %>">
-          <input type="hidden" name="puzzle" value="<%= puzzle._id %>">
-        </form>
-      <% } %>
-    </div>
-  <% } %>
-
-<% }) %>
-
+<!-- ================= VOLGENDE PAGINA ================= -->
 <%
   const hasNext =
     page.showNext &&
@@ -158,70 +80,94 @@
 %>
 
 <% if (hasNext) { %>
-  <a class="btn secondary"
-     href="/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>">
+  <a
+    id="nextBtn"
+    class="btn secondary"
+    style="display:none"
+    href="/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>">
     Volgende pagina →
   </a>
 <% } %>
 
-<!-- IMAGE OVERLAY -->
-<div class="img-overlay" id="imgOverlay" onclick="this.style.display='none'">
-  <img id="overlayImg">
-</div>
-
 <script>
-/* ========== AUDIO ON START ========== */
-<% if (page.playSoundOnStart && page.soundUrl) { %>
-  const audio = new Audio("<%= page.soundUrl %>");
-  audio.play().catch(()=>{});
+/* ==================================================
+   MAP LOGICA
+   ================================================== */
+<% if (page.isMap) { %>
+
+const targetLat = <%= page.targetLat %>;
+const targetLng = <%= page.targetLng %>;
+const radius = <%= page.targetRadius %>;
+const showTarget = <%= page.showTarget ? "true" : "false" %>;
+const autoNext = <%= page.autoNext ? "true" : "false" %>;
+
+const map = L.map("map").setView([targetLat, targetLng], 16);
+
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: "© OpenStreetMap"
+}).addTo(map);
+
+const target = L.latLng(targetLat, targetLng);
+
+if (showTarget) {
+  L.marker(target).addTo(map).bindPopup("Doel");
+  L.circle(target, {
+    radius,
+    color: "green",
+    fillOpacity: 0.15
+  }).addTo(map);
+}
+
+const feedback = document.getElementById("mapFeedback");
+const nextBtn = document.getElementById("nextBtn");
+
+function distance(a, b) {
+  return map.distance(a, b);
+}
+
+if (navigator.geolocation) {
+  navigator.geolocation.watchPosition(pos => {
+    const user = L.latLng(
+      pos.coords.latitude,
+      pos.coords.longitude
+    );
+
+    L.marker(user).addTo(map)
+      .bindPopup("Jij bent hier")
+      .openPopup();
+
+    map.setView(user, 17);
+
+    const d = distance(user, target);
+
+    if (d <= radius) {
+      feedback.textContent = "✅ Doel bereikt!";
+      feedback.style.color = "green";
+
+      if (autoNext && nextBtn) {
+        setTimeout(() => {
+          location.href = nextBtn.href;
+        }, 1000);
+      } else if (nextBtn) {
+        nextBtn.style.display = "inline-block";
+      }
+    } else {
+      feedback.textContent =
+        `Afstand tot doel: ${Math.round(d)} meter`;
+      feedback.style.color = "black";
+    }
+  }, () => {
+    feedback.textContent =
+      "Locatie niet beschikbaar";
+    feedback.style.color = "red";
+  });
+} else {
+  feedback.textContent =
+    "Geolocatie niet ondersteund";
+  feedback.style.color = "red";
+}
+
 <% } %>
-
-/* ========== AUTO NEXT ========== */
-<% if (page.autoNext && pageIndex + 1 < puzzle.pages.length) { %>
-  setTimeout(()=>{
-    location.href="/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>";
-  }, 2000);
-<% } %>
-
-/* ========== IMAGE VIEWER ========== */
-function openImage(src) {
-  document.getElementById("overlayImg").src = src;
-  document.getElementById("imgOverlay").style.display = "flex";
-}
-
-/* ========== QUESTIONS ========== */
-function handleMC(btn) {
-  const b = btn.closest('[data-mc]');
-  const fb = b.querySelector('.feedback');
-  const r = b.querySelector('input:checked');
-  if (!r) return fb.textContent = "Kies een antwoord.";
-
-  const opts = JSON.parse(b.dataset.options);
-  const ok = !!opts[r.value]?.correct;
-  const go = ok ? b.dataset.good : b.dataset.bad;
-
-  if (go !== "") {
-    location.href = `/puzzle/${b.dataset.puzzle}/${go}`;
-    return;
-  }
-  fb.textContent = ok ? "Goed!" : "Fout!";
-  fb.style.color = ok ? "green" : "red";
-}
-
-function handleOpen(e,f) {
-  e.preventDefault();
-  const ok = f.answer.value.trim().toLowerCase()
-           === f.correct.value.trim().toLowerCase();
-  const go = ok ? f.good.value : f.bad.value;
-  if (go !== "") {
-    location.href = `/puzzle/${f.puzzle.value}/${go}`;
-    return false;
-  }
-  const fb=f.querySelector('.feedback');
-  fb.textContent = ok?"Goed!":"Fout!";
-  fb.style.color = ok?"green":"red";
-  return false;
-}
 </script>
 
 </body>
