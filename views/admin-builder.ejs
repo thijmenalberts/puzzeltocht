@@ -603,32 +603,6 @@
         }
       }
 
-      if (type === "photo") {
-        content.innerHTML = `
-          <div style="display:flex; gap:8px; margin-bottom:8px;">
-            <button type="button" class="btn-camera">
-              📸 Maak foto
-            </button>
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              class="file-hidden"
-              style="display:none;"
-            >
-          </div>
-      
-          <input
-            type="hidden"
-            data-field="url"
-          >
-      
-          <div class="helper">
-            De speler maakt een foto met de camera.
-          </div>
-        `;
-      }
-
       if(m.type==="text"){
         qs('[data-field="text"]', block).innerHTML = data?.text || "Nieuwe tekst";
       }
@@ -770,6 +744,30 @@ function createBlock(type){
     if(type === "text"){
       content.innerHTML = `
         <div contenteditable="true" data-field="text">Nieuwe tekst</div>
+      `;
+    }
+
+    if (type === "photo") {
+      content.innerHTML = `
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+          <button type="button" class="btn-camera">
+            📸 Maak foto
+          </button>
+    
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            class="file-hidden"
+            style="display:none;"
+          >
+        </div>
+    
+        <input type="hidden" data-field="url">
+    
+        <div class="helper">
+          De speler maakt een foto met de camera.
+        </div>
       `;
     }
 
@@ -968,19 +966,20 @@ function createBlock(type){
       });
     }
 
-    // FOTO MODULE
-    const cameraBtn = block.querySelector(".btn-camera");
-    const fileInput = block.querySelector(".file-hidden");
-    const urlField  = block.querySelector('[data-field="url"]');
     
-    if (cameraBtn && fileInput && urlField) {
+    // FOTO MODULE
+    const cameraBtn  = block.querySelector(".btn-camera");
+    const cameraFile = block.querySelector(".file-hidden");
+    const urlField   = block.querySelector('[data-field="url"]');
+    
+    if (cameraBtn && cameraFile && urlField) {
     
       cameraBtn.addEventListener("click", () => {
-        fileInput.click();
+        cameraFile.click();
       });
     
-      fileInput.addEventListener("change", async () => {
-        const file = fileInput.files?.[0];
+      cameraFile.addEventListener("change", async () => {
+        const file = cameraFile.files?.[0];
         if (!file) return;
     
         // preview tonen
@@ -1015,10 +1014,11 @@ function createBlock(type){
           alert("Upload mislukt");
         }
         finally {
-          fileInput.value = "";
+          cameraFile.value = "";
         }
       });
     }
+
 
     // BLOCK SELECTION
     block.addEventListener("click", ()=>{
