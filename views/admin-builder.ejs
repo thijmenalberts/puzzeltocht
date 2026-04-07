@@ -304,6 +304,7 @@
       <button class="element-btn" type="button" data-type="image">🖼️ Afbeelding</button>
       <button class="element-btn" type="button" data-type="question">❓ Vraag</button>
       <button class="element-btn" type="button" data-type="location">📍 Locatie</button>
+      <button class="element-btn" type="button" data-type="photo">📸 Foto maken</button>
     </div>
 
     <div class="sidebar-actions">
@@ -588,6 +589,45 @@
       phone.appendChild(block);
 
       const data = m.data || {};
+
+      if (m.type === "photo") {
+        const url = data?.url;
+      
+        if (url) {
+          const img = document.createElement("img");
+          img.className = "preview";
+          img.src = url;
+          img.style.width = "100%";
+          img.style.borderRadius = "10px";
+          qs(".content", block).appendChild(img);
+        }
+      }
+
+      if (type === "photo") {
+        content.innerHTML = `
+          <div style="display:flex; gap:8px; margin-bottom:8px;">
+            <button type="button" class="btn-camera">
+              📸 Maak foto
+            </button>
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              class="file-hidden"
+              style="display:none;"
+            >
+          </div>
+      
+          <input
+            type="hidden"
+            data-field="url"
+          >
+      
+          <div class="helper">
+            De speler maakt een foto met de camera.
+          </div>
+        `;
+      }
 
       if(m.type==="text"){
         qs('[data-field="text"]', block).innerHTML = data?.text || "Nieuwe tekst";
@@ -924,6 +964,58 @@ function createBlock(type){
         if(mapped !== raw){
           urlInput.value = mapped;
           urlInput.dispatchEvent(new Event("input"));
+        }
+      });
+    }
+
+    // FOTO MODULE
+    const cameraBtn = block.querySelector(".btn-camera");
+    const fileInput = block.querySelector(".file-hidden");
+    const urlField  = block.querySelector('[data-field="url"]');
+    
+    if (cameraBtn && fileInput && urlField) {
+    
+      cameraBtn.addEventListener("click", () => {
+        fileInput.click();
+      });
+    
+      fileInput.addEventListener("change", async () => {
+        const file = fileInput.files?.[0];
+        if (!file) return;
+    
+        // preview tonen
+        let img = block.querySelector("img.preview");
+        if (!img) {
+          img = document.createElement("img");
+          img.className = "preview";
+          img.style.width = "100%";
+          img.style.borderRadius = "10px";
+          block.querySelector(".content").appendChild(img);
+        }
+        img.src = URL.createObjectURL(file);
+    
+        // upload
+        const fd = new FormData();
+        fd.append("file", file);
+    
+        try {
+          const res = await fetch("/admin-upload-media", {
+            method: "POST",
+            body: fd
+          });
+          if (!res.ok) throw new Error(await res.text());
+    
+          const json = await res.json();
+          urlField.value = json.url;
+    
+          toast("Foto geüpload 📸");
+        }
+        catch (err) {
+          console.error(err);
+          alert("Upload mislukt");
+        }
+        finally {
+          fileInput.value = "";
         }
       });
     }
@@ -1277,6 +1369,10 @@ function collect(){
       
         data.goodPage = Number(qs('[data-field="goodPage"]', b)?.value) || null;
         data.badPage  = Number(qs('[data-field="badPage"]',  b)?.value) || null;
+      }
+
+      if (type === "photo") {
+        data.url = qs('[data-field="url"]', b)?.value || "";
       }
 
       if(type === "location"){
