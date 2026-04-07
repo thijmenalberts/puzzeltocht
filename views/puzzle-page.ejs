@@ -264,30 +264,32 @@ function playSfx(url) {
 
 <script>
 function checkMCBranch(form, options, goodPage, badPage, puzzleId) {
+  event.preventDefault(); // ⭐️ BELANGRIJK
+
   const fb = form.querySelector('[data-feedback]');
   const checked = form.querySelector('input[name="answer"]:checked');
 
   if (!checked) {
     fb.textContent = "Kies eerst een antwoord.";
     fb.style.color = "var(--accent)";
-    return false;
+    return;
   }
 
   const index = Number(checked.value);
   const isCorrect = !!options[index]?.correct;
 
-  if (isCorrect && goodPage !== null) {
-    window.location.href = `/puzzle/${puzzleId}/${goodPage}`;
-  }
-  else if (!isCorrect && badPage !== null) {
-    window.location.href = `/puzzle/${puzzleId}/${badPage}`;
-  }
-  else {
-    fb.textContent = isCorrect ? "Goed!" : "Fout!";
-    fb.style.color = isCorrect ? "green" : "var(--accent)";
+  const targetPage = isCorrect
+    ? (goodPage !== null ? Number(goodPage) : null)
+    : (badPage  !== null ? Number(badPage)  : null);
+
+  if (Number.isInteger(targetPage)) {
+    window.location.href = `/puzzle/${puzzleId}/${targetPage}`;
+    return;
   }
 
-  return false;
+  // fallback feedback
+  fb.textContent = isCorrect ? "Goed!" : "Fout!";
+  fb.style.color = isCorrect ? "green" : "var(--accent)";
 }
 </script>
 
