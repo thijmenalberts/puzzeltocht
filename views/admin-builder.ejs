@@ -305,6 +305,7 @@
       <button class="element-btn" type="button" data-type="question">❓ Vraag</button>
       <button class="element-btn" type="button" data-type="location">📍 Locatie</button>
       <button class="element-btn" type="button" data-type="photo">📸 Foto maken</button>
+      <button class="element-btn" data-type="team-name">🏷️ Teamnaam</button>
     </div>
 
     <div class="sidebar-actions">
@@ -744,6 +745,15 @@ function createBlock(type){
     if(type === "text"){
       content.innerHTML = `
         <div contenteditable="true" data-field="text">Nieuwe tekst</div>
+      `;
+    }
+    
+    if (type === "team-name") {
+      content.innerHTML = `
+        <div class="helper">
+          Speler vult hier de teamnaam in.
+          Deze naam geldt voor het hele team.
+        </div>
       `;
     }
 
@@ -1373,6 +1383,10 @@ function collect(){
 
       if (type === "photo") {
         data.url = qs('[data-field="url"]', b)?.value || "";
+      }
+
+      if (type === "team-name") {
+        data = {}; // geen extra data nodig
       }
 
       if(type === "location"){
