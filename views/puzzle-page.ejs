@@ -6,291 +6,436 @@
   <title><%= puzzle.name %> — <%= page.title %></title>
 
   <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  >
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <style>
-    :root {
-      --bg:#f6f7fb;
-      --card:#ffffff;
-      --primary:#2563eb;
-      --secondary:#475569;
-      --text:#0f172a;
-      --muted:#64748b;
-      --border:#e2e8f0;
-      --ok:#16a34a;
-      --bad:#dc2626;
-    }
-
-    * { box-sizing: border-box; }
-
-    body{
+    body {
+      font-family: system-ui, sans-serif;
+      background:#f5f7fa;
+      padding:24px;
       margin:0;
-      background:var(--bg);
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      color:var(--text);
     }
 
-    .app {
-      max-width:720px;
-      margin:0 auto;
-      padding:24px 16px 48px;
-    }
+    h1 { margin-top: 0; }
 
-    h1 {
-      font-size:28px;
-      margin:0 0 8px;
-    }
-
-    h2 {
-      font-size:20px;
-      margin:0 0 16px;
-      color:var(--secondary);
-    }
-
-    /* Card */
-    .card{
-      background:var(--card);
-      border:1px solid var(--border);
-      border-radius:16px;
+    .card {
+      background:#fff;
+      border-radius:12px;
       padding:16px;
       margin-bottom:16px;
-      box-shadow:0 8px 24px rgba(0,0,0,.06);
+      box-shadow:0 4px 12px rgba(0,0,0,.08);
     }
 
-    /* Buttons */
-    .btn{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
+    .btn {
+      display:inline-block;
       padding:12px 18px;
-      border-radius:10px;
-      background:var(--primary);
+      border-radius:8px;
+      background:#2563eb;
       color:#fff;
+      text-decoration:none;
       border:none;
       cursor:pointer;
       font-size:15px;
-      font-weight:600;
-      text-decoration:none;
-      transition:filter .15s ease;
     }
 
-    .btn:hover { filter:brightness(1.05); }
-
-    .btn.secondary{
-      background:var(--secondary);
+    .btn.secondary {
+      background:#334155;
       margin-top:24px;
     }
 
-    input[type="text"],
-    input[type="file"]{
-      width:100%;
-      padding:12px;
-      border-radius:10px;
-      border:1px solid var(--border);
-      font-size:15px;
-    }
-
-    label{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      margin:8px 0;
-      cursor:pointer;
-    }
-
-    .feedback{
+    .feedback {
       margin-top:8px;
       font-weight:600;
     }
 
-    .ok{ color:var(--ok); }
-    .bad{ color:var(--bad); }
-
-    /* Media */
-    img{
-      max-width:100%;
-      border-radius:12px;
-    }
-
-    audio{
-      width:100%;
-      margin-top:4px;
-    }
-
-    /* Team header */
-    .team-header{
+    label {
       display:flex;
-      gap:12px;
+      gap:8px;
+      margin-top:6px;
       align-items:center;
-      margin-bottom:16px;
+      cursor:pointer;
     }
 
-    .team-photo{
-      width:72px;
-      height:72px;
-      border-radius:50%;
-      object-fit:cover;
-      border:2px solid var(--border);
+    /* Images */
+    .img-thumb,
+    .photo-preview {
+      max-width:100%;
+      border-radius:8px;
+      cursor: zoom-in;
     }
 
-    /* Map */
-    #map{
-      height:320px;
-      border-radius:14px;
-      overflow:hidden;
-    }
-
-    /* Multiple choice */
-    .mc-options label{
-      padding:10px 12px;
-      border:1px solid var(--border);
-      border-radius:10px;
-      margin:6px 0;
-      background:#f8fafc;
-    }
-
-    .mc-options input{
-      margin-right:6px;
-    }
-
-    /* Image overlay */
-    .overlay{
+    .img-overlay {
       position:fixed;
       inset:0;
-      background:rgba(15,23,42,.8);
+      background:rgba(0,0,0,.75);
       display:none;
       align-items:center;
       justify-content:center;
       z-index:1000;
     }
 
-    .overlay img{
+    .img-overlay img {
       max-width:90%;
       max-height:90%;
-      border-radius:16px;
+      border-radius:12px;
+    }
+
+    /* Map */
+    #map {
+      height:320px;
+      border-radius:12px;
+    }
+
+    /* Team header */
+    .team-header {
+      display:flex;
+      align-items:center;
+      gap:12px;
+      margin-bottom:16px;
+    }
+
+    .team-photo {
+      width:80px;
+      height:80px;
+      border-radius:50%;
+      object-fit:cover;
     }
   </style>
 </head>
 
 <body>
-<div class="app">
 
-  <h1><%= puzzle.name %></h1>
+<h1><%= puzzle.name %></h1>
 
-  <% if (session?.teamName || session?.teamProfilePhoto) { %>
-    <div class="team-header">
-      <% if (session?.teamProfilePhoto) { %>
-        <img src="<%= session.teamProfilePhoto %>" class="team-photo">
-      <% } %>
-      <% if (session?.teamName) { %>
-        <strong><%= session.teamName %></strong>
-      <% } %>
-    </div>
-  <% } %>
-
-  <h2><%= page.title %></h2>
-
-  <% if (page.playSoundOnStart && page.soundUrl) { %>
-    <script>
-      new Audio("<%= page.soundUrl %>").play().catch(()=>{});
-    </script>
-  <% } %>
-
-  <% if (page.isMap) { %>
-    <div class="card">
-      <div id="map"></div>
-      <div id="mapFeedback" class="feedback">Locatie bepalen…</div>
-    </div>
-  <% } %>
-
-  <% (page.modules || []).forEach((mod, qIndex) => { %>
-
-    <% if (mod.type === "text") { %>
-      <div class="card"><%- mod.data.text %></div>
+<!-- TEAM HEADER -->
+<% if (session?.teamName || session?.teamProfilePhoto) { %>
+  <div class="team-header">
+    <% if (session?.teamProfilePhoto) { %>
+      <img
+        src="<%= session.teamProfilePhoto %>"
+        class="team-photo"
+        alt="Teamfoto"
+      >
     <% } %>
 
-    <% if (mod.type === "image") { %>
-      <div class="card">
-        <img src="<%= mod.data.url %>" onclick="openImage(this.src)">
-      </div>
+    <% if (session?.teamName) { %>
+      <strong><%= session.teamName %></strong>
     <% } %>
+  </div>
+<% } %>
 
-    <% if (mod.type === "audio") { %>
-      <div class="card">
-        <audio controls src="<%= mod.data.url %>"></audio>
-      </div>
-    <% } %>
+<h2><%= page.title %></h2>
 
-    <% if (mod.type === "team-name") { %>
-      <div class="card">
-        <strong>Teamnaam</strong>
-        <input
-          type="text"
-          placeholder="Jullie teamnaam"
-          value="<%= session?.teamName || '' %>"
-          onblur="saveTeamName(this.value)">
-        <div id="teamname-feedback" class="feedback"></div>
-      </div>
-    <% } %>
+<!-- ================= AUDIO ================= -->
+<% if (page.playSoundOnStart && page.soundUrl) { %>
+<script>
+  new Audio("<%= page.soundUrl %>").play().catch(() => {});
+</script>
+<% } %>
 
-    <% if (mod.type === "question") { %>
-      <div class="card">
-        <strong><%= mod.data.question %></strong>
-
-        <% if (mod.data.questionType === "mc") { %>
-          <div class="mc-options"
-               data-mc
-               data-options='<%- JSON.stringify(mod.data.options || []) %>'
-               data-good="<%= mod.data.goodPage ?? '' %>"
-               data-bad="<%= mod.data.badPage ?? '' %>"
-               data-puzzle="<%= puzzle._id %>">
-            <% mod.data.options.forEach((o,i)=>{ %>
-              <label>
-                <input type="radio" name="mc-<%= qIndex %>" value="<%= i %>">
-                <%= o.text %>
-              </label>
-            <% }) %>
-            <button class="btn" onclick="handleMC(this)">Controleer</button>
-            <div class="feedback"></div>
-          </div>
-        <% } else { %>
-          <form onsubmit="return handleOpen(event,this)">
-            <input name="answer" placeholder="Jouw antwoord">
-            <button class="btn">Controleer</button>
-            <div class="feedback"></div>
-
-            <input type="hidden" name="correct" value="<%= mod.data.answer %>">
-            <input type="hidden" name="good" value="<%= mod.data.goodPage ?? '' %>">
-            <input type="hidden" name="bad" value="<%= mod.data.badPage ?? '' %>">
-            <input type="hidden" name="puzzle" value="<%= puzzle._id %>">
-          </form>
-        <% } %>
-      </div>
-    <% } %>
-
-  <% }) %>
-
-  <% if (page.showNext && pageIndex + 1 < puzzle.pages.length) { %>
-    <a class="btn secondary"
-       href="/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>">
-       Volgende pagina →
-    </a>
-  <% } %>
-
+<!-- ================= MAP PAGE ================= -->
+<% if (page.isMap) { %>
+<div class="card">
+  <div id="map"></div>
+  <div class="feedback" id="mapFeedback">
+    Locatie bepalen…
+  </div>
 </div>
+<% } %>
 
-<div class="overlay" id="imgOverlay" onclick="this.style.display='none'">
+<!-- ================= MODULES ================= -->
+<% (page.modules || []).forEach((mod, qIndex) => { %>
+
+  <!-- TEXT -->
+  <% if (mod.type === "text") { %>
+    <div class="card"><%- mod.data?.text || "" %></div>
+  <% } %>
+
+  <!-- IMAGE -->
+  <% if (mod.type === "image") { %>
+    <div class="card">
+      <img
+        src="<%= mod.data.url %>"
+        class="img-thumb"
+        onclick="openImage(this.src)"
+      >
+    </div>
+  <% } %>
+
+  <% if (mod.type === "audio") { %>
+    <div class="card">
+      <audio
+        controls
+        preload="none"
+        style="width:100%;"
+      >
+        <source src="<%= mod.data.url %>">
+        Je browser ondersteunt geen audio.
+      </audio>
+    </div>
+  <% } %>
+
+  <!-- TEAM NAME MODULE (NIEUW) -->
+  <% if (mod.type === "team-name") { %>
+    <div class="card">
+      <strong>Teamnaam</strong>
+
+      <input
+        type="text"
+        placeholder="Voer jullie teamnaam in"
+        value="<%= session?.teamName || '' %>"
+        onblur="saveTeamName(this.value)"
+      >
+
+      <div class="feedback" id="teamname-feedback"></div>
+    </div>
+  <% } %>
+
+  <!-- PHOTO MODULE -->
+  <% if (mod.type === "photo") { %>
+    <div class="card">
+      <strong>Maak een foto</strong>
+
+      <input
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onchange="uploadPhoto(this, <%= pageIndex %>, <%= qIndex %>)"
+      >
+
+      <input
+        type="hidden"
+        id="photo-url-<%= pageIndex %>-<%= qIndex %>"
+        value="<%= mod.data?.url || '' %>"
+      >
+
+      <div
+        class="feedback"
+        id="photo-feedback-<%= pageIndex %>-<%= qIndex %>">
+      </div>
+
+      <% if (mod.data?.url) { %>
+        <img
+          src="<%= mod.data.url %>"
+          class="photo-preview"
+          onclick="openImage(this.src)"
+        >
+      <% } %>
+
+      <button
+        class="btn"
+        style="margin-top:8px"
+        onclick="setAsTeamPhoto(
+          document.getElementById(
+            'photo-url-<%= pageIndex %>-<%= qIndex %>'
+          ).value
+        )">
+        ⭐ Zet als teamfoto
+      </button>
+    </div>
+  <% } %>
+
+  <!-- QUESTION -->
+  <% if (mod.type === "question") { %>
+    <div class="card">
+      <strong><%= mod.data.question %></strong>
+
+      <% if (mod.data.questionType === "mc") { %>
+        <div
+          data-mc
+          data-options='<%- JSON.stringify(mod.data.options || []) %>'
+          data-good="<%= mod.data.goodPage ?? '' %>"
+          data-bad="<%= mod.data.badPage ?? '' %>"
+          data-puzzle="<%= puzzle._id %>">
+
+          <% mod.data.options.forEach((o,i)=>{ %>
+            <label>
+              <input
+                type="radio"
+                name="mc-<%= qIndex %>"
+                value="<%= i %>"
+              >
+              <%= o.text %>
+            </label>
+          <% }) %>
+
+          <button class="btn" onclick="handleMC(this)">
+            Controleer
+          </button>
+          <div class="feedback"></div>
+        </div>
+      <% } else { %>
+        <form onsubmit="return handleOpen(event,this)">
+          <input name="answer" placeholder="Jouw antwoord">
+          <button class="btn">Controleer</button>
+          <div class="feedback"></div>
+
+          <input type="hidden" name="correct" value="<%= mod.data.answer %>">
+          <input type="hidden" name="good" value="<%= mod.data.goodPage ?? '' %>">
+          <input type="hidden" name="bad" value="<%= mod.data.badPage ?? '' %>">
+          <input type="hidden" name="puzzle" value="<%= puzzle._id %>">
+        </form>
+      <% } %>
+    </div>
+  <% } %>
+
+<% }) %>
+
+<!-- ================= NEXT PAGE ================= -->
+<%
+  const hasNext =
+    page.showNext &&
+    pageIndex + 1 < puzzle.pages.length;
+%>
+
+<% if (hasNext) { %>
+  <a
+    id="nextBtn"
+    class="btn secondary"
+    href="/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>">
+    Volgende pagina →
+  </a>
+<% } %>
+
+<!-- ================= IMAGE OVERLAY ================= -->
+<div class="img-overlay" id="imgOverlay"
+     onclick="this.style.display='none'">
   <img id="overlayImg">
 </div>
 
 <script>
-function openImage(src){
+/* IMAGE VIEWER */
+function openImage(src) {
   overlayImg.src = src;
   imgOverlay.style.display = "flex";
 }
+
+/* QUESTIONS */
+function handleMC(btn) {
+  const b = btn.closest('[data-mc]');
+  const fb = b.querySelector('.feedback');
+  const r = b.querySelector('input:checked');
+  if (!r) return fb.textContent = "Kies een antwoord.";
+
+  const opts = JSON.parse(b.dataset.options || "[]");
+  const ok = !!opts[r.value]?.correct;
+  const go = ok ? b.dataset.good : b.dataset.bad;
+
+  if (go !== "") {
+    location.href = `/puzzle/${b.dataset.puzzle}/${go}`;
+    return;
+  }
+
+  fb.textContent = ok ? "Goed!" : "Fout!";
+  fb.style.color = ok ? "green" : "red";
+}
+
+function handleOpen(e, f) {
+  e.preventDefault();
+  const ok =
+    f.answer.value.trim().toLowerCase() ===
+    f.correct.value.trim().toLowerCase();
+
+  const go = ok ? f.good.value : f.bad.value;
+  if (go !== "") {
+    location.href = `/puzzle/${f.puzzle.value}/${go}`;
+    return false;
+  }
+
+  const fb = f.querySelector('.feedback');
+  fb.textContent = ok ? "Goed!" : "Fout!";
+  fb.style.color = ok ? "green" : "red";
+  return false;
+}
+
+/* PHOTO UPLOAD */
+async function uploadPhoto(input, pageIndex, moduleIndex) {
+  const file = input.files?.[0];
+  if (!file) return;
+
+  const fb = document.getElementById(
+    `photo-feedback-${pageIndex}-${moduleIndex}`
+  );
+
+  const fd = new FormData();
+  fd.append("file", file);
+
+  try {
+    fb.textContent = "Uploaden…";
+
+    const res = await fetch("/upload-photo", {
+      method: "POST",
+      body: fd
+    });
+
+    if (!res.ok) throw new Error();
+
+    const json = await res.json();
+    document.getElementById(
+      `photo-url-${pageIndex}-${moduleIndex}`
+    ).value = json.url;
+
+    fb.textContent = "✅ Foto opgeslagen";
+    fb.style.color = "green";
+  }
+  catch {
+    fb.textContent = "❌ Upload mislukt";
+    fb.style.color = "red";
+  }
+}
+
+/* TEAM PHOTO */
+async function setAsTeamPhoto(photoUrl) {
+  if (!photoUrl) {
+    alert("Maak eerst een foto.");
+    return;
+  }
+
+  if (!confirm("Deze foto instellen als teamfoto?")) return;
+
+  const res = await fetch("/team/profile-photo", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ photoUrl })
+  });
+
+  if (!res.ok) {
+    alert("Instellen mislukt");
+    return;
+  }
+
+  location.reload();
+}
+
+/* TEAM NAME */
+async function saveTeamName(name) {
+  name = name.trim();
+  if (!name) return;
+
+  const fb = document.getElementById("teamname-feedback");
+
+  const res = await fetch("/team/name", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name })
+  });
+
+  if (!res.ok) {
+    fb.textContent = "❌ Opslaan mislukt";
+    fb.style.color = "red";
+    return;
+  }
+
+  fb.textContent = "✅ Teamnaam opgeslagen";
+  fb.style.color = "green";
+}
 </script>
 
+<!-- ================= MAP SCRIPT ================= -->
 <% if (page.isMap) { %>
 <script>
 const target = L.latLng(<%= page.targetLat %>, <%= page.targetLng %>);
@@ -299,28 +444,44 @@ const showTarget = <%= page.showTarget ? "true" : "false" %>;
 const autoNext = <%= page.autoNext ? "true" : "false" %>;
 
 const map = L.map("map").setView(target, 16);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: "© OpenStreetMap"
+}).addTo(map);
 
 if (showTarget) {
   L.marker(target).addTo(map);
-  L.circle(target, { radius, color:"green", fillOpacity:.15 }).addTo(map);
+  L.circle(target, {
+    radius,
+    color: "green",
+    fillOpacity: 0.15
+  }).addTo(map);
 }
 
 const fb = document.getElementById("mapFeedback");
-const nextBtn = document.querySelector(".btn.secondary");
+const nextBtn = document.getElementById("nextBtn");
 
-navigator.geolocation.watchPosition(p=>{
-  const user = L.latLng(p.coords.latitude, p.coords.longitude);
-  map.setView(user,17);
+navigator.geolocation?.watchPosition(pos => {
+  const user = L.latLng(
+    pos.coords.latitude,
+    pos.coords.longitude
+  );
+
+  map.setView(user, 17);
   L.marker(user).addTo(map);
-  const d = map.distance(user, target);
-  fb.textContent = d <= radius
-    ? "✅ Doel bereikt!"
-    : `Afstand: ${Math.round(d)} meter`;
 
-  if(d <= radius && autoNext && nextBtn){
-    setTimeout(()=>location.href = nextBtn.href,1000);
+  const d = map.distance(user, target);
+  if (d <= radius) {
+    fb.textContent = "✅ Doel bereikt!";
+    fb.style.color = "green";
+    if (autoNext && nextBtn) {
+      setTimeout(() => location.href = nextBtn.href, 1000);
+    }
+  } else {
+    fb.textContent = `Afstand: ${Math.round(d)} meter`;
   }
+}, () => {
+  fb.textContent = "Locatie niet beschikbaar";
+  fb.style.color = "red";
 });
 </script>
 <% } %>
