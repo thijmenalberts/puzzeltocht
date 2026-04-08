@@ -18,6 +18,21 @@ import Admin from "./models/Admin.js";
 import Code from "./models/Code.js";
 import Theme from "./models/Theme.js";
 
+// ------------------------------------------
+// HELPER: veilig bestand verwijderen
+// ------------------------------------------
+function safeUnlink(filePath) {
+  fs.unlink(filePath, err => {
+    if (err && err.code !== "ENOENT") {
+      console.warn(
+        "⚠️ Kon bestand niet verwijderen:",
+        filePath,
+        err.message
+      );
+    }
+  });
+}
+
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -211,11 +226,34 @@ app.post(
 app.post("/team/profile-photo", express.json(), (req, res) => {
   const { photoUrl } = req.body;
 
-  if (!photoUrl || !photoUrl.startsWith("/uploads/")) {
-    return res.status(400).json({ error: "Ongeldige foto" });
+  // Validatie
+  if (
+    !photoUrl ||
+    !photoUrl.startsWith("/uploads/team-photos/")
+  ) {
+    return res.status(400).json({ error: "Ongeldige teamfoto" });
   }
 
+  // Oude teamfoto (indien aanwezig)
+  const oldPhotoUrl = req.session.teamProfilePhoto;
+
+  // Nieuwe teamfoto opslaan in session
   req.session.teamProfilePhoto = photoUrl;
+
+  // ✅ AUTOMATISCHE CLEANUP
+  if (
+    oldPhotoUrl &&
+    oldPhotoUrl !== photoUrl &&
+    oldPhotoUrl.startsWith("/uploads/team-photos/")
+  ) {
+    const oldFilePath = path.join(
+      uploadDir,
+      "team-photos",
+      path.basename(oldPhotoUrl)
+    );
+
+    safeUnlink(oldFilePath);
+  }
 
   res.json({ ok: true });
 });
