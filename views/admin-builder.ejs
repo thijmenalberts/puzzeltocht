@@ -794,14 +794,19 @@
       
           qsa('[data-option]', mcWrap).forEach((opt, i) => {
             opt.querySelector('[data-text]').value =
-              data?.options?.[i]?.text || "";
+              typeof data?.options?.[i]?.text === "string"
+                ? data.options[i].text
+                : data.options[i].text?.[activeLanguage] || "";
             opt.querySelector('[data-correct]').checked =
               !!data?.options?.[i]?.correct;
           });
         } else {
           openWrap.style.display = "block";
           mcWrap.style.display = "none";
-          qs('[data-field="answer"]', block).value = data?.answer || "";
+          qs('[data-field="answer"]', block).value =
+            typeof data.answer === "string"
+              ? data.answer
+              : data.answer?.[activeLanguage] || "";
         }
       
         qs('[data-field="goodPage"]', block).value =
@@ -1652,20 +1657,35 @@ function collect(){
       }
     
       if (type === "question") {
-        data.question = data.question || {};
+        data.question = {
+          ...(b._data?.question || {})
+        };
+      
         data.question[activeLanguage] =
           qs('[data-field="question"]', b)?.value || "";
-                data.questionType =
+            data.questionType =
           qs('[data-field="questionType"]', b)?.value || "open";
     
         if (data.questionType === "open") {
-          data.answer =
+          data.answer = {
+            ...(b._data?.answer || {})
+          };
+          data.answer[activeLanguage] =
             qs('[data-field="answer"]', b)?.value || "";
         } else {
-          data.options = qsa('[data-option]', b).map(opt => ({
-            text: opt.querySelector('[data-text]')?.value || "",
-            correct: !!opt.querySelector('[data-correct]')?.checked
-          }));
+          data.options = qsa('[data-option]', b).map((opt, i) => {
+            const textObj = {
+              ...(b._data?.options?.[i]?.text || {})
+            };
+          
+            textObj[activeLanguage] =
+              opt.querySelector('[data-text]')?.value || "";
+          
+            return {
+              text: textObj,
+              correct: !!opt.querySelector('[data-correct]')?.checked
+            };
+          });
         }
     
         data.goodPage =
