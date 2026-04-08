@@ -851,8 +851,12 @@ function addLanguage(lang) {
   availableLanguages.push(lang);
   puzzle.languages = availableLanguages;
 
+  // ✅ ALS DIT DE EERSTE EXTRA TAAL IS
+  if (!puzzle.defaultLanguage) {
+    puzzle.defaultLanguage = activeLanguage;
+  }
+
   pages.forEach(page => {
-    // pagina titel
     if (typeof page.title === "string") {
       page.title = {
         [puzzle.defaultLanguage]: page.title
@@ -860,7 +864,6 @@ function addLanguage(lang) {
     }
     page.title[lang] = "";
 
-    // modules
     page.modules.forEach(m => {
       for (const key in m.data) {
         if (typeof m.data[key] === "string") {
