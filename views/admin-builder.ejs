@@ -291,6 +291,18 @@
     cursor: grab;
     user-select: none;
   }
+
+  .page-item.dragging {
+    opacity: 0.5;
+  }
+  
+  .page-item {
+    cursor: grab;
+  }
+  
+  .page-item:active {
+    cursor: grabbing;
+  }
 </style>
 
 <div class="builder-wrap">
@@ -479,6 +491,7 @@
   let currentPage = 0;
   let selected = null;
   let dragged = null;
+  let draggedPageIndex = null;
 
   function mapGoogleDriveUrl(url){
     try{
@@ -530,9 +543,37 @@
     pages.forEach((p,i)=>{
       const item = document.createElement("div");
       item.className = "page-item" + (i===currentPage ? " active" : "");
+      item.draggable = true;
+      item.dataset.index = i;
       item.dataset.page = i;
       item.innerHTML = `<span>${p.title?.trim() ? p.title : ("Pagina " + (i+1))}</span>`;
       item.addEventListener("click", ()=> switchPage(i));
+      item.addEventListener("dragstart", (e) => {
+        draggedPageIndex = i;
+        item.classList.add("dragging");
+        e.dataTransfer.effectAllowed = "move";
+      });
+      
+      item.addEventListener("dragend", () => {
+        item.classList.remove("dragging");
+        draggedPageIndex = null;
+      });
+      
+      item.addEventListener("dragover", (e) => {
+        e.preventDefault();
+      });
+      
+      item.addEventListener("drop", (e) => {
+        e.preventDefault();
+      
+        const targetIndex = Number(item.dataset.index);
+        if (
+          draggedPageIndex === null ||
+          draggedPageIndex === targetIndex
+        ) return;
+      
+        movePage(draggedPageIndex, targetIndex);
+      });
       wrap.appendChild(item);
     });
   }
@@ -694,6 +735,29 @@ function switchPage(nextIndex){
     currentPage = nextIndex;
     renderPageList();
     renderPage(currentPage);
+}
+
+function movePage(fromIndex, toIndex){
+  const moved = pages.splice(fromIndex, 1)[0];
+  pages.splice(toIndex, 0, moved);
+
+  // Current page correct houden
+  if (currentPage === fromIndex) {
+    currentPage = toIndex;
+  } else if (
+    currentPage > fromIndex &&
+    currentPage <= toIndex
+  ) {
+    currentPage--;
+  } else if (
+    currentPage < fromIndex &&
+    currentPage >= toIndex
+  ) {
+    currentPage++;
+  }
+
+  renderPageList();
+  renderPage(currentPage);
 }
 
   function addPage(){
