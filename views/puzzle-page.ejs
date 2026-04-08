@@ -166,6 +166,19 @@
     </div>
   <% } %>
 
+  <% if (mod.type === "audio") { %>
+    <div class="card">
+      <audio
+        controls
+        preload="none"
+        style="width:100%;"
+      >
+        <source src="<%= mod.data.url %>">
+        Je browser ondersteunt geen audio.
+      </audio>
+    </div>
+  <% } %>
+
   <!-- TEAM NAME MODULE (NIEUW) -->
   <% if (mod.type === "team-name") { %>
     <div class="card">
