@@ -296,7 +296,6 @@ app.get("/admin-files", requireAdmin, (req, res) => {
       };
     });
   }
-
   const folders = readFiles(baseDir)
     .filter(f => f.isDir)
     .map(folder => ({
@@ -305,6 +304,19 @@ app.get("/admin-files", requireAdmin, (req, res) => {
     }));
 
   res.render("admin-files", { folders });
+});
+
+app.post("/admin-files/delete", requireAdmin, express.json(), (req, res) => {
+  const { folder, file } = req.body;
+
+  const filePath = path.join(uploadDir, folder, file);
+
+  if (!filePath.startsWith(uploadDir)) {
+    return res.status(400).json({ error: "Ongeldig pad" });
+  }
+
+  safeUnlink(filePath);
+  res.json({ ok: true });
 });
 
 app.get("/", (req, res) => res.render("index", { error: null }));
