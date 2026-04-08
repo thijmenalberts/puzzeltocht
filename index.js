@@ -440,7 +440,7 @@ app.post("/admin-puzzles/new", requireAdmin, async (req, res) => {
 
 // Builder
 app.get("/admin-builder/:id", requireAdmin, async (req, res) => {
-  const puzzle = await Puzzle.findById(req.params.id);
+  const puzzle = await Puzzle.findById(req.params.id).lean();
   res.render("admin-builder", { puzzle, builderPage: true });
 });
 
