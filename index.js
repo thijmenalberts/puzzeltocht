@@ -259,6 +259,20 @@ app.post("/team/profile-photo", express.json(), (req, res) => {
 });
 
 // ------------------------------------------
+// SET TEAM NAME
+// ------------------------------------------
+app.post("/team/name", express.json(), (req, res) => {
+  const { name } = req.body;
+
+  if (!name || typeof name !== "string" || name.length > 40) {
+    return res.status(400).json({ error: "Ongeldige teamnaam" });
+  }
+
+  req.session.teamName = name.trim();
+  res.json({ ok: true });
+});
+
+// ------------------------------------------
 // 9. ROUTES
 // ------------------------------------------
 
