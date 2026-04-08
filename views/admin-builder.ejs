@@ -629,42 +629,6 @@
         }
       }
 
-      if (type === "audio") {
-        content.innerHTML = `
-          <label>Geluidsbestand</label>
-      
-          <div style="display:flex; gap:8px; margin-bottom:8px;">
-            <input
-              type="text"
-              data-field="url"
-              placeholder="/uploads/geluid.mp3"
-              style="flex:1;"
-            >
-      
-            <button
-              type="button"
-              class="btn-upload"
-              style="white-space:nowrap;"
-            >
-              Uploaden
-            </button>
-      
-            <input
-              type="file"
-              accept="audio/*"
-              class="file-hidden"
-              style="display:none;"
-            >
-          </div>
-      
-          <audio controls style="width:100%; display:none;"></audio>
-      
-          <div class="helper">
-            Upload een geluidsbestand of plak een bestaande link.
-          </div>
-        `;
-      }
-
       if(m.type==="question"){
         qs('[data-field="question"]', block).value = data?.question || "";
         qs('[data-field="questionType"]', block).value = data?.questionType || "open";
@@ -784,7 +748,43 @@ function createBlock(type){
         <div contenteditable="true" data-field="text">Nieuwe tekst</div>
       `;
     }
+
+    if (type === "audio") {
+      content.innerHTML = `
+        <label>Geluidsbestand</label>
     
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+          <input
+            type="text"
+            data-field="url"
+            placeholder="/uploads/geluid.mp3"
+            style="flex:1;"
+          >
+    
+          <button
+            type="button"
+            class="btn-upload"
+            style="white-space:nowrap;"
+          >
+            Uploaden
+          </button>
+    
+          <input
+            type="file"
+            accept="audio/*"
+            class="file-hidden"
+            style="display:none;"
+          >
+        </div>
+    
+        <audio controls style="width:100%; display:none;"></audio>
+    
+        <div class="helper">
+          Upload een geluidsbestand of plak een bestaande link.
+        </div>
+      `;
+    }
+
     if (type === "team-name") {
       content.innerHTML = `
         <div class="helper">
@@ -938,14 +938,18 @@ function createBlock(type){
     });
 
     // IMAGE INPUT HANDLING
-    block.addEventListener("input", (e)=>{
-      if(e.target.matches('input[data-field="url"]')){
-        const url = e.target.value.trim();
+    block.addEventListener("input", (e) => {
+      if (!e.target.matches('input[data-field="url"]')) return;
+    
+      const url = e.target.value.trim();
+    
+      /* IMAGE PREVIEW */
+      if (block.dataset.type === "image") {
         const oldImg = qs("img.preview", block);
         const helper = qs(".helper", block);
-
-        if(url){
-          if(oldImg){
+    
+        if (url) {
+          if (oldImg) {
             oldImg.src = url;
           } else {
             const img = document.createElement("img");
@@ -953,16 +957,29 @@ function createBlock(type){
             img.src = url;
             img.style.width = "100%";
             img.style.borderRadius = "10px";
-
-            if(helper) helper.replaceWith(img);
+    
+            if (helper) helper.replaceWith(img);
             else qs(".content", block).appendChild(img);
           }
-        } else if(oldImg){
+        } else if (oldImg) {
           const h = document.createElement("div");
           h.className = "helper";
           h.textContent = "Voeg een afbeelding URL toe of upload.";
-
           oldImg.replaceWith(h);
+        }
+      }
+    
+      /* ✅ AUDIO PREVIEW */
+      if (block.dataset.type === "audio") {
+        const audio = block.querySelector("audio");
+        if (!audio) return;
+    
+        if (url) {
+          audio.src = url;
+          audio.style.display = "block";
+        } else {
+          audio.removeAttribute("src");
+          audio.style.display = "none";
         }
       }
     });
