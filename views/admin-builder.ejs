@@ -375,7 +375,7 @@
         </label>
 
         <!-- IS MAP -->
-        <label style="display:flex; align-items:center; gap:8px; margin-top:10px;">
+        <label class="check-row">
           <input id="page-ismap" type="checkbox" />
           <span>Kaartpagina (toon alleen kaart met je locatie)</span>
         </label>
@@ -386,11 +386,10 @@
                     padding:12px; border-radius:10px; margin-top:10px;">
         
             <!-- Speel geluid bij openen pagina -->
-            <label style="display:flex; align-items:center; gap:8px;">
+            <label class="check-row">
               <input id="page-playsound-start" type="checkbox" />
               <span>Speel geluid bij openen pagina</span>
             </label>
-        
             <!-- Geluidsbestand -->
             <div id="sound-file-section" style="margin-top:10px; display:none;">
             
@@ -434,14 +433,14 @@
 
         <div id="map-extra-options" style="display:none; margin-top:10px;">
 
-          <label style="display:flex; align-items:center; gap:8px; margin-top:10px;">
+          <label class="check-row">
             <input id="page-showtarget" type="checkbox" />
-            Toon doellocatie aan speler
+            <span>Toon doellocatie aan speler</span>
           </label>
 
-          <label style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+          <label class="check-row">
             <input id="page-autonext" type="checkbox" />
-            Ga automatisch naar volgende pagina bij binnen radius
+            <span>Ga automatisch naar volgende pagina bij binnen radius</span>
           </label>
         </div>
 
