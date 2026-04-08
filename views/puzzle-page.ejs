@@ -6,8 +6,10 @@
   <title><%= puzzle.name %> — <%= page.title %></title>
 
   <!-- Leaflet -->
-  <link rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  >
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <style>
@@ -17,6 +19,8 @@
       padding:24px;
       margin:0;
     }
+
+    h1 { margin-top: 0; }
 
     .card {
       background:#fff;
@@ -57,10 +61,11 @@
     }
 
     /* Images */
-    .img-thumb, .photo-preview {
+    .img-thumb,
+    .photo-preview {
       max-width:100%;
       border-radius:8px;
-      cursor:zoom-in;
+      cursor: zoom-in;
     }
 
     .img-overlay {
@@ -85,13 +90,19 @@
       border-radius:12px;
     }
 
-    /* Team photo */
+    /* Team header */
+    .team-header {
+      display:flex;
+      align-items:center;
+      gap:12px;
+      margin-bottom:16px;
+    }
+
     .team-photo {
-      width:96px;
-      height:96px;
+      width:80px;
+      height:80px;
       border-radius:50%;
       object-fit:cover;
-      margin-bottom:12px;
     }
   </style>
 </head>
@@ -100,11 +111,21 @@
 
 <h1><%= puzzle.name %></h1>
 
-<% if (session?.teamProfilePhoto) { %>
-  <img
-    src="<%= session.teamProfilePhoto %>"
-    class="team-photo"
-    alt="Teamfoto">
+<!-- TEAM HEADER -->
+<% if (session?.teamName || session?.teamProfilePhoto) { %>
+  <div class="team-header">
+    <% if (session?.teamProfilePhoto) { %>
+      <img
+        src="<%= session.teamProfilePhoto %>"
+        class="team-photo"
+        alt="Teamfoto"
+      >
+    <% } %>
+
+    <% if (session?.teamName) { %>
+      <strong><%= session.teamName %></strong>
+    <% } %>
+  </div>
 <% } %>
 
 <h2><%= page.title %></h2>
@@ -112,7 +133,7 @@
 <!-- ================= AUDIO ================= -->
 <% if (page.playSoundOnStart && page.soundUrl) { %>
 <script>
-  new Audio("<%= page.soundUrl %>").play().catch(()=>{});
+  new Audio("<%= page.soundUrl %>").play().catch(() => {});
 </script>
 <% } %>
 
@@ -129,19 +150,39 @@
 <!-- ================= MODULES ================= -->
 <% (page.modules || []).forEach((mod, qIndex) => { %>
 
+  <!-- TEXT -->
   <% if (mod.type === "text") { %>
     <div class="card"><%- mod.data?.text || "" %></div>
   <% } %>
 
+  <!-- IMAGE -->
   <% if (mod.type === "image") { %>
     <div class="card">
       <img
         src="<%= mod.data.url %>"
         class="img-thumb"
-        onclick="openImage(this.src)">
+        onclick="openImage(this.src)"
+      >
     </div>
   <% } %>
 
+  <!-- TEAM NAME MODULE (NIEUW) -->
+  <% if (mod.type === "team-name") { %>
+    <div class="card">
+      <strong>Teamnaam</strong>
+
+      <input
+        type="text"
+        placeholder="Voer jullie teamnaam in"
+        value="<%= session?.teamName || '' %>"
+        onblur="saveTeamName(this.value)"
+      >
+
+      <div class="feedback" id="teamname-feedback"></div>
+    </div>
+  <% } %>
+
+  <!-- PHOTO MODULE -->
   <% if (mod.type === "photo") { %>
     <div class="card">
       <strong>Maak een foto</strong>
@@ -150,12 +191,14 @@
         type="file"
         accept="image/*"
         capture="environment"
-        onchange="uploadPhoto(this, <%= pageIndex %>, <%= qIndex %>)">
+        onchange="uploadPhoto(this, <%= pageIndex %>, <%= qIndex %>)"
+      >
 
       <input
         type="hidden"
         id="photo-url-<%= pageIndex %>-<%= qIndex %>"
-        value="<%= mod.data?.url || '' %>">
+        value="<%= mod.data?.url || '' %>"
+      >
 
       <div
         class="feedback"
@@ -166,7 +209,8 @@
         <img
           src="<%= mod.data.url %>"
           class="photo-preview"
-          onclick="openImage(this.src)">
+          onclick="openImage(this.src)"
+        >
       <% } %>
 
       <button
@@ -182,6 +226,7 @@
     </div>
   <% } %>
 
+  <!-- QUESTION -->
   <% if (mod.type === "question") { %>
     <div class="card">
       <strong><%= mod.data.question %></strong>
@@ -199,7 +244,8 @@
               <input
                 type="radio"
                 name="mc-<%= qIndex %>"
-                value="<%= i %>">
+                value="<%= i %>"
+              >
               <%= o.text %>
             </label>
           <% }) %>
@@ -275,7 +321,7 @@ function handleMC(btn) {
   fb.style.color = ok ? "green" : "red";
 }
 
-function handleOpen(e,f) {
+function handleOpen(e, f) {
   e.preventDefault();
   const ok =
     f.answer.value.trim().toLowerCase() ===
@@ -329,14 +375,14 @@ async function uploadPhoto(input, pageIndex, moduleIndex) {
   }
 }
 
-/* SET TEAM PROFILE PHOTO */
+/* TEAM PHOTO */
 async function setAsTeamPhoto(photoUrl) {
   if (!photoUrl) {
     alert("Maak eerst een foto.");
     return;
   }
 
-  if (!confirm("Deze foto instellen als teamprofielfoto?")) return;
+  if (!confirm("Deze foto instellen als teamfoto?")) return;
 
   const res = await fetch("/team/profile-photo", {
     method: "POST",
@@ -349,7 +395,30 @@ async function setAsTeamPhoto(photoUrl) {
     return;
   }
 
-  alert("✅ Teamfoto ingesteld!");
+  location.reload();
+}
+
+/* TEAM NAME */
+async function saveTeamName(name) {
+  name = name.trim();
+  if (!name) return;
+
+  const fb = document.getElementById("teamname-feedback");
+
+  const res = await fetch("/team/name", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name })
+  });
+
+  if (!res.ok) {
+    fb.textContent = "❌ Opslaan mislukt";
+    fb.style.color = "red";
+    return;
+  }
+
+  fb.textContent = "✅ Teamnaam opgeslagen";
+  fb.style.color = "green";
 }
 </script>
 
