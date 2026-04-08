@@ -5,20 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><%= puzzle.name %> — <%= page.title %></title>
 
-  <!-- Leaflet (kaart) -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <!-- Leaflet -->
+  <link rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <style>
-    body{
+    body {
       font-family: system-ui, sans-serif;
       background:#f5f7fa;
       padding:24px;
       margin:0;
     }
-    h1{ margin-top:0; }
 
-    .card{
+    .card {
       background:#fff;
       border-radius:12px;
       padding:16px;
@@ -26,7 +26,7 @@
       box-shadow:0 4px 12px rgba(0,0,0,.08);
     }
 
-    .btn{
+    .btn {
       display:inline-block;
       padding:12px 18px;
       border-radius:8px;
@@ -37,17 +37,18 @@
       cursor:pointer;
       font-size:15px;
     }
-    .btn.secondary{
+
+    .btn.secondary {
       background:#334155;
       margin-top:24px;
     }
 
-    .feedback{
+    .feedback {
       margin-top:8px;
       font-weight:600;
     }
 
-    label{
+    label {
       display:flex;
       gap:8px;
       margin-top:6px;
@@ -56,13 +57,13 @@
     }
 
     /* Images */
-    .img-thumb{
+    .img-thumb, .photo-preview {
       max-width:100%;
       border-radius:8px;
       cursor:zoom-in;
     }
 
-    .img-overlay{
+    .img-overlay {
       position:fixed;
       inset:0;
       background:rgba(0,0,0,.75);
@@ -71,23 +72,26 @@
       justify-content:center;
       z-index:1000;
     }
-    .img-overlay img{
+
+    .img-overlay img {
       max-width:90%;
       max-height:90%;
       border-radius:12px;
     }
 
     /* Map */
-    #map{
+    #map {
       height:320px;
       border-radius:12px;
     }
 
-    /* Photo */
-    .photo-preview{
-      margin-top:10px;
-      max-width:100%;
-      border-radius:8px;
+    /* Team photo */
+    .team-photo {
+      width:96px;
+      height:96px;
+      border-radius:50%;
+      object-fit:cover;
+      margin-bottom:12px;
     }
   </style>
 </head>
@@ -95,6 +99,14 @@
 <body>
 
 <h1><%= puzzle.name %></h1>
+
+<% if (session?.teamProfilePhoto) { %>
+  <img
+    src="<%= session.teamProfilePhoto %>"
+    class="team-photo"
+    alt="Teamfoto">
+<% } %>
+
 <h2><%= page.title %></h2>
 
 <!-- ================= AUDIO ================= -->
@@ -108,19 +120,19 @@
 <% if (page.isMap) { %>
 <div class="card">
   <div id="map"></div>
-  <div class="feedback" id="mapFeedback">Locatie bepalen…</div>
+  <div class="feedback" id="mapFeedback">
+    Locatie bepalen…
+  </div>
 </div>
 <% } %>
 
 <!-- ================= MODULES ================= -->
 <% (page.modules || []).forEach((mod, qIndex) => { %>
 
-  <!-- TEXT -->
   <% if (mod.type === "text") { %>
     <div class="card"><%- mod.data?.text || "" %></div>
   <% } %>
 
-  <!-- IMAGE -->
   <% if (mod.type === "image") { %>
     <div class="card">
       <img
@@ -130,7 +142,6 @@
     </div>
   <% } %>
 
-  <!-- PHOTO (NIEUW) -->
   <% if (mod.type === "photo") { %>
     <div class="card">
       <strong>Maak een foto</strong>
@@ -139,20 +150,12 @@
         type="file"
         accept="image/*"
         capture="environment"
-        onchange="uploadPhoto(
-          this,
-          '<%= puzzle._id %>',
-          <%= pageIndex %>,
-          <%= qIndex %>
-        )"
-      >
+        onchange="uploadPhoto(this, <%= pageIndex %>, <%= qIndex %>)">
 
       <input
         type="hidden"
-        class="photo-url"
         id="photo-url-<%= pageIndex %>-<%= qIndex %>"
-        value="<%= mod.data?.url || '' %>"
-      >
+        value="<%= mod.data?.url || '' %>">
 
       <div
         class="feedback"
@@ -165,10 +168,20 @@
           class="photo-preview"
           onclick="openImage(this.src)">
       <% } %>
+
+      <button
+        class="btn"
+        style="margin-top:8px"
+        onclick="setAsTeamPhoto(
+          document.getElementById(
+            'photo-url-<%= pageIndex %>-<%= qIndex %>'
+          ).value
+        )">
+        ⭐ Zet als teamfoto
+      </button>
     </div>
   <% } %>
 
-  <!-- QUESTION -->
   <% if (mod.type === "question") { %>
     <div class="card">
       <strong><%= mod.data.question %></strong>
@@ -177,18 +190,23 @@
         <div
           data-mc
           data-options='<%- JSON.stringify(mod.data.options || []) %>'
-          data-good="<%= mod.data.goodPage ?? "" %>"
-          data-bad="<%= mod.data.badPage ?? "" %>"
+          data-good="<%= mod.data.goodPage ?? '' %>"
+          data-bad="<%= mod.data.badPage ?? '' %>"
           data-puzzle="<%= puzzle._id %>">
 
           <% mod.data.options.forEach((o,i)=>{ %>
             <label>
-              <input type="radio" name="mc-<%= qIndex %>" value="<%= i %>">
+              <input
+                type="radio"
+                name="mc-<%= qIndex %>"
+                value="<%= i %>">
               <%= o.text %>
             </label>
           <% }) %>
 
-          <button class="btn" onclick="handleMC(this)">Controleer</button>
+          <button class="btn" onclick="handleMC(this)">
+            Controleer
+          </button>
           <div class="feedback"></div>
         </div>
       <% } else { %>
@@ -216,12 +234,12 @@
 %>
 
 <% if (hasNext) { %>
-<a
-  id="nextBtn"
-  class="btn secondary"
-  href="/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>">
-  Volgende pagina →
-</a>
+  <a
+    id="nextBtn"
+    class="btn secondary"
+    href="/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>">
+    Volgende pagina →
+  </a>
 <% } %>
 
 <!-- ================= IMAGE OVERLAY ================= -->
@@ -232,13 +250,13 @@
 
 <script>
 /* IMAGE VIEWER */
-function openImage(src){
+function openImage(src) {
   overlayImg.src = src;
   imgOverlay.style.display = "flex";
 }
 
 /* QUESTIONS */
-function handleMC(btn){
+function handleMC(btn) {
   const b = btn.closest('[data-mc]');
   const fb = b.querySelector('.feedback');
   const r = b.querySelector('input:checked');
@@ -252,11 +270,12 @@ function handleMC(btn){
     location.href = `/puzzle/${b.dataset.puzzle}/${go}`;
     return;
   }
+
   fb.textContent = ok ? "Goed!" : "Fout!";
   fb.style.color = ok ? "green" : "red";
 }
 
-function handleOpen(e,f){
+function handleOpen(e,f) {
   e.preventDefault();
   const ok =
     f.answer.value.trim().toLowerCase() ===
@@ -267,6 +286,7 @@ function handleOpen(e,f){
     location.href = `/puzzle/${f.puzzle.value}/${go}`;
     return false;
   }
+
   const fb = f.querySelector('.feedback');
   fb.textContent = ok ? "Goed!" : "Fout!";
   fb.style.color = ok ? "green" : "red";
@@ -274,7 +294,7 @@ function handleOpen(e,f){
 }
 
 /* PHOTO UPLOAD */
-async function uploadPhoto(input, puzzleId, pageIndex, moduleIndex){
+async function uploadPhoto(input, pageIndex, moduleIndex) {
   const file = input.files?.[0];
   if (!file) return;
 
@@ -285,14 +305,15 @@ async function uploadPhoto(input, puzzleId, pageIndex, moduleIndex){
   const fd = new FormData();
   fd.append("file", file);
 
-  try{
+  try {
     fb.textContent = "Uploaden…";
 
     const res = await fetch("/upload-photo", {
-      method:"POST",
-      body:fd
+      method: "POST",
+      body: fd
     });
-    if(!res.ok) throw new Error(await res.text());
+
+    if (!res.ok) throw new Error();
 
     const json = await res.json();
     document.getElementById(
@@ -302,26 +323,33 @@ async function uploadPhoto(input, puzzleId, pageIndex, moduleIndex){
     fb.textContent = "✅ Foto opgeslagen";
     fb.style.color = "green";
   }
-  catch(err){
-    console.error(err);
+  catch {
     fb.textContent = "❌ Upload mislukt";
     fb.style.color = "red";
   }
 }
 
-/* FOTO VERPLICHT (optioneel) */
-const nextBtn = document.getElementById("nextBtn");
-if (nextBtn) {
-  nextBtn.addEventListener("click", e => {
-    const photos = document.querySelectorAll(".photo-url");
-    for (const p of photos) {
-      if (!p.value) {
-        e.preventDefault();
-        alert("Je moet eerst een foto maken.");
-        return;
-      }
-    }
+/* SET TEAM PROFILE PHOTO */
+async function setAsTeamPhoto(photoUrl) {
+  if (!photoUrl) {
+    alert("Maak eerst een foto.");
+    return;
+  }
+
+  if (!confirm("Deze foto instellen als teamprofielfoto?")) return;
+
+  const res = await fetch("/team/profile-photo", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ photoUrl })
   });
+
+  if (!res.ok) {
+    alert("Instellen mislukt");
+    return;
+  }
+
+  alert("✅ Teamfoto ingesteld!");
 }
 </script>
 
@@ -334,33 +362,44 @@ const showTarget = <%= page.showTarget ? "true" : "false" %>;
 const autoNext = <%= page.autoNext ? "true" : "false" %>;
 
 const map = L.map("map").setView(target, 16);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
-  attribution:"© OpenStreetMap"
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: "© OpenStreetMap"
 }).addTo(map);
 
 if (showTarget) {
   L.marker(target).addTo(map);
-  L.circle(target,{ radius, color:"green", fillOpacity:0.15 }).addTo(map);
+  L.circle(target, {
+    radius,
+    color: "green",
+    fillOpacity: 0.15
+  }).addTo(map);
 }
 
 const fb = document.getElementById("mapFeedback");
-navigator.geolocation?.watchPosition(pos=>{
-  const user = L.latLng(pos.coords.latitude, pos.coords.longitude);
-  map.setView(user,17);
+const nextBtn = document.getElementById("nextBtn");
+
+navigator.geolocation?.watchPosition(pos => {
+  const user = L.latLng(
+    pos.coords.latitude,
+    pos.coords.longitude
+  );
+
+  map.setView(user, 17);
   L.marker(user).addTo(map);
+
   const d = map.distance(user, target);
-  if(d <= radius){
+  if (d <= radius) {
     fb.textContent = "✅ Doel bereikt!";
     fb.style.color = "green";
-    if(autoNext && nextBtn){
-      setTimeout(()=>location.href=nextBtn.href,1000);
+    if (autoNext && nextBtn) {
+      setTimeout(() => location.href = nextBtn.href, 1000);
     }
   } else {
-    fb.textContent = `Afstand: ${Math.round(d)} m`;
+    fb.textContent = `Afstand: ${Math.round(d)} meter`;
   }
-},()=>{
-  fb.textContent="Locatie niet beschikbaar";
-  fb.style.color="red";
+}, () => {
+  fb.textContent = "Locatie niet beschikbaar";
+  fb.style.color = "red";
 });
 </script>
 <% } %>
