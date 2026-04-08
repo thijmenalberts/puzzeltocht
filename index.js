@@ -450,6 +450,17 @@ app.post("/admin-builder/:id/save-all", requireAdmin, express.json(), async (req
     const puzzle = await Puzzle.findById(req.params.id);
     if (!puzzle) return res.status(404).send("Puzzel niet gevonden");
 
+    if (Array.isArray(req.body.languages)) {
+      puzzle.languages = req.body.languages;
+    }
+    
+    if (typeof req.body.defaultLanguage === "string") {
+      puzzle.defaultLanguage = req.body.defaultLanguage;
+    }
+    
+    puzzle.markModified("pages");
+    puzzle.markModified("languages");
+
     puzzle.pages = req.body.pages;
     puzzle.markModified("pages");
     await puzzle.save();
