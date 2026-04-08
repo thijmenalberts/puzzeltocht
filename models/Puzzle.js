@@ -31,22 +31,25 @@ const ModuleSchema = new mongoose.Schema(
 
 const PageSchema = new mongoose.Schema(
   {
-    title:          { type: String,  default: "Pagina", trim: true },
-    showNext:       { type: Boolean, default: true },
-    isMap:          { type: Boolean, default: false },
+    title: {
+      type: mongoose.Schema.Types.Mixed,
+      default: "Pagina"
+    },
+
+    showNext: { type: Boolean, default: true },
+    isMap:    { type: Boolean, default: false },
 
     // Coordinates
-    targetLat:      { type: Number,  default: null },
-    targetLng:      { type: Number,  default: null },
-    targetRadius:   { type: Number,  default: 50 },
+    targetLat:    { type: Number, default: null },
+    targetLng:    { type: Number, default: null },
+    targetRadius: { type: Number, default: 50 },
 
-    // ⭐ Nieuwe opties — exact zoals front‑end
-    showTarget:       { type: Boolean, default: true },   // zichtbaar marker
-    autoNext:         { type: Boolean, default: false },  // automatisch door
-    playSoundOnStart: { type: Boolean, default: false },  // geluid bij openen pagina  ← NIEUW
+    // ⭐ Nieuwe opties
+    showTarget:       { type: Boolean, default: true },
+    autoNext:         { type: Boolean, default: false },
+    playSoundOnStart: { type: Boolean, default: false },
     soundUrl:         { type: String,  default: "", trim: true },
-    
-    // Modules
+
     modules: { type: [ModuleSchema], default: [] },
   },
   { _id: false }
