@@ -1352,53 +1352,62 @@ function collect(){
       return t && t !== "__preview__";
     });
 
-    return blocks.map(b=>{
+    return blocks.map(b => {
       const type = b.dataset.type;
-      const data = {};
-
-      if(type === "text"){
-        data.text = qs('[data-field="text"]', b)?.innerHTML || "";
+      let data = {};   // ✅ LET i.p.v. CONST
+    
+      if (type === "text") {
+        data.text =
+          qs('[data-field="text"]', b)?.innerHTML || "";
       }
-
-      if(type === "image"){
-        data.url = qs('input[data-field="url"]', b)?.value?.trim() || "";
+    
+      if (type === "image") {
+        data.url =
+          qs('input[data-field="url"]', b)?.value?.trim() || "";
       }
-
-      if(type === "question"){
-        data.question = qs('[data-field="question"]', b)?.value || "";
-        data.questionType = qs('[data-field="questionType"]', b)?.value || "open";
-      
-        if(data.questionType === "open"){
-          data.answer = qs('[data-field="answer"]', b)?.value || "";
+    
+      if (type === "question") {
+        data.question =
+          qs('[data-field="question"]', b)?.value || "";
+        data.questionType =
+          qs('[data-field="questionType"]', b)?.value || "open";
+    
+        if (data.questionType === "open") {
+          data.answer =
+            qs('[data-field="answer"]', b)?.value || "";
         } else {
           data.options = qsa('[data-option]', b).map(opt => ({
             text: opt.querySelector('[data-text]')?.value || "",
             correct: !!opt.querySelector('[data-correct]')?.checked
           }));
         }
-      
-        data.goodPage = Number(qs('[data-field="goodPage"]', b)?.value) || null;
-        data.badPage  = Number(qs('[data-field="badPage"]',  b)?.value) || null;
+    
+        data.goodPage =
+          Number(qs('[data-field="goodPage"]', b)?.value) || null;
+        data.badPage =
+          Number(qs('[data-field="badPage"]', b)?.value) || null;
       }
-
+    
       if (type === "photo") {
-        data.url = qs('[data-field="url"]', b)?.value || "";
+        data.url =
+          qs('[data-field="url"]', b)?.value || "";
       }
-
+    
+      // ✅ TEAM NAME MODULE
       if (type === "team-name") {
-        data = {}; // geen extra data nodig
+        data = {}; // dit mag nu wel
       }
-
-      if(type === "location"){
+    
+      if (type === "location") {
         const lat = qs('input[data-field="lat"]', b)?.value;
         const lng = qs('input[data-field="lng"]', b)?.value;
         const rad = qs('input[data-field="radius"]', b)?.value;
-
+    
         data.lat    = lat !== "" ? Number(lat) : null;
         data.lng    = lng !== "" ? Number(lng) : null;
         data.radius = rad !== "" ? Number(rad) : 50;
       }
-
+    
       return { type, data };
     });
   }
