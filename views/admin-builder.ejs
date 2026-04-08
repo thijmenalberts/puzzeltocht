@@ -326,6 +326,21 @@
   }
 </style>
 
+<!-- 🌍 TAAL SELECTIE -->
+<div style="display:flex; gap:10px; align-items:center; padding:12px 16px;">
+  <strong>Taal:</strong>
+
+  <select id="language-select">
+    <% (puzzle.languages || ["nl"]).forEach(l => { %>
+      <option value="<%= l %>"><%= l.toUpperCase() %></option>
+    <% }) %>
+  </select>
+
+  <button id="add-language-btn" class="btn">
+    + Taal toevoegen
+  </button>
+</div>
+
 <div class="builder-wrap">
 
   <!-- SIDEBAR -->
@@ -494,6 +509,25 @@
   const qs  = (s,p=document)=>p.querySelector(s);
   const qsa = (s,p=document)=>Array.from(p.querySelectorAll(s));
 
+  // ✅ MEERTALIGHEID BASIS
+  let availableLanguages = puzzle.languages || ["nl"];
+  let activeLanguage = puzzle.defaultLanguage || "nl";
+
+  // ➕ NIEUWE TAAL TOEVOEGEN
+  qs("#add-language-btn").addEventListener("click", () => {
+    const lang = prompt(
+      "Voer taalcode in (bijv. en, de, fr):"
+    );
+  
+    if (!lang) return;
+    if (availableLanguages.includes(lang)) {
+      alert("Deze taal bestaat al.");
+      return;
+    }
+  
+    addLanguage(lang);
+  });
+
   let pages = JSON.parse(`<%- JSON.stringify(pagesSafe) %>`);
   if(!Array.isArray(pages) || !pages.length){
     pages = [{
@@ -506,6 +540,22 @@
       soundUrl:"",
       modules:[]
     }];
+  }
+
+  // 🌍 TAAL WISSELEN
+  const langSelect = qs("#language-select");
+  
+  if (langSelect) {
+    langSelect.value = activeLanguage;
+  
+    langSelect.addEventListener("change", () => {
+      // huidige taal opslaan
+      savePageSettings();
+      pages[currentPage].modules = collect();
+  
+      activeLanguage = langSelect.value;
+      renderPage(currentPage);
+    });
   }
 
   let currentPage = 0;
@@ -533,7 +583,10 @@
     const isMap = !!page?.isMap;
 
     qs("#page-title-label").textContent = title;
-    qs("#page-title-input").value = title;
+    qs("#page-title-input").value =
+      typeof page.title === "string"
+        ? page.title
+        : page.title?.[activeLanguage] || "";
 
     qs("#page-shownext").checked = !!page.showNext;
     qs("#page-ismap").checked = !!page.isMap;
@@ -566,7 +619,14 @@
       item.draggable = true;
       item.dataset.index = i;
       item.dataset.page = i;
-      item.innerHTML = `<span>${p.title?.trim() ? p.title : ("Pagina " + (i+1))}</span>`;
+      const title =
+        typeof p.title === "string"
+          ? p.title
+          : p.title?.[activeLanguage]
+            || p.title?.[puzzle.defaultLanguage]
+            || `Pagina ${i+1}`;
+      
+      item.innerHTML = `<span>${title}</span>`;
       item.addEventListener("click", ()=> switchPage(i));
       item.addEventListener("dragstart", (e) => {
         draggedPageIndex = i;
@@ -666,8 +726,13 @@
         }
       }
 
-      if(m.type==="text"){
-        qs('[data-field="text"]', block).innerHTML = data?.text || "Nieuwe tekst";
+      if (m.type === "text") {
+        const value =
+          typeof data.text === "string"
+            ? data.text
+            : data.text?.[activeLanguage] || "";
+      
+        qs('[data-field="text"]', block).innerHTML = value;
       }
 
       if(m.type==="image"){
@@ -691,7 +756,10 @@
       }
 
       if(m.type==="question"){
-        qs('[data-field="question"]', block).value = data?.question || "";
+        qs('[data-field="question"]', block).value =
+          typeof data.question === "string"
+            ? data.question
+            : data.question?.[activeLanguage] || "";
         qs('[data-field="questionType"]', block).value = data?.questionType || "open";
       
         const openWrap = qs('[data-open]', block);
@@ -733,7 +801,9 @@
 function savePageSettings() {
   const pg = pages[currentPage];
 
-  pg.title        = qs("#page-title-input").value;
+  pg.title = pg.title || {};
+  pg.title[activeLanguage] =
+    qs("#page-title-input").value;
   pg.showNext     = qs("#page-shownext").checked;
   pg.isMap        = qs("#page-ismap").checked;
 
@@ -755,6 +825,51 @@ function switchPage(nextIndex){
     currentPage = nextIndex;
     renderPageList();
     renderPage(currentPage);
+}
+
+function addLanguage(lang) {
+  availableLanguages.push(lang);
+  puzzle.languages = availableLanguages;
+
+  pages.forEach(page => {
+    // pagina titel
+    if (typeof page.title === "string") {
+      page.title = {
+        [puzzle.defaultLanguage]: page.title
+      };
+    }
+    page.title[lang] = "";
+
+    // modules
+    page.modules.forEach(m => {
+      for (const key in m.data) {
+        if (typeof m.data[key] === "string") {
+          m.data[key] = {
+            [puzzle.defaultLanguage]: m.data[key],
+            [lang]: ""
+          };
+        }
+      }
+    });
+  });
+
+  updateLanguageSelect();
+  activeLanguage = lang;
+  renderPage(currentPage);
+}
+
+function updateLanguageSelect() {
+  const sel = qs("#language-select");
+  sel.innerHTML = "";
+
+  availableLanguages.forEach(l => {
+    const opt = document.createElement("option");
+    opt.value = l;
+    opt.textContent = l.toUpperCase();
+    sel.appendChild(opt);
+  });
+
+  sel.value = activeLanguage;
 }
 
 function movePage(fromIndex, toIndex){
@@ -1196,7 +1311,14 @@ const pEmpty = qs("#panel-empty");
     pages.forEach((p, idx) => {
       const opt = document.createElement("option");
       opt.value = String(idx);
-      opt.textContent = `${idx+1}. ${p.title?.trim() ? p.title : "Pagina " + (idx+1)}`;
+      const title =
+        typeof p.title === "string"
+          ? p.title
+          : p.title?.[activeLanguage]
+            || p.title?.[puzzle.defaultLanguage]
+            || `Pagina ${idx+1}`;
+      
+      opt.textContent = `${idx+1}. ${title}`;
       sel.appendChild(opt);
     });
 
@@ -1488,7 +1610,8 @@ function collect(){
       let data = {};   // ✅ LET i.p.v. CONST
     
       if (type === "text") {
-        data.text =
+        data.text = data.text || {};
+        data.text[activeLanguage] =
           qs('[data-field="text"]', b)?.innerHTML || "";
       }
     
@@ -1503,9 +1626,10 @@ function collect(){
       }
     
       if (type === "question") {
-        data.question =
+        data.question = data.question || {};
+        data.question[activeLanguage] =
           qs('[data-field="question"]', b)?.value || "";
-        data.questionType =
+                data.questionType =
           qs('[data-field="questionType"]', b)?.value || "open";
     
         if (data.questionType === "open") {
@@ -1581,9 +1705,14 @@ function collect(){
   qs("#delete-page-btn").addEventListener("click", deletePage);
 
   // PAGE INPUT HANDLERS
-  qs("#page-title-input").addEventListener("input", ()=>{
-    pages[currentPage].title = qs("#page-title-input").value;
-    qs("#page-title-label").textContent = pages[currentPage].title;
+  qs("#page-title-input").addEventListener("input", () => {
+    pages[currentPage].title = pages[currentPage].title || {};
+    pages[currentPage].title[activeLanguage] =
+      qs("#page-title-input").value;
+  
+    qs("#page-title-label").textContent =
+      qs("#page-title-input").value;
+  
     renderPageList();
   });
 
