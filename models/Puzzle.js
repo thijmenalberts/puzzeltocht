@@ -64,6 +64,17 @@ const PageSchema = new mongoose.Schema(
 const PuzzleSchema = new mongoose.Schema(
   {
     name:  { type: String, required: true, trim: true },
+    
+    // 🌍 MEERTALIGHEID
+    languages: {
+      type: [String],
+      default: ["nl"]
+    },
+    defaultLanguage: {
+      type: String,
+      default: "nl"
+    },
+    
     pages: { type: [PageSchema], default: [] },
   },
   {
