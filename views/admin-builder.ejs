@@ -520,7 +520,10 @@
   const qsa = (s,p=document)=>Array.from(p.querySelectorAll(s));
 
   // ✅ MEERTALIGHEID BASIS
-  let availableLanguages = puzzle.languages || ["nl"];
+  let availableLanguages =
+    Array.isArray(puzzle.languages) && puzzle.languages.length
+      ? [...puzzle.languages]
+      : ["nl"];
   let activeLanguage = puzzle.defaultLanguage || "nl";
 
   // ➕ NIEUWE TAAL TOEVOEGEN
@@ -851,10 +854,7 @@ function addLanguage(lang) {
   availableLanguages.push(lang);
   puzzle.languages = availableLanguages;
 
-  // ✅ ALS DIT DE EERSTE EXTRA TAAL IS
-  if (!puzzle.defaultLanguage) {
-    puzzle.defaultLanguage = activeLanguage;
-  }
+  puzzle.defaultLanguage = puzzle.defaultLanguage || activeLanguage;
 
   pages.forEach(page => {
     if (typeof page.title === "string") {
