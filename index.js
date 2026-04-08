@@ -445,32 +445,36 @@ app.get("/admin-builder/:id", requireAdmin, async (req, res) => {
 });
 
 // Save pages
-app.post("/admin-builder/:id/save-all", requireAdmin, express.json(), async (req, res) => {
-  try {
-    const puzzle = await Puzzle.findById(req.params.id);
-    if (!puzzle) return res.status(404).send("Puzzel niet gevonden");
+app.post(
+  "/admin-builder/:id/save-all",
+  requireAdmin,
+  express.json(),
+  async (req, res) => {
+    try {
+      const puzzle = await Puzzle.findById(req.params.id);
+      if (!puzzle) {
+        return res.status(404).send("Puzzel niet gevonden");
+      }
 
-    if (Array.isArray(req.body.languages)) {
-      puzzle.languages = req.body.languages;
+      puzzle.set({
+        pages: req.body.pages,
+        languages: req.body.languages,
+        defaultLanguage: req.body.defaultLanguage
+      });
+
+      puzzle.markModified("pages");
+      puzzle.markModified("languages");
+      puzzle.markModified("defaultLanguage");
+
+      await puzzle.save();
+
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("SAVE-ALL ERROR:", err);
+      res.status(500).send("Server error");
     }
-    
-    if (typeof req.body.defaultLanguage === "string") {
-      puzzle.defaultLanguage = req.body.defaultLanguage;
-    }
-    
-    puzzle.markModified("pages");
-    puzzle.markModified("languages");
-
-    puzzle.pages = req.body.pages;
-    puzzle.markModified("pages");
-    await puzzle.save();
-
-    res.json({ ok: true });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Server error");
   }
-});
+);
 
 // Player
 app.get("/puzzle/:id", async (req, res) => {
