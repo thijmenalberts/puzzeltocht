@@ -2,68 +2,113 @@
 
   <h1 class="text-2xl font-bold">Bestanden</h1>
   <p class="text-sm text-gray-600">
-    Overzicht van alle geüploade bestanden per map.
+    Overzicht van alle geüploade bestanden (afbeeldingen, audio en teamfoto’s).
   </p>
 
-  <% if (!folders || folders.length === 0) { %>
-    <p class="text-gray-500">
-      Geen bestanden gevonden.
-    </p>
+  <!-- ========= ROOT UPLOADS (images + audio) ========= -->
+  <% if (rootFiles && rootFiles.length) { %>
+    <div class="card p-4 border rounded space-y-3">
+      <h2 class="font-semibold text-lg">📂 uploads/ (root)</h2>
+
+      <ul class="space-y-2">
+        <% rootFiles.forEach(file => { %>
+          <li class="flex items-center justify-between text-sm bg-gray-50 p-2 rounded">
+
+            <div>
+              📄 <strong><%= file.name %></strong>
+              <span class="text-gray-500">
+                (<%= Math.round(file.size / 1024) %> KB)
+              </span>
+            </div>
+
+            <div class="space-x-3">
+              <a
+                href="/uploads/<%= file.name %>"
+                target="_blank"
+                class="text-blue-600 underline"
+              >
+                Bekijk
+              </a>
+
+              <button
+                class="text-red-600 underline"
+                onclick="deleteFile('', '<%= file.name %>')"
+              >
+                Verwijder
+              </button>
+            </div>
+
+          </li>
+        <% }) %>
+      </ul>
+    </div>
   <% } %>
 
-  <% folders.forEach(folder => { %>
-    <div class="card p-4 border rounded space-y-3">
+  <!-- ========= SUBFOLDERS (bijv. team-photos) ========= -->
+  <% if (folders && folders.length) { %>
+    <% folders.forEach(folder => { %>
+      <div class="card p-4 border rounded space-y-3">
 
-      <h2 class="font-semibold text-lg">
-        📁 <%= folder.name %>
-      </h2>
+        <h2 class="font-semibold text-lg">
+          📁 <%= folder.name %>
+        </h2>
 
-      <% if (!folder.files || folder.files.length === 0) { %>
-        <p class="text-sm text-gray-500">
-          Deze map is leeg.
-        </p>
-      <% } else { %>
-        <ul class="space-y-2">
-          <% folder.files.forEach(file => { %>
-            <li class="flex items-center justify-between text-sm bg-gray-50 p-2 rounded">
+        <% if (!folder.files || folder.files.length === 0) { %>
+          <p class="text-sm text-gray-500">
+            Deze map is leeg.
+          </p>
+        <% } else { %>
+          <ul class="space-y-2">
+            <% folder.files.forEach(file => { %>
+              <li class="flex items-center justify-between text-sm bg-gray-50 p-2 rounded">
 
-              <div>
-                📄 <%= file.name %>
-                <span class="text-gray-500">
-                  (<%= Math.round(file.size / 1024) %> KB)
-                </span>
-              </div>
+                <div>
+                  📄 <strong><%= file.name %></strong>
+                  <span class="text-gray-500">
+                    (<%= Math.round(file.size / 1024) %> KB)
+                  </span>
+                </div>
 
-              <div class="space-x-3">
-                <a
-                  href="/uploads/<%= folder.name %>/<%= file.name %>"
-                  target="_blank"
-                  class="text-blue-600 underline"
-                >
-                  Bekijk
-                </a>
+                <div class="space-x-3">
+                  <a
+                    href="/uploads/<%= folder.name %>/<%= file.name %>"
+                    target="_blank"
+                    class="text-blue-600 underline"
+                  >
+                    Bekijk
+                  </a>
 
-                <button
-                  onclick="deleteFile('<%= folder.name %>', '<%= file.name %>')"
-                  class="text-red-600 underline"
-                >
-                  Verwijder
-                </button>
-              </div>
+                  <button
+                    class="text-red-600 underline"
+                    onclick="deleteFile('<%= folder.name %>', '<%= file.name %>')"
+                  >
+                    Verwijder
+                  </button>
+                </div>
 
-            </li>
-          <% }) %>
-        </ul>
-      <% } %>
+              </li>
+            <% }) %>
+          </ul>
+        <% } %>
 
-    </div>
-  <% }) %>
+      </div>
+    <% }) %>
+  <% } %>
+
+  <% if (
+    (!rootFiles || rootFiles.length === 0) &&
+    (!folders || folders.length === 0)
+  ) { %>
+    <p class="text-gray-500">
+      Er zijn nog geen bestanden geüpload.
+    </p>
+  <% } %>
 
 </section>
 
 <script>
 async function deleteFile(folder, file) {
-  if (!confirm(`Bestand '${file}' verwijderen uit '${folder}'?`)) {
+  if (!confirm(`Bestand "${file}" verwijderen?`)) {
     return;
   }
 
@@ -83,9 +128,8 @@ async function deleteFile(folder, file) {
     location.reload();
   }
   catch (err) {
-    alert("Verwijderen mislukt");
     console.error(err);
+    alert("Verwijderen mislukt");
   }
 }
 </script>
-``
