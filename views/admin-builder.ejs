@@ -728,6 +728,9 @@
     (pg.modules || []).forEach(m=>{
       const block = createBlock(m.type);
       phone.appendChild(block);
+      const block = createBlock(m.type);
+      block._data = JSON.parse(JSON.stringify(m.data || {}));
+
 
       const data = m.data || {};
 
@@ -1628,7 +1631,10 @@ function collect(){
       let data = {};   // ✅ LET i.p.v. CONST
     
       if (type === "text") {
-        data.text = data.text || {};
+        data.text = {
+          ...(b._data?.text || {})
+        };
+      
         data.text[activeLanguage] =
           qs('[data-field="text"]', b)?.innerHTML || "";
       }
