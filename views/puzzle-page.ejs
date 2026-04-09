@@ -171,9 +171,7 @@
   </div>
 <% } %>
 
-<h2 class="title-module">
-  <%= t(mod.data.title) %>
-</h2>
+<h2><%= t(page.title) %></h2>
 
 <!-- 🔊 AUDIO BIJ START -->
 <% if (page.playSoundOnStart && page.soundUrl) { %>
@@ -197,7 +195,7 @@
 
   <% if (mod.type === "title") { %>
     <div class="card">
-      <h2 style="margin:0;">
+      <h2 class="title-module">
         <%= t(mod.data.title) %>
       </h2>
     </div>
