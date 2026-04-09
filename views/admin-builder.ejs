@@ -312,7 +312,7 @@ const pagesSafe = normalizePages(puzzle);
   <strong>Taal:</strong>
 
   <select id="language-select">
-    <% (puzzle.languages || ["nl"]).forEach(l => { %>
+    <% (puzzleMeta.languages || ["nl"]).forEach(l => { %>
       <option value="<%= l %>"><%= l.toUpperCase() %></option>
     <% }) %>
   </select>
@@ -347,9 +347,9 @@ const pagesSafe = normalizePages(puzzle);
 
   <!-- MIDDEN / TELEFOON CANVAS -->
   <section class="canvas">
-    <div class="phone" id="phone" data-id="<%= puzzle._id %>">
+    <div class="phone" id="phone" data-id="<%= puzzleMeta._id %>">
       <div class="phone-header">
-        <strong id="app-title"><%= puzzle.name %></strong>
+        <strong id="app-title"><%= puzzleMeta.name %></strong>
         <span id="page-title-label"></span>
       </div>
     </div>
@@ -486,10 +486,10 @@ const pagesSafe = normalizePages(puzzle);
 <script>
 (function(){  
   // ✅ PUZZLE OBJECT BESCHIKBAAR MAKEN IN JS
-  const puzzle = <%- JSON.stringify({
-    languages: puzzle.languages || ["nl"],
-    defaultLanguage: puzzle.defaultLanguage || "nl",
-    _id: puzzle._id
+  const puzzleMeta = <%- JSON.stringify({
+    languages: puzzleMeta.languages || ["nl"],
+    defaultLanguage: puzzleMeta.defaultLanguage || "nl",
+    _id: puzzleMeta._id
   }) %>;
 
   const phone = document.getElementById("phone");
@@ -500,10 +500,10 @@ const pagesSafe = normalizePages(puzzle);
 
   // ✅ MEERTALIGHEID BASIS
   let availableLanguages =
-    Array.isArray(puzzle.languages) && puzzle.languages.length
-      ? [...puzzle.languages]
+    Array.isArray(puzzleMeta.languages) && puzzleMeta.languages.length
+      ? [...puzzleMeta.languages]
       : ["nl"];
-  let activeLanguage = puzzle.defaultLanguage || "nl";
+  let activeLanguage = puzzleMeta.defaultLanguage || "nl";
 
   // ➕ NIEUWE TAAL TOEVOEGEN
   qs("#add-language-btn").addEventListener("click", () => {
@@ -575,7 +575,7 @@ const pagesSafe = normalizePages(puzzle);
       typeof page.title === "string"
         ? page.title
         : page.title?.[activeLanguage]
-          || page.title?.[puzzle.defaultLanguage]
+          || page.title?.[puzzleMeta.defaultLanguage]
           || ("Pagina " + (currentPage + 1));
 
     const isMap = !!page?.isMap;
@@ -621,7 +621,7 @@ const pagesSafe = normalizePages(puzzle);
         typeof p.title === "string"
           ? p.title
           : p.title?.[activeLanguage]
-            || p.title?.[puzzle.defaultLanguage]
+            || p.title?.[puzzleMeta.defaultLanguage]
             || `Pagina ${i+1}`;
       
       item.innerHTML = `<span>${title}</span>`;
@@ -864,14 +864,14 @@ function switchPage(nextIndex){
 
 function addLanguage(lang) {
   availableLanguages.push(lang);
-  puzzle.languages = availableLanguages;
+  puzzleMeta.languages = availableLanguages;
 
-  puzzle.defaultLanguage = puzzle.defaultLanguage || activeLanguage;
+  puzzleMeta.defaultLanguage = puzzleMeta.defaultLanguage || activeLanguage;
 
   pages.forEach(page => {
     if (typeof page.title === "string") {
       page.title = {
-        [puzzle.defaultLanguage]: page.title
+        [puzzleMeta.defaultLanguage]: page.title
       };
     }
     page.title[lang] = "";
@@ -880,7 +880,7 @@ function addLanguage(lang) {
       for (const key in m.data) {
         if (typeof m.data[key] === "string") {
           m.data[key] = {
-            [puzzle.defaultLanguage]: m.data[key],
+            [puzzleMeta.defaultLanguage]: m.data[key],
             [lang]: ""
           };
         }
@@ -1364,7 +1364,7 @@ const pEmpty = qs("#panel-empty");
         typeof p.title === "string"
           ? p.title
           : p.title?.[activeLanguage]
-            || p.title?.[puzzle.defaultLanguage]
+            || p.title?.[puzzleMeta.defaultLanguage]
             || `Pagina ${idx+1}`;
       
       opt.textContent = `${idx+1}. ${title}`;
@@ -1777,7 +1777,7 @@ function collect(){
         body: JSON.stringify({
           pages,
           languages: availableLanguages,
-          defaultLanguage: puzzle.defaultLanguage || activeLanguage
+          defaultLanguage: puzzleMeta.defaultLanguage || activeLanguage
         })
       });
 
