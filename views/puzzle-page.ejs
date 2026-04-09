@@ -104,6 +104,14 @@
       border-radius:50%;
       object-fit:cover;
     }
+
+    /* Titel-module styling */
+    .title-module {
+      font-size: 26px;
+      font-weight: 800;
+      line-height: 1.3;
+      margin: 0;
+    }
   </style>
 </head>
 
@@ -163,7 +171,9 @@
   </div>
 <% } %>
 
-<h1><%= t(page.title) %></h1>
+<h2 class="title-module">
+  <%= t(mod.data.title) %>
+</h2>
 
 <!-- 🔊 AUDIO BIJ START -->
 <% if (page.playSoundOnStart && page.soundUrl) { %>
