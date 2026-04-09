@@ -272,6 +272,18 @@ app.post("/team/name", express.json(), (req, res) => {
   res.json({ ok: true });
 });
 
+app.post("/puzzle/set-language", express.urlencoded({ extended: false }),
+  (req, res) => {
+    const { language, redirect } = req.body;
+
+    if (typeof language === "string") {
+      req.session.language = language;
+    }
+
+    res.redirect(redirect || "/");
+  }
+);
+
 // ------------------------------------------
 // 9. ROUTES
 // ------------------------------------------
