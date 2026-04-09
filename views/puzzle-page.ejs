@@ -124,6 +124,31 @@
 
 <h1><%= puzzle.name %></h1>
 
+<!-- 🌍 TAALKEUZE -->
+<form id="language-form"
+      style="margin-bottom:16px;"
+      onchange="this.submit()"
+      method="POST"
+      action="/puzzle/set-language">
+
+  <label style="display:flex; align-items:center; gap:8px;">
+    <strong>Taal:</strong>
+
+    <select name="language">
+      <% puzzle.languages.forEach(l => { %>
+        <option value="<%= l %>"
+          <%= l === activeLanguage ? "selected" : "" %>>
+          <%= l.toUpperCase() %>
+        </option>
+      <% }) %>
+    </select>
+  </label>
+
+  <!-- 🔒 terugsturen naar dezelfde pagina -->
+  <input type="hidden" name="redirect"
+         value="/puzzle/<%= puzzle._id %>/<%= pageIndex %>">
+</form>
+
 <!-- TEAM HEADER -->
 <% if (session?.teamName || session?.teamProfilePhoto) { %>
   <div class="team-header">
