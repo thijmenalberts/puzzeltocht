@@ -485,14 +485,22 @@ app.get("/puzzle/:id", async (req, res) => {
 });
 
 app.get("/puzzle/:id/:page", async (req, res) => {
-  const puzzle = await Puzzle.findById(req.params.id);
+  const puzzle = await Puzzle.findById(req.params.id).lean();
   if (!puzzle) return res.status(404).send("Puzzel niet gevonden");
 
-  const pageIndex = Number(req.params.page);
-  const page = puzzle.pages[pageIndex];
-  if (!page) return res.status(404).send("Pagina niet gevonden");
+  // ✅ ACTIVE TAAL bepalen
+  const lang =
+    req.session.language ||
+    puzzle.defaultLanguage ||
+    "nl";
 
-  res.render("puzzle-page", { puzzle, page, pageIndex });
+  res.render("puzzle-page", {
+    puzzle,
+    page: puzzle.pages[Number(req.params.page)],
+    pageIndex: Number(req.params.page),
+    lang,              // ✅ DIT WAS DE MISSENDE SCHAKEL
+    session: req.session
+  });
 });
 
 // ------------------------------------------
