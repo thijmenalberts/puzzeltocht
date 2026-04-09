@@ -185,6 +185,14 @@
 <!-- 📦 MODULES -->
 <% (page.modules || []).forEach((mod, qIndex) => { %>
 
+  <% if (mod.type === "title") { %>
+    <div class="card">
+      <h2 style="margin:0;">
+        <%= t(mod.data.title) %>
+      </h2>
+    </div>
+  <% } %>
+
   <% if (mod.type === "text") { %>
     <div class="card"><%- t(mod.data.text) %></div>
   <% } %>
