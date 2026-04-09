@@ -792,17 +792,33 @@
           openWrap.style.display = "none";
           mcWrap.style.display = "block";
       
-          qsa('[data-option]', mcWrap).forEach((opt, i) => {
-            const option = data?.options?.[i];
-          
-            opt.querySelector('[data-text]').value =
-              typeof option?.text === "string"
-                ? option.text
-                : option?.text?.[activeLanguage] || "";
-          
-            opt.querySelector('[data-correct]').checked =
-              !!option?.correct;
-          });
+          const optWrap = qs('[data-options]', block);
+            optWrap.innerHTML = "";
+            
+            (data.options || []).forEach((option) => {
+              const div = document.createElement("div");
+              div.className = "mc-option";
+              div.setAttribute("data-option", "");
+              div.draggable = true;
+            
+              div.innerHTML = `
+                <label style="font-size:12px; font-weight:600;">Juist</label>
+                <div style="display:flex; gap:10px; align-items:center;">
+                  <span class="drag-handle">☰</span>
+                  <input type="text" data-text />
+                  <input type="checkbox" data-correct />
+                </div>
+              `;
+            
+              div.querySelector('[data-text]').value =
+                typeof option.text === "string"
+                  ? option.text
+                  : option.text?.[activeLanguage] || "";
+            
+              div.querySelector('[data-correct]').checked = !!option.correct;
+            
+              optWrap.appendChild(div);
+            });
         } else {
           openWrap.style.display = "block";
           mcWrap.style.display = "none";
