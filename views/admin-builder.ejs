@@ -15,8 +15,25 @@ const normalizePages = (puz) => {
 
   // ✅ bestaande data NIET herschrijven
   return puz.pages.map(pg => ({
-    ...pg,
-    modules: Array.isArray(pg.modules) ? pg.modules : []
+    title:
+      typeof pg.title === "string"
+        ? { nl: pg.title }
+        : (pg.title || {}),
+  
+    showNext: !!pg.showNext,
+    isMap: !!pg.isMap,
+    showTarget: pg.showTarget !== false,
+    autoNext: !!pg.autoNext,
+    playSoundOnStart: !!pg.playSoundOnStart,
+    soundUrl: pg.soundUrl || "",
+  
+    targetLat: pg.targetLat ?? null,
+    targetLng: pg.targetLng ?? null,
+    targetRadius: pg.targetRadius ?? 50,
+  
+    modules: Array.isArray(pg.modules)
+      ? JSON.parse(JSON.stringify(pg.modules))
+      : []
   }));
 };
 
@@ -836,9 +853,12 @@ const pagesSafe = normalizePages(puzzle);
 function savePageSettings() {
   const pg = pages[currentPage];
 
-  pg.title = pg.title || {};
+  if (typeof pg.title !== "object" || pg.title === null) {
+    pg.title = {};
+  }
+  
   pg.title[activeLanguage] =
-    qs("#page-title-input").value;
+    qs("#page-title-input").value || "";
   pg.showNext     = qs("#page-shownext").checked;
   pg.isMap        = qs("#page-ismap").checked;
 
