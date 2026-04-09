@@ -1,55 +1,26 @@
 <%
-  // Normaliseer puzzle.pages naar .data + voeg nieuwe velden toe
-  const normalizePages = (puz) => {
-    if (!puz || !Array.isArray(puz.pages) || !puz.pages.length) {
-      return [{
-        title: { nl: "Pagina 1" },
-        showNext: true,
-        isMap: false,
-        showTarget: true,
-        autoNext: false,
-        playSoundOnStart: false,
-        soundUrl: "",
-        modules: []
-      }];
-    }
-  
-    // ✅ GEEN modules aanpassen
-    return puz.pages.map(pg => ({
-      ...pg,
-      modules: Array.isArray(pg.modules) ? pg.modules : []
-    }));
-  };
+const normalizePages = (puz) => {
+  if (!puz || !Array.isArray(puz.pages) || !puz.pages.length) {
+    return [{
+      title: { nl: "Pagina 1" },
+      showNext: true,
+      isMap: false,
+      showTarget: true,
+      autoNext: false,
+      playSoundOnStart: false,
+      soundUrl: "",
+      modules: []
+    }];
+  }
 
-    return puz.pages.map(pg => ({
-      title:
-        typeof pg?.title === "object"
-          ? pg.title
-          : (pg?.title || "Pagina"),
-      showNext: typeof pg?.showNext === "boolean" ? pg.showNext : true,
-      isMap: typeof pg?.isMap === "boolean" ? pg.isMap : false,
+  // ✅ bestaande data NIET herschrijven
+  return puz.pages.map(pg => ({
+    ...pg,
+    modules: Array.isArray(pg.modules) ? pg.modules : []
+  }));
+};
 
-      // --- NIEUW TOEGEVOEGDE VELDEN ---
-      showTarget: typeof pg?.showTarget === "boolean" ? pg.showTarget : true,
-      autoNext: typeof pg?.autoNext === "boolean" ? pg.autoNext : false,
-      playSoundOnStart: typeof pg?.playSoundOnStart === "boolean" ? pg.playSoundOnStart : false,
-      soundUrl: pg?.soundUrl || "",
-
-      // Bestaande target-informatie
-      targetLat: pg?.targetLat ?? null,
-      targetLng: pg?.targetLng ?? null,
-      targetRadius: pg?.targetRadius ?? 50,
-
-      modules: Array.isArray(pg?.modules)
-        ? pg.modules.map(m => ({
-            type: m?.type || "",
-            data: m?.data || m?.content || {}
-          }))
-        : []
-    }));
-  };
-
-  const pagesSafe = normalizePages(puzzle);
+const pagesSafe = normalizePages(puzzle);
 %>
 
 <style>
