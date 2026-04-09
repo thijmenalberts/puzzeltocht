@@ -3,16 +3,23 @@
   const normalizePages = (puz) => {
     if (!puz || !Array.isArray(puz.pages) || !puz.pages.length) {
       return [{
-        title: "Pagina 1",
+        title: { nl: "Pagina 1" },
         showNext: true,
         isMap: false,
-        showTarget: true,        // NIEUW
-        autoNext: false,         // NIEUW
+        showTarget: true,
+        autoNext: false,
         playSoundOnStart: false,
-        soundUrl: "",            // NIEUW
+        soundUrl: "",
         modules: []
       }];
     }
+  
+    // ✅ GEEN modules aanpassen
+    return puz.pages.map(pg => ({
+      ...pg,
+      modules: Array.isArray(pg.modules) ? pg.modules : []
+    }));
+  };
 
     return puz.pages.map(pg => ({
       title:
