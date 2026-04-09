@@ -349,7 +349,7 @@ const pagesSafe = normalizePages(puzzle);
   <section class="canvas">
     <div class="phone" id="phone" data-id="<%= puzzleMeta._id %>">
       <div class="phone-header">
-        <strong id="app-title"><%= puzzleMeta.name %></strong>
+        <strong id="app-title"><%= puzzle.name %></strong>
         <span id="page-title-label"></span>
       </div>
     </div>
@@ -489,7 +489,7 @@ const pagesSafe = normalizePages(puzzle);
   const puzzleMeta = <%- JSON.stringify({
     languages: puzzle.languages || ["nl"],
     defaultLanguage: puzzle.defaultLanguage || "nl",
-    _id: puzzleMeta._id
+    _id: puzzle._id
   }) %>;
 
   const phone = document.getElementById("phone");
