@@ -1,5 +1,6 @@
 <section class="space-y-5">
   <h1 class="text-2xl font-bold">Voer je code in</h1>
+  
   <% if (error) { %>
     <p class="text-red-600"><%= error %></p>
   <% } %>
@@ -18,4 +19,52 @@
   <p class="text-sm text-gray-600">
     Tip: een <strong>admin-code</strong> stuurt je naar het inlogscherm.
   </p>
+
+  <hr style="border: 0; border-top: 1px solid #e5e7eb;">
+  
+  <div>
+    <h3 style="font-size: 1.1rem; font-weight: bold; margin-bottom: 8px; color: #111827;">Nog geen toegangscode?</h3>
+    <button type="button" id="buy-btn" class="btn-primary w-full p-3" style="background: #10b981; border-color: #10b981;">
+      Koop een toegangscode (€5,00)
+    </button>
+  </div>
+
+  <script src="https://js.stripe.com/v3/"></script>
+  <script>
+    const stripe = Stripe('<%= process.env.STRIPE_PUBLISHABLE_KEY %>');
+    const buyBtn = document.getElementById('buy-btn');
+
+    buyBtn.addEventListener('click', async () => {
+      buyBtn.textContent = 'Bezig met laden...';
+      buyBtn.style.opacity = '0.7';
+
+      try {
+        const response = await fetch('/create-checkout-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: 'algemeen',
+            naam: 'Puzzeltocht Toegangscode'
+          })
+        });
+
+        const session = await response.json();
+
+        if (session.error) {
+          alert("Oeps, er ging iets mis: " + session.error);
+          buyBtn.textContent = 'Koop een toegangscode (€5,00)';
+          buyBtn.style.opacity = '1';
+          return;
+        }
+
+        await stripe.redirectToCheckout({ sessionId: session.id });
+        
+      } catch (error) {
+        console.error(error);
+        alert("Kan de betaalpagina niet laden. Controleer je internetverbinding.");
+        buyBtn.textContent = 'Koop een toegangscode (€5,00)';
+        buyBtn.style.opacity = '1';
+      }
+    });
+  </script>
 </section>
