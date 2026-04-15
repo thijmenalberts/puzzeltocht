@@ -282,7 +282,6 @@
     </div>
   <% } %>
 
-//////////////////////////////////////////////////////// AI CHAT
 <% if (mod.type === 'historychat') { %>
   <% 
      const charName = t(mod.data.characterName);
@@ -298,61 +297,104 @@
       </div>
     </div>
 
-    <div class="chat-window" style="height: 250px; overflow-y: auto; padding: 15px; background: #fffcfc; display: flex; flex-direction: column; gap: 10px;">
-      <div class="msg bot" style="background: #f3f4f6; padding: 8px 12px; border-radius: 12px 12px 12px 0; align-self: flex-start; font-size: 14px; max-width: 85%;">
+    <div id="chat-win-<%= qIndex %>" style="height: 250px; overflow-y: auto; padding: 15px; background: #fffcfc; display: flex; flex-direction: column; gap: 10px;">
+      <div style="background: #f3f4f6; padding: 8px 12px; border-radius: 12px 12px 12px 0; align-self: flex-start; font-size: 14px; max-width: 85%; color: #111827;">
         Gegroet reiziger! Ik ben <%= charName %>. Heb je vragen voor mij?
       </div>
     </div>
 
-    <div style="padding: 10px; border-top: 1px solid #fee2e2; display: flex; gap: 8px;">
-      <input type="text" class="chat-input" placeholder="Typ je vraag..." style="flex: 1; border: 1px solid #ddd; padding: 10px; border-radius: 20px; font-size: 14px;">
-      <button class="chat-send" style="background: #991b1b; color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer;">✈️</button>
+    <div style="padding: 10px; border-top: 1px solid #fee2e2; display: flex; gap: 8px; background: white;">
+      <input type="text" id="chat-input-<%= qIndex %>" placeholder="Typ je vraag..." style="flex: 1; border: 1px solid #ddd; padding: 10px; border-radius: 20px; font-size: 14px; outline: none;">
+      <button id="chat-btn-<%= qIndex %>" style="background: #991b1b; color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: opacity 0.2s;">✈️</button>
     </div>
   </div>
 
   <script>
     (function() {
-      const module = document.currentScript.previousElementSibling;
-      const win = module.querySelector('.chat-window');
-      const input = module.querySelector('.chat-input');
-      const btn = module.querySelector('.chat-send');
+      // 1. Veilig de data vanuit de server inladen
+      const config = <%- JSON.stringify({ charName: charName, sysPrompt: sysPrompt }) %>;
+      
+      // 2. Exacte elementen pakken op basis van de unieke qIndex
+      const win = document.getElementById('chat-win-<%= qIndex %>');
+      const input = document.getElementById('chat-input-<%= qIndex %>');
+      const btn = document.getElementById('chat-btn-<%= qIndex %>');
       let history = [];
 
       async function send() {
         const msg = input.value.trim();
         if(!msg) return;
+        
+        // UI op slot zetten tijdens het wachten (voorkomt dubbel klikken)
         input.value = '';
+        input.disabled = true;
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
 
-        // Voeg bericht van speler toe
-        win.innerHTML += `<div style="background: #991b1b; color: white; padding: 8px 12px; border-radius: 12px 12px 0 12px; align-self: flex-end; font-size: 14px; max-width: 85%;">${msg}</div>`;
+        // Voeg bericht van de speler toe (via createElement om DOM breuken te voorkomen)
+        const userDiv = document.createElement('div');
+        userDiv.style.cssText = "background: #991b1b; color: white; padding: 8px 12px; border-radius: 12px 12px 0 12px; align-self: flex-end; font-size: 14px; max-width: 85%;";
+        userDiv.textContent = msg;
+        win.appendChild(userDiv);
+        win.scrollTop = win.scrollHeight;
+
+        // Voeg "Is aan het typen..." laad-animatie toe
+        const loadDiv = document.createElement('div');
+        loadDiv.style.cssText = "color: #991b1b; font-size: 12px; align-self: flex-start; margin-bottom: 5px; font-style: italic;";
+        loadDiv.textContent = config.charName + " is een antwoord aan het schrijven...";
+        win.appendChild(loadDiv);
         win.scrollTop = win.scrollHeight;
 
         try {
+          // Stuur naar de backend API
           const res = await fetch('/api/chat-persona', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
               message: msg,
-              characterName: "<%= charName %>",
-              systemPrompt: "<%= sysPrompt %>",
+              characterName: config.charName,
+              systemPrompt: config.sysPrompt,
               history: history
             })
           });
+          
           const data = await res.json();
           
-          // Voeg antwoord van AI toe
-          win.innerHTML += `<div style="background: #f3f4f6; padding: 8px 12px; border-radius: 12px 12px 12px 0; align-self: flex-start; font-size: 14px; max-width: 85%;">${data.reply}</div>`;
+          // Haal de laad-tekst weg
+          if (win.contains(loadDiv)) win.removeChild(loadDiv);
+
+          if(!res.ok) throw new Error(data.error || "Fout bij laden");
+          
+          // Voeg het antwoord van de AI toe
+          const botDiv = document.createElement('div');
+          botDiv.style.cssText = "background: #f3f4f6; color: #111827; padding: 8px 12px; border-radius: 12px 12px 12px 0; align-self: flex-start; font-size: 14px; max-width: 85%;";
+          botDiv.textContent = data.reply;
+          win.appendChild(botDiv);
           win.scrollTop = win.scrollHeight;
           
+          // Update het geheugen (zodat Visboer Jos weet wat we eerder zeiden)
           history.push({ role: "user", parts: [{ text: msg }] });
           history.push({ role: "model", parts: [{ text: data.reply }] });
+
         } catch (e) {
-          win.innerHTML += `<div style="color: red; font-size: 12px; text-align: center;">Oeps, Jan is even de weg kwijt...</div>`;
+          if (win.contains(loadDiv)) win.removeChild(loadDiv);
+          const errDiv = document.createElement('div');
+          errDiv.style.cssText = "color: #ef4444; font-size: 12px; text-align: center; margin-top: 5px; font-weight: bold;";
+          errDiv.textContent = "Oeps, de verbinding met het verleden is even verbroken...";
+          win.appendChild(errDiv);
+        } finally {
+          // Geef de UI weer vrij
+          input.disabled = false;
+          btn.disabled = false;
+          btn.style.opacity = '1';
+          input.focus();
         }
       }
 
-      btn.onclick = send;
-      input.onkeypress = (e) => { if(e.key === 'Enter') send(); };
+      // Koppel de knoppen
+      btn.addEventListener('click', send);
+      input.addEventListener('keypress', (e) => { 
+        if(e.key === 'Enter') send(); 
+      });
     })();
   </script>
 <% } %>
