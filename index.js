@@ -337,7 +337,7 @@ app.post("/api/chat-persona", express.json(), async (req, res) => {
     
     // We gebruiken de systemInstruction feature van Gemini voor de beste roleplay
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.5-flash",
+      model: "gemini-2.5-flash-lite",
       systemInstruction: `Je bent het volgende personage: ${characterName}. Jouw achtergrond en gedrag: ${systemPrompt}. Reageer altijd in karakter. Houd je antwoorden kort en krachtig (max 3 zinnen).`
     });
 
