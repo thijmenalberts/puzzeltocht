@@ -733,7 +733,7 @@ const pagesSafe = normalizePages(puzzle);
 
       const data = m.data || {};
 
-//////////////////////////////////////// AI foto
+/AI foto
       if (m.type === "aiphoto") {
         const instrInput = qs('[data-field="ai-instruction"]', block);
         const promptInput = qs('[data-field="ai-prompt"]', block);
@@ -743,7 +743,7 @@ const pagesSafe = normalizePages(puzzle);
         if (promptInput) promptInput.value = typeof data.prompt === "string" ? data.prompt : data.prompt?.[activeLanguage] || "";
         if (pointsInput) pointsInput.value = data.points !== undefined ? data.points : 10;
       }
-///////////////////////////////////////// AI chat
+// AI chat ---------------------------------------------------------
 
 if (m.type === "historychat") {
         const nameInput = qs('[data-field="chat-name"]', block);
@@ -751,7 +751,7 @@ if (m.type === "historychat") {
         if (nameInput) nameInput.value = typeof data.characterName === "string" ? data.characterName : data.characterName?.[activeLanguage] || "";
         if (promptInput) promptInput.value = typeof data.systemPrompt === "string" ? data.systemPrompt : data.systemPrompt?.[activeLanguage] || "";
       }
-///////////////////////////////////////////
+// AI foto ---------------------------------------------------------
       if (m.type === "photo") {
         const url = data?.url;
       
@@ -1016,7 +1016,7 @@ function createBlock(type){
     `;
 
     const content = qs(".content", div);
-///////////////////////////////////////// AI CHAT
+// AI chat ---------------------------------------------------------
 if (type === "historychat") {
       content.innerHTML = `
         <div style="background: #fdf2f2; padding: 10px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #fecaca;">
@@ -1031,7 +1031,7 @@ if (type === "historychat") {
         <textarea data-field="chat-prompt" rows="4" placeholder="Bijv: Je bent een bakker uit 1750. Je bent vriendelijk maar begrijpt niks van moderne techniek..."></textarea>
       `;
     }
-/////////////////////////////////
+// AI chat ---------------------------------------------------------
 
     if (type === "title") {
       content.innerHTML = `
@@ -1186,7 +1186,7 @@ if (type === "historychat") {
       `;
     }
 
-/////////////////////////////////////////////////// ai foto
+// AI foto ---------------------------------------------------------
 if (type === "aiphoto") {
       content.innerHTML = `
         <div style="display:flex; gap:8px; margin-bottom:12px;">
@@ -1203,11 +1203,11 @@ if (type === "aiphoto") {
         <div class="helper" style="margin-bottom:4px;">Wat moet de AI controleren? (De speler ziet dit niet)</div>
         <input data-field="ai-prompt" placeholder="Bijv: Een rode auto, fiets of scooter" style="border-color: #c7d2fe;">
         
-        <label style="margin-top: 12px; display: block; font-weight: 700;">Punten bij goed antwoord:</label>
+        <label style="margin-top: 12px; display: block; font-weight: 700;">Maximum te verdienen punten:</label>
         <input type="number" data-field="ai-points" value="10" style="width: 80px;">
       `;
     }
-///////////////////////////////////////////////////////
+// AI foto ---------------------------------------------------------
     wireBlock(div);
     return div;
   }
@@ -1823,7 +1823,7 @@ function collect(){
         data.url =
           qs('[data-field="url"]', b)?.value || "";
       }
-//////////////////////////////////////////////////////////////// AI mongoDB
+// ----------------------------------------------------------------- AI mongoDB
       if (type === "aiphoto") {
         data.instruction = { ...(b._data?.instruction || {}) };
         data.instruction[activeLanguage] = qs('[data-field="ai-instruction"]', b)?.value || "";
@@ -1833,7 +1833,7 @@ function collect(){
 
         data.points = Number(qs('[data-field="ai-points"]', b)?.value) || 10;
       }
-//////////////////////////////////////////////////////// AI CHAT
+// ----------------------------------------------------------------- AI CHAT
 
 if (type === "historychat") {
         data.characterName = { ...(b._data?.characterName || {}) };
