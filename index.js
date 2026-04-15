@@ -19,6 +19,8 @@ import Admin from "./models/Admin.js";
 import Code from "./models/Code.js";
 import Theme from "./models/Theme.js";
 
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
 // ------------------------------------------
 // HELPER: veilig bestand verwijderen
 // ------------------------------------------
@@ -257,6 +259,69 @@ app.post("/team/profile-photo", express.json(), (req, res) => {
   }
 
   res.json({ ok: true });
+});
+
+// ------------------------------------------
+// 8d. AI FOTO CONTROLE (GEMINI API)
+// ------------------------------------------
+app.post("/api/verify-aiphoto", uploadTeamPhoto.single("file"), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: "Geen foto ontvangen." });
+    
+    const prompt = req.body.prompt;
+    if (!prompt) return res.status(400).json({ error: "Geen AI-opdracht (prompt) meegegeven." });
+
+    if (!process.env.GEMINI_API_KEY) {
+      console.error("CRITICAL: GEMINI_API_KEY ontbreekt in .env");
+      return res.status(500).json({ error: "AI is momenteel niet beschikbaar (Geen API Key)." });
+    }
+
+    // 1. Initialiseer Gemini
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    // 2. Zet de foto om in Base64 (vereist voor Gemini)
+    const filePath = req.file.path;
+    const fileData = fs.readFileSync(filePath);
+    const imagePart = {
+      inlineData: {
+        data: fileData.toString("base64"),
+        mimeType: req.file.mimetype
+      }
+    };
+
+    // 3. De System Prompt (Super strict voor consistente JSON)
+    const systemPrompt = `
+      Je bent een strenge, maar eerlijke, onpartijdige scheidsrechter in een vossenjacht/puzzeltocht.
+      De speler moest een foto maken van: "${prompt}".
+      Controleer of de afbeelding voldoet aan de opdracht. 
+      Antwoord UITSLUITEND in de volgende JSON structuur, zonder extra tekst of markdown:
+      {
+        "match": true, // of false
+        "reason": "Korte motivatie in het Nederlands, maximaal 2 zinnen."
+      }
+    `;
+
+    // 4. Stuur naar AI en wacht op antwoord
+    const result = await model.generateContent([systemPrompt, imagePart]);
+    const responseText = result.response.text();
+
+    // 5. Maak de JSON schoon (Mocht Gemini toch markdown sturen)
+    const cleanJson = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
+    const aiResult = JSON.parse(cleanJson);
+
+    // 6. Stuur het resultaat terug naar de speler
+    res.json({
+      success: true,
+      match: aiResult.match,
+      reason: aiResult.reason,
+      url: `/uploads/team-photos/${req.file.filename}`
+    });
+
+  } catch (error) {
+    console.error("AI Validatie Fout:", error);
+    res.status(500).json({ error: "De AI kon de foto niet goed beoordelen. Probeer een duidelijkere foto." });
+  }
 });
 
 // ------------------------------------------
