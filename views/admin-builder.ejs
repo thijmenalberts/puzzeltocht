@@ -353,6 +353,7 @@ const pagesSafe = normalizePages(puzzle);
       <button class="element-btn" type="button" data-type="question">❓ Vraag</button>
       <button class="element-btn" type="button" data-type="photo">📸 Foto maken</button>
       <button class="element-btn" data-type="team-name">🏷️ Teamnaam</button>
+      <button class="element-btn" data-type="aiphoto">🤖 AI Foto Controle</button>
     </div>
 
     <div class="sidebar-actions">
@@ -1149,6 +1150,23 @@ function createBlock(type){
       `;
     }
 
+/////////////////////////////////////////////////////////////////////////////////// AI afbeeling check
+  if (type === "aiphoto") {
+      content.innerHTML = `
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+          <button type="button" class="btn-camera" disabled style="opacity: 0.5;">
+            📸 AI Controle Foto
+          </button>
+        </div>
+        <div class="helper" style="color: #6366f1; font-weight: bold;">
+          AI Foto Controle: De speler maakt hier een foto.
+        </div>
+        <div class="helper">
+          Stel het zoekdoel in via het menu aan de rechterkant.
+        </div>
+      `;
+    }
+/////////////////////////////////////////////////////////////////////////////////////////////
     wireBlock(div);
     return div;
   }
@@ -1394,6 +1412,39 @@ const pEmpty = qs("#panel-empty");
   }
 
   function setSelected(block){
+
+    //////////////////////////////////////////////////////// AI PHOTO BLOCK
+    if (type === "aiphoto") {
+      const srcPrompt = block._data?.prompt || {};
+      const srcPoints = block._data?.points || 10;
+
+      pDyn.innerHTML = `
+        <label>Wat moet de AI zoeken op de foto?</label>
+        <textarea id="p-ai-prompt" rows="3" placeholder="Bijv: Een rode auto, een boom, een standbeeld..."></textarea>
+        
+        <label style="margin-top:10px;">Punten bij goed antwoord</label>
+        <input id="p-ai-points" type="number" value="${srcPoints}">
+      `;
+
+      const ta = qs("#p-ai-prompt");
+      const inpPoints = qs("#p-ai-points");
+
+      ta.value = typeof srcPrompt === "string" ? srcPrompt : (srcPrompt[activeLanguage] || "");
+
+      ta.oninput = () => {
+        if (!block._data.prompt) block._data.prompt = {};
+        if (typeof block._data.prompt === "string") {
+           block._data.prompt = { [activeLanguage]: ta.value };
+        } else {
+           block._data.prompt[activeLanguage] = ta.value;
+        }
+      };
+
+      inpPoints.oninput = () => {
+        block._data.points = Number(inpPoints.value);
+      };
+    }
+///////////////////////////////////////////////////////
     selected = block;
 
     pEmpty.style.display = "none";
@@ -1763,7 +1814,23 @@ function collect(){
         data.url =
           qs('[data-field="url"]', b)?.value || "";
       }
-    
+//////////////////////////////////////////////////////////////// AI mongoDB
+      if (type === "aiphoto") {
+        data.prompt = { ...(b._data?.prompt || {}) };
+        
+        // Zorg dat als er in het rechterpaneel is getypt, dit wordt opgepakt
+        const activePromptValue = qs('#p-ai-prompt')?.value;
+        if (activePromptValue !== undefined && selected === b) {
+            data.prompt[activeLanguage] = activePromptValue;
+        } else if (b._data?.prompt?.[activeLanguage]) {
+            data.prompt[activeLanguage] = b._data.prompt[activeLanguage];
+        }
+
+        data.points = Number(b._data?.points || qs('#p-ai-points')?.value || 10);
+      }
+////////////////////////////////////////////////////////
+
+
       // ✅ TEAM NAME MODULE
       if (type === "team-name") {
         data = {}; // dit mag nu wel
