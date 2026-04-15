@@ -278,7 +278,7 @@ app.post("/api/verify-aiphoto", uploadTeamPhoto.single("file"), async (req, res)
 
     // 1. Initialiseer Gemini
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     // 2. Zet de foto om in Base64 (vereist voor Gemini)
     const filePath = req.file.path;
