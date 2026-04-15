@@ -325,6 +325,41 @@ app.post("/api/verify-aiphoto", uploadTeamPhoto.single("file"), async (req, res)
 });
 
 // ------------------------------------------
+// 8e. HISTORISCHE CHAT (GEMINI API)
+// ------------------------------------------
+app.post("/api/chat-persona", express.json(), async (req, res) => {
+  try {
+    const { message, systemPrompt, characterName, history } = req.body;
+
+    if (!message || !systemPrompt) {
+      return res.status(400).json({ error: "Bericht of instructie ontbreekt." });
+    }
+
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    
+    // We gebruiken de systemInstruction feature van Gemini voor de beste roleplay
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.5-flash",
+      systemInstruction: `Je bent het volgende personage: ${characterName}. Jouw achtergrond en gedrag: ${systemPrompt}. Reageer altijd in karakter. Houd je antwoorden kort en krachtig (max 3 zinnen).`
+    });
+
+    const chat = model.startChat({
+      history: history || []
+    });
+
+    const result = await chat.sendMessage(message);
+    const responseText = result.response.text();
+
+    res.json({ reply: responseText });
+
+  } catch (error) {
+    console.error("Chat Error:", error);
+    res.status(500).json({ error: "De historische figuur is even sprakeloos..." });
+  }
+});
+
+
+// ------------------------------------------
 // SET TEAM NAME
 // ------------------------------------------
 app.post("/team/name", express.json(), (req, res) => {
