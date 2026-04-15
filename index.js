@@ -322,8 +322,9 @@ app.post("/api/verify-aiphoto", uploadTeamPhoto.single("file"), async (req, res)
     res.status(500).json({ error: "De AI jury kon de foto niet beoordelen." });
   }
 });
+
 // ------------------------------------------
-// 8e. HISTORISCHE CHAT (GEMINI API)
+// 8e. HISTORISCHE CHAT (LITE MODEL - 1000 REQS/DAG)
 // ------------------------------------------
 app.post("/api/chat-persona", express.json(), async (req, res) => {
   try {
@@ -335,7 +336,7 @@ app.post("/api/chat-persona", express.json(), async (req, res) => {
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     
-    // We gebruiken de systemInstruction feature van Gemini voor de beste roleplay
+    // ⭐ VERANDERD NAAR FLASH-LITE VOOR HOGERE QUOTA
     const model = genAI.getGenerativeModel({ 
       model: "gemini-2.5-flash-lite",
       systemInstruction: `Je bent het volgende personage: ${characterName}. Jouw achtergrond en gedrag: ${systemPrompt}. Reageer altijd in karakter. Houd je antwoorden kort en krachtig (max 3 zinnen).`
@@ -350,11 +351,21 @@ app.post("/api/chat-persona", express.json(), async (req, res) => {
 
     res.json({ reply: responseText });
 
-  } catch (error) {
+} catch (error) {
     console.error("Chat Error:", error);
-    res.status(500).json({ error: "De historische figuur is even sprakeloos..." });
-  }
-});
+
+    // Als de daglimiet van Google op is (Error 429)
+    if (error.message.includes("429")) {
+        return res.status(429).json({ 
+            error: `Oei! ${characterName} heeft vandaag al teveel gekletst en heeft even rust nodig.` 
+        });
+    }
+
+    // Voor alle andere fouten
+    res.status(500).json({ 
+        error: `Helaas, ${characterName} is even sprakeloos... Probeer het zo nog eens!` 
+    });
+}
 
 
 // ------------------------------------------
