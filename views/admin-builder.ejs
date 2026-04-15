@@ -1799,9 +1799,13 @@ function collect(){
           qs('[data-field="url"]', b)?.value || "";
       }
 //////////////////////////////////////////////////////////////// AI mongoDB
-     if (type === "aiphoto") {
+      if (type === "aiphoto") {
+        data.instruction = { ...(b._data?.instruction || {}) };
+        data.instruction[activeLanguage] = qs('[data-field="ai-instruction"]', b)?.value || "";
+
         data.prompt = { ...(b._data?.prompt || {}) };
         data.prompt[activeLanguage] = qs('[data-field="ai-prompt"]', b)?.value || "";
+
         data.points = Number(qs('[data-field="ai-points"]', b)?.value) || 10;
       }
 ////////////////////////////////////////////////////////
