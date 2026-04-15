@@ -734,17 +734,13 @@ const pagesSafe = normalizePages(puzzle);
 
 //////////////////////////////////////// AI foto
       if (m.type === "aiphoto") {
+        const instrInput = qs('[data-field="ai-instruction"]', block);
         const promptInput = qs('[data-field="ai-prompt"]', block);
         const pointsInput = qs('[data-field="ai-points"]', block);
         
-        if (promptInput) {
-          promptInput.value = typeof data.prompt === "string" 
-            ? data.prompt 
-            : data.prompt?.[activeLanguage] || "";
-        }
-        if (pointsInput) {
-          pointsInput.value = data.points !== undefined ? data.points : 10;
-        }
+        if (instrInput) instrInput.value = typeof data.instruction === "string" ? data.instruction : data.instruction?.[activeLanguage] || "";
+        if (promptInput) promptInput.value = typeof data.prompt === "string" ? data.prompt : data.prompt?.[activeLanguage] || "";
+        if (pointsInput) pointsInput.value = data.points !== undefined ? data.points : 10;
       }
 /////////////////////////////////////////
       if (m.type === "photo") {
@@ -1168,16 +1164,22 @@ function createBlock(type){
 /////////////////////////////////////////////////// ai foto
 if (type === "aiphoto") {
       content.innerHTML = `
-        <div style="display:flex; gap:8px; margin-bottom:8px;">
+        <div style="display:flex; gap:8px; margin-bottom:12px;">
           <button type="button" class="btn-camera" disabled style="opacity: 0.5; background: #e5e7eb; border: 1px solid #d1d5db; color: #6b7280;">
             📸 AI Controle Foto
           </button>
         </div>
-        <label>Wat moet de AI zoeken op de foto?</label>
-        <input data-field="ai-prompt" placeholder="Bijv: Een rode auto, een boom...">
         
-        <label style="margin-top: 8px; display: block;">Punten bij goed antwoord:</label>
-        <input type="number" data-field="ai-points" value="10">
+        <label style="font-weight: 700; color: #111827;">Instructie voor de speler:</label>
+        <div class="helper" style="margin-bottom:4px;">Wat leest de speler op zijn telefoon?</div>
+        <input data-field="ai-instruction" placeholder="Bijv: Maak een foto van een rood voertuig" style="margin-bottom: 12px; background: #f9fafb;">
+
+        <label style="font-weight: 700; color: #4f46e5;">Geheime AI-Prompt:</label>
+        <div class="helper" style="margin-bottom:4px;">Wat moet de AI controleren? (De speler ziet dit niet)</div>
+        <input data-field="ai-prompt" placeholder="Bijv: Een rode auto, fiets of scooter" style="border-color: #c7d2fe;">
+        
+        <label style="margin-top: 12px; display: block; font-weight: 700;">Punten bij goed antwoord:</label>
+        <input type="number" data-field="ai-points" value="10" style="width: 80px;">
       `;
     }
 ///////////////////////////////////////////////////////
