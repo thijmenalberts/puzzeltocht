@@ -265,65 +265,59 @@ app.post("/team/profile-photo", express.json(), (req, res) => {
 // ------------------------------------------
 app.post("/api/verify-aiphoto", uploadTeamPhoto.single("file"), async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ error: "Geen foto ontvangen." });
+    if (!req.file) return res.status(400).json({ error: "Geen foto." });
     
-    const prompt = req.body.prompt;
-    if (!prompt) return res.status(400).json({ error: "Geen AI-opdracht (prompt) meegegeven." });
+    const { prompt, maxPoints } = req.body;
+    const limit = Number(maxPoints) || 10;
 
-    if (!process.env.GEMINI_API_KEY) {
-      console.error("CRITICAL: GEMINI_API_KEY ontbreekt in .env");
-      return res.status(500).json({ error: "AI is momenteel niet beschikbaar (Geen API Key)." });
-    }
-
-    // 1. Initialiseer Gemini
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    // ⭐ DE DEFINITIEVE FIX: We gebruiken de nieuwste 2.5 architectuur die door Google wordt ondersteund.
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-    // 2. Zet de foto om in Base64 (vereist voor Gemini)
-    const filePath = req.file.path;
-    const fileData = fs.readFileSync(filePath);
+    const fileData = fs.readFileSync(req.file.path);
     const imagePart = {
-      inlineData: {
-        data: fileData.toString("base64"),
-        mimeType: req.file.mimetype
-      }
+      inlineData: { data: fileData.toString("base64"), mimeType: req.file.mimetype }
     };
 
-    // 3. De System Prompt (Super strict voor consistente JSON)
     const systemPrompt = `
-      Je bent een strenge, maar eerlijke, onpartijdige scheidsrechter in een vossenjacht/puzzeltocht.
-      De speler moest een foto maken van: "${prompt}".
-      Controleer of de afbeelding voldoet aan de opdracht. 
-      Antwoord UITSLUITEND in de volgende JSON structuur, zonder extra tekst of markdown:
+      Je bent een juryvoorzitter van een puzzeltocht.
+      Opdracht voor de speler: "${prompt}".
+      Beoordeel de foto op een schaal van 0 tot 100 (score).
+      - 0: De foto heeft niets met de opdracht te maken.
+      - 1-49: Poging gedaan, maar onvoldoende of onduidelijk.
+      - 50-79: Goede foto, voldoet aan de opdracht.
+      - 80-100: Uitstekend, creatief of perfect uitgevoerd.
+
+      Antwoord ALLEEN met deze JSON:
       {
-        "match": true, // of false
-        "reason": "Korte motivatie in het Nederlands, maximaal 2 zinnen."
+        "match": true, // alleen false als score < 50
+        "score": 85, // getal tussen 0 en 100
+        "reason": "Korte motivatie van de score."
       }
     `;
 
-    // 4. Stuur naar AI en wacht op antwoord
     const result = await model.generateContent([systemPrompt, imagePart]);
     const responseText = result.response.text();
-
-    // 5. Maak de JSON schoon (Mocht Gemini toch markdown sturen)
     const cleanJson = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
     const aiResult = JSON.parse(cleanJson);
 
-    // 6. Stuur het resultaat terug naar de speler
+    // Bereken de uiteindelijke punten
+    const awarded = Math.round((aiResult.score / 100) * limit);
+
     res.json({
       success: true,
       match: aiResult.match,
+      score: aiResult.score,
+      pointsAwarded: awarded,
+      maxPoints: limit,
       reason: aiResult.reason,
       url: `/uploads/team-photos/${req.file.filename}`
     });
 
   } catch (error) {
-    console.error("AI Validatie Fout:", error);
-    res.status(500).json({ error: "De AI kon de foto niet goed beoordelen. Probeer een duidelijkere foto." });
+    console.error("AI Fout:", error);
+    res.status(500).json({ error: "De jury kon de foto niet beoordelen." });
   }
 });
-
 // ------------------------------------------
 // 8e. HISTORISCHE CHAT (GEMINI API)
 // ------------------------------------------
