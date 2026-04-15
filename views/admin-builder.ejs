@@ -353,7 +353,8 @@ const pagesSafe = normalizePages(puzzle);
       <button class="element-btn" type="button" data-type="question">❓ Vraag</button>
       <button class="element-btn" type="button" data-type="photo">📸 Foto maken</button>
       <button class="element-btn" data-type="team-name">🏷️ Teamnaam</button>
-      <button class="element-btn" data-type="aiphoto">🤖 AI Foto Controle</button>
+      <button class="element-btn" data-type="aiphoto">🤖 AI Foto Controle</button> // AI FOTO
+      <button class="element-btn" data-type="historychat">🎭 Historisch Figuur</button> // AI CHAT
     </div>
 
     <div class="sidebar-actions">
@@ -742,7 +743,15 @@ const pagesSafe = normalizePages(puzzle);
         if (promptInput) promptInput.value = typeof data.prompt === "string" ? data.prompt : data.prompt?.[activeLanguage] || "";
         if (pointsInput) pointsInput.value = data.points !== undefined ? data.points : 10;
       }
-/////////////////////////////////////////
+///////////////////////////////////////// AI chat
+
+if (m.type === "historychat") {
+        const nameInput = qs('[data-field="chat-name"]', block);
+        const promptInput = qs('[data-field="chat-prompt"]', block);
+        if (nameInput) nameInput.value = typeof data.characterName === "string" ? data.characterName : data.characterName?.[activeLanguage] || "";
+        if (promptInput) promptInput.value = typeof data.systemPrompt === "string" ? data.systemPrompt : data.systemPrompt?.[activeLanguage] || "";
+      }
+///////////////////////////////////////////
       if (m.type === "photo") {
         const url = data?.url;
       
@@ -1007,6 +1016,22 @@ function createBlock(type){
     `;
 
     const content = qs(".content", div);
+///////////////////////////////////////// AI CHAT
+if (type === "historychat") {
+      content.innerHTML = `
+        <div style="background: #fdf2f2; padding: 10px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #fecaca;">
+          <strong style="color: #991b1b;">🎭 Historische Chat</strong>
+        </div>
+        
+        <label>Naam van het personage:</label>
+        <input data-field="chat-name" placeholder="Bijv: Jan de Bakker (1750)">
+
+        <label style="margin-top: 8px; display: block;">Karakter omschrijving (AI Instructie):</label>
+        <div class="helper">Beschrijf hoe de AI moet reageren.</div>
+        <textarea data-field="chat-prompt" rows="4" placeholder="Bijv: Je bent een bakker uit 1750. Je bent vriendelijk maar begrijpt niks van moderne techniek..."></textarea>
+      `;
+    }
+/////////////////////////////////
 
     if (type === "title") {
       content.innerHTML = `
@@ -1808,9 +1833,16 @@ function collect(){
 
         data.points = Number(qs('[data-field="ai-points"]', b)?.value) || 10;
       }
-////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////// AI CHAT
 
+if (type === "historychat") {
+        data.characterName = { ...(b._data?.characterName || {}) };
+        data.characterName[activeLanguage] = qs('[data-field="chat-name"]', b)?.value || "";
 
+        data.systemPrompt = { ...(b._data?.systemPrompt || {}) };
+        data.systemPrompt[activeLanguage] = qs('[data-field="chat-prompt"]', b)?.value || "";
+      }
+////////////////////////////////////////////////
       // ✅ TEAM NAME MODULE
       if (type === "team-name") {
         data = {}; // dit mag nu wel
