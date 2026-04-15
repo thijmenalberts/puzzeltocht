@@ -282,7 +282,6 @@
     </div>
   <% } %>
 
-<% (page.modules || []).forEach((mod, qIndex) => { %>
   <% if (mod.type === 'aiphoto') { %>
     <% 
        const aiInstruction = typeof mod.data.instruction === 'string' ? mod.data.instruction : (mod.data.instruction?.[lang] || '');
