@@ -5,8 +5,9 @@
   "scripts": {
     "start": "node index.js"
   },
-    "dependencies": {
+  "dependencies": {
     "@google/generative-ai": "^0.21.0",
+    "airtable": "^0.12.2",
     "bcryptjs": "^2.4.3",
     "connect-mongo": "^5.1.0",
     "csv-parser": "^3.0.0",
