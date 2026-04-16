@@ -743,6 +743,37 @@ app.post("/api/log-action", express.json(), (req, res) => {
   res.json({ success: true, totalScore: req.session.totalScore });
 });
 
+// 1. Puntentelling & Logboek
+app.post("/api/log-action", express.json(), (req, res) => {
+  const { points, logMessage } = req.body;
+  if (req.session.totalScore === undefined) req.session.totalScore = 0;
+  if (!req.session.logbook) req.session.logbook = [];
+  
+  req.session.totalScore += Number(points) || 0;
+  if (logMessage) {
+    const time = new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+    req.session.logbook.push(`[${time}] ${logMessage}`);
+  }
+  res.json({ success: true, totalScore: req.session.totalScore });
+});
+
+// 2. Adaptieve AI Hint
+app.post("/api/get-hint", express.json(), async (req, res) => {
+  try {
+    const { questionText, secretKnowledge, userMessage, hintCost } = req.body;
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.5-flash-lite",
+      systemInstruction: `Je bent de Hint-Meester. Opdracht: "${questionText}". Geheim: "${secretKnowledge}". 
+      Geef een subtiele hint op de vraag "${userMessage}". Verklap NOOIT het antwoord.`
+    });
+
+    const result = await model.generateContent(userMessage);
+    req.session.totalScore -= (Number(hintCost) || 0); // Punten aftrekken
+    res.json({ hint: result.response.text(), newScore: req.session.totalScore });
+  } catch (e) { res.status(500).send(e.message); }
+});
+
 // ------------------------------------------
 // 10. 404
 // ------------------------------------------
