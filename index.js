@@ -598,6 +598,39 @@ app.post(
   }
 );
 
+// ------------------------------------------
+// 🌟 FASE 1 & 2: LOGBOEK & SCORE ENGINE
+// ------------------------------------------
+
+// 1. Initialiseer de score en het logboek als het team een naam kiest
+app.post("/team/name", express.json(), (req, res) => {
+  req.session.teamName = req.body.name;
+  req.session.totalScore = 0;
+  req.session.logbook = []; // Hierin slaat de AI straks alles op!
+  res.json({ ok: true });
+});
+
+// 2. De route om punten en acties op te slaan in de sessie
+app.post("/api/log-action", express.json(), (req, res) => {
+  const { points, logMessage } = req.body;
+
+  // Vangnet: als ze op een oude sessie zitten
+  if (req.session.totalScore === undefined) req.session.totalScore = 0;
+  if (!req.session.logbook) req.session.logbook = [];
+
+  const earned = Number(points) || 0;
+  req.session.totalScore += earned;
+
+  // Schrijf in het verborgen logboek voor de AI Eind-evaluatie
+  if (logMessage) {
+    const time = new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+    req.session.logbook.push(`[${time}] ${logMessage} (Verdiende punten: ${earned})`);
+  }
+
+  res.json({ success: true, totalScore: req.session.totalScore });
+});
+
+
 // Player
 app.get("/puzzle/:id", async (req, res) => {
   const puzzle = await Puzzle.findById(req.params.id);
