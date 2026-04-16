@@ -1,0 +1,25 @@
+<div style="max-width: 600px; margin: 40px auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+  <h1 style="text-align: center; color: #fbbf24; font-size: 36px; margin-bottom: 5px;">🏆 Hall of Fame</h1>
+  <p style="text-align: center; color: #6b7280; margin-bottom: 30px;">De absolute toppers van deze puzzeltocht.</p>
+
+  <div style="display: flex; flex-direction: column; gap: 12px;">
+    <% if (scores && scores.length > 0) { %>
+      <% scores.forEach((score, index) => { %>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-radius: 10px; border: 1px solid #e5e7eb; background: <%= index === 0 ? '#fef3c7' : (index === 1 ? '#f3f4f6' : (index === 2 ? '#fff7ed' : '#ffffff')) %>;">
+          <div style="display: flex; align-items: center; gap: 15px;">
+            <strong style="font-size: 24px; color: #374151; width: 30px;"><%= index === 0 ? '🥇' : (index === 1 ? '🥈' : (index === 2 ? '🥉' : index + 1)) %></strong>
+            <span style="font-size: 18px; font-weight: 700; color: #111827;"><%= score.teamName %></span>
+          </div>
+          <div style="text-align: right;">
+            <strong style="color: #d97706; font-size: 20px;"><%= score.totalScore %> pt</strong>
+            <div style="font-size: 12px; color: #6b7280;">Tijd: <%= Math.floor(score.totalTimeSec / 60) %> min</div>
+          </div>
+        </div>
+      <% }) %>
+    <% } else { %>
+      <div style="text-align: center; padding: 40px; color: #9ca3af; font-style: italic;">
+        Nog geen teams hebben deze puzzeltocht afgerond. Worden jullie de eersten?
+      </div>
+    <% } %>
+  </div>
+</div>
