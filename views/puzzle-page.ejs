@@ -57,6 +57,13 @@
   <input type="hidden" name="redirect" value="/puzzle/<%= puzzle._id %>/<%= pageIndex %>">
 </form>
 
+<% if (session?.teamName) { %>
+  <div style="position: sticky; top: 0; background: #1e293b; color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-radius: 8px; margin-bottom: 16px; z-index: 100; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    <strong style="font-size: 15px; margin: 0;">👥 <%= session.teamName %></strong>
+    <strong style="color: #fbbf24; margin: 0; background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 20px;">🏆 <span id="ui-score"><%= session.totalScore || 0 %></span> pt</strong>
+  </div>
+<% } %>
+
 <% if (page.playSoundOnStart && page.soundUrl) { %>
 <script>
   new Audio("<%= page.soundUrl %>").play().catch(()=>{});
@@ -118,30 +125,50 @@
     </div>
   <% } %>
 
-  <% if (mod.type === "question") { %>
-    <div class="card">
-      <strong><%= t(mData.question) %></strong>
+<% if (mod.type === "question") { %>
+    <% 
+      // Haal gamification data veilig op
+      var isTimed = mData.isTimed === "true" || mData.isTimed === true; 
+      var limit = Number(mData.timeLimit) || 60;
+      var maxPts = Number(mData.maxPoints) || 10;
+      var pSec = Number(mData.penaltySec) || 10;
+      var pPts = Number(mData.penaltyPoints) || 1;
+    %>
+    
+    <% if (isTimed) { %>
+      <div id="prep-screen-<%= qIndex %>" class="card" style="border: 3px solid #f59e0b; text-align: center;">
+        <div style="font-size: 40px; margin-bottom: 10px;">⏱️</div>
+        <h3 style="color: #d97706; margin-top:0;">Tijdsgebonden Opdracht</h3>
+        <p style="color: #475569; font-size: 15px;">Je hebt <strong><%= limit %> seconden</strong> om deze vraag op te lossen. Daarna verlies je punten!</p>
+        <button class="btn" style="background: #f59e0b; margin-top: 10px;" onclick="startTimedChallenge(<%= qIndex %>, <%= limit %>, <%= pSec %>, <%= pPts %>, <%= maxPts %>)">Start de Tijd!</button>
+      </div>
+    <% } %>
+
+    <div class="card" id="question-content-<%= qIndex %>" style="<%= isTimed ? 'display:none;' : '' %>">
+      
+      <% if (isTimed) { %>
+        <div style="background: #fffbeb; color: #d97706; padding: 10px 14px; text-align: center; font-weight: bold; border-radius: 8px; margin-bottom: 15px; border: 2px solid #fde68a; display: flex; justify-content: space-between;">
+          <span>⏱️ <span id="timer-clock-<%= qIndex %>">00:00</span></span>
+          <span>Potentieel: <strong id="timer-pts-<%= qIndex %>"><%= maxPts %></strong> pt</span>
+        </div>
+      <% } %>
+      
+      <strong style="display:block; margin-bottom: 10px; font-size:1.1rem;"><%= t(mData.question) %></strong>
 
       <% if (mData.questionType === "mc") { %>
-        <div data-mc
-             data-options='<%- JSON.stringify(mData.options || []) %>'
-             data-good="<%= mData.goodPage ?? '' %>"
-             data-bad="<%= mData.badPage ?? '' %>"
-             data-puzzle="<%= puzzle._id %>">
-
+        <div data-mc data-options='<%- JSON.stringify(mData.options || []) %>' data-good="<%= mData.goodPage ?? '' %>" data-bad="<%= mData.badPage ?? '' %>" data-puzzle="<%= puzzle._id %>">
           <% (mData.options || []).forEach((opt,i)=>{ %>
-            <label>
-              <input type="radio" name="mc-<%=qIndex%>" value="<%= i %>">
+            <label style="background: #f9fafb; padding: 10px; border-radius: 8px; border: 1px solid #e5e7eb;">
+              <input type="radio" name="mc-<%=qIndex%>" value="<%= i %>"> 
               <span><%= t(opt.text) %></span>
             </label>
           <% }) %>
-
-          <button class="btn" onclick="handleMC(this)">Controleer</button>
+          <button class="btn" style="margin-top:12px;" onclick="handleMC(this, <%= qIndex %>, <%= maxPts %>)">Controleer</button>
           <div class="feedback"></div>
         </div>
       <% } else { %>
-        <form onsubmit="return handleOpen(event,this)">
-          <input name="answer" placeholder="Jouw antwoord">
+        <form onsubmit="return handleOpen(event, this, <%= qIndex %>, <%= maxPts %>)">
+          <input name="answer" placeholder="Jouw antwoord..." style="background: #f9fafb; padding: 12px; border: 1px solid #e5e7eb;">
           <button class="btn" style="margin-top:10px;">Controleer</button>
           <div class="feedback"></div>
           <input type="hidden" name="correct" value="<%= t(mData.answer) %>">
@@ -446,49 +473,149 @@ function openImage(src){
 </script>
 
 <script>
-/* === QUESTIONS === */
-function handleMC(btn) {
+/* === FASE 2 & 3: TIMERS, HINTS & QUESTIONS === */
+
+// Globaal object om timers bij te houden
+window.activeTimers = {};
+
+function startTimedChallenge(idx, limit, pSec, pPts, maxPts) {
+  // Verberg pre-screen, toon vraag
+  document.getElementById(`prep-screen-${idx}`).style.display = 'none';
+  document.getElementById(`question-content-${idx}`).style.display = 'block';
+
+  // Sla starttijd op
+  window.activeTimers[idx] = { startTime: Date.now(), limit, pSec, pPts, maxPts };
+
+  const clockEl = document.getElementById(`timer-clock-${idx}`);
+  const ptsEl = document.getElementById(`timer-pts-${idx}`);
+  
+  // Tikkende klok
+  setInterval(() => {
+    let passed = Math.floor((Date.now() - window.activeTimers[idx].startTime) / 1000);
+    clockEl.innerText = `${String(Math.floor(passed / 60)).padStart(2, '0')}:${String(passed % 60).padStart(2, '0')}`;
+
+    let currentPts = maxPts;
+    if (passed > limit) {
+      let penalty = Math.floor((passed - limit) / pSec) * pPts;
+      currentPts = Math.max(0, maxPts - penalty);
+      clockEl.parentElement.parentElement.style.background = "#fee2e2"; // Kleurt rood
+    }
+    ptsEl.innerText = currentPts;
+  }, 1000);
+}
+
+// Hulpscript om punten door te sturen naar server
+async function logScoreToServer(points, message) {
+  try {
+    const res = await fetch('/api/log-action', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ points: points, logMessage: message })
+    });
+    const data = await res.json();
+    const scoreUi = document.getElementById("ui-score");
+    if (scoreUi) scoreUi.innerText = data.totalScore;
+  } catch(e) { console.error("Score kon niet gelogd worden", e); }
+}
+
+async function handleMC(btn, idx, maxPts) {
   const b = btn.closest('[data-mc]');
   const fb = b.querySelector('.feedback');
   const r = b.querySelector('input:checked');
-  if (!r) {
-    fb.textContent = "Kies een antwoord.";
-    fb.style.color = "red";
-    return;
-  }
+  if (!r) { fb.textContent = "Kies een antwoord."; fb.style.color = "red"; return; }
 
   const opts = JSON.parse(b.dataset.options || "[]");
   const ok = !!opts[r.value]?.correct;
-  const go = ok ? b.dataset.good : b.dataset.bad;
 
-  if (go !== "") {
-    location.href = `/puzzle/${b.dataset.puzzle}/${go}`;
-    return;
+  if (ok) {
+    btn.disabled = true;
+    fb.textContent = "✅ Goed! Laden..."; fb.style.color = "green";
+    
+    // Bereken punten
+    let earnedPoints = maxPts || 10;
+    let logMsg = "MC Vraag correct beantwoord.";
+    if (window.activeTimers[idx]) {
+      const t = window.activeTimers[idx];
+      let passed = Math.floor((Date.now() - t.startTime) / 1000);
+      if (passed > t.limit) earnedPoints = Math.max(0, t.maxPts - (Math.floor((passed - t.limit) / t.pSec) * t.pPts));
+      logMsg = `MC Vraag correct in ${passed}s. (Punten: ${earnedPoints})`;
+    }
+    
+    await logScoreToServer(earnedPoints, logMsg);
+    const go = b.dataset.good;
+    if (go !== "") location.href = `/puzzle/${b.dataset.puzzle}/${go}`;
+  } else {
+    fb.textContent = "❌ Fout!"; fb.style.color = "red";
+    // Fout antwoord betekent dat ze langer doen en evt tijd verliezen
   }
-
-  fb.textContent = ok ? "Goed!" : "Fout!";
-  fb.style.color = ok ? "green" : "red";
 }
 
-function handleOpen(e, f) {
+async function handleOpen(e, f, idx, maxPts) {
   e.preventDefault();
-
-  const ok =
-    f.answer.value.trim().toLowerCase() ===
-    f.correct.value.trim().toLowerCase();
-
-  const go = ok ? f.good.value : f.bad.value;
-  if (go !== "") {
-    location.href = `/puzzle/${f.puzzle.value}/${go}`;
-    return false;
-  }
-
+  const ok = f.answer.value.trim().toLowerCase() === f.correct.value.trim().toLowerCase();
   const fb = f.querySelector('.feedback');
-  fb.textContent = ok ? "Goed!" : "Fout!";
-  fb.style.color = ok ? "green" : "red";
+  const btn = f.querySelector('button');
+
+  if (ok) {
+    btn.disabled = true;
+    fb.textContent = "✅ Goed! Laden..."; fb.style.color = "green";
+    
+    let earnedPoints = maxPts || 10;
+    let logMsg = `Open Vraag correct: "${f.answer.value}"`;
+    if (window.activeTimers[idx]) {
+      const t = window.activeTimers[idx];
+      let passed = Math.floor((Date.now() - t.startTime) / 1000);
+      if (passed > t.limit) earnedPoints = Math.max(0, t.maxPts - (Math.floor((passed - t.limit) / t.pSec) * t.pPts));
+      logMsg = `Open Vraag correct in ${passed}s. (Punten: ${earnedPoints})`;
+    }
+
+    await logScoreToServer(earnedPoints, logMsg);
+    const go = f.good.value;
+    if (go !== "") location.href = `/puzzle/${f.puzzle.value}/${go}`;
+  } else {
+    fb.textContent = "❌ Fout!"; fb.style.color = "red";
+  }
   return false;
 }
 
+// --- FASE 3: AI HINT ENGINE ---
+function toggleHintChat(idx) {
+  const chat = document.getElementById(`hint-chat-${idx}`);
+  chat.style.display = chat.style.display === 'none' ? 'block' : 'none';
+}
+
+async function askHint(idx, questionText, secretKnowledge, hintCost) {
+  const input = document.getElementById(`hint-input-${idx}`);
+  const responseDiv = document.getElementById(`hint-response-${idx}`);
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  if (!confirm(`Een tip aanvragen kost je ${hintCost} punten. Weet je het zeker?`)) return;
+
+  input.disabled = true;
+  responseDiv.style.display = "block";
+  responseDiv.innerHTML = "<em>De Hint-Meester communiceert met het verleden...</em>";
+
+  try {
+    const res = await fetch('/api/get-hint', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ questionText, secretKnowledge, userMessage: msg, hintCost })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    responseDiv.innerHTML = "💡 " + data.hint;
+    const scoreUi = document.getElementById("ui-score");
+    if (scoreUi) scoreUi.innerText = data.newScore; // Update UI Live!
+
+  } catch (e) {
+    responseDiv.innerHTML = "⚠️ Fout: " + e.message;
+  } finally {
+    input.disabled = false;
+    input.value = "";
+  }
+}
 /* === PHOTO UPLOAD === */
 async function uploadPhoto(input, pageIndex, moduleIndex) {
   const file = input.files?.[0];
