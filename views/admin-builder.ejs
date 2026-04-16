@@ -863,7 +863,20 @@ if (m.type === "historychat") {
           Number.isInteger(data?.goodPage) ? data.goodPage : "";
         qs('[data-field="badPage"]', block).value =
           Number.isInteger(data?.badPage) ? data.badPage : "";
-      }
+
+// Laad gamification data
+        qs('[data-field="pts"]', block).value = data.maxPoints ?? 10;
+        qs('[data-field="hintcost"]', block).value = data.hintCost ?? 2;
+        const cbTimed = qs('[data-field="istimed"]', block);
+        if(cbTimed) {
+            cbTimed.checked = !!data.isTimed;
+            cbTimed.parentElement.nextElementSibling.style.display = data.isTimed ? 'block' : 'none';
+        }
+        qs('[data-field="tlimit"]', block).value = data.timeLimit ?? 60;
+        qs('[data-field="ppen"]', block).value = data.penaltyPoints ?? 1;
+        qs('[data-field="psec"]', block).value = data.penaltySec ?? 10;
+
+}
 
       if(m.type==="location"){
         qs('[data-field="lat"]',    block).value = data?.lat ?? "";
@@ -1153,7 +1166,7 @@ if (type === "historychat") {
       `;
     }
 
-    if(type === "question"){
+if(type === "question"){
       content.innerHTML = `
         <label>Vraag:</label>
         <input data-field="question">
@@ -1166,22 +1179,8 @@ if (type === "historychat") {
     
         <div data-mc style="display:none; margin-top:8px;">
           <label>Antwoordopties</label>
-        
           <div data-options></div>
-        
-          <button
-            type="button"
-            data-add-option
-            style="
-              margin-top:6px;
-              background:#eef2ff;
-              border:1px dashed #6366f1;
-              border-radius:8px;
-              padding:6px;
-              font-weight:600;
-              cursor:pointer;
-            "
-          >
+          <button type="button" data-add-option style="margin-top:6px; background:#eef2ff; border:1px dashed #6366f1; border-radius:8px; padding:6px; font-weight:600; cursor:pointer;">
             + Antwoord toevoegen
           </button>
         </div>
@@ -1193,7 +1192,26 @@ if (type === "historychat") {
     
         <input type="hidden" data-field="goodPage">
         <input type="hidden" data-field="badPage">
-      `;
+
+        <div style="background:#fef3c7; padding:12px; border-radius:8px; margin-top:16px; border:1px solid #fde68a;">
+          <strong style="color:#d97706; display:block; margin-bottom:8px;">🏆 Instellingen & Timers</strong>
+          <div class="form-row">
+            <div style="flex:1;"><label>Max Punten:</label><input type="number" data-field="pts" value="10"></div>
+            <div style="flex:1;"><label>Hint Kosten:</label><input type="number" data-field="hintcost" value="2"></div>
+          </div>
+          <label style="display:flex; gap:8px; align-items:center; margin-top:8px; cursor:pointer;">
+            <input type="checkbox" data-field="istimed" style="width:auto; margin:0;" onchange="this.parentElement.nextElementSibling.style.display = this.checked ? 'block' : 'none'">
+            <strong style="color:#d97706;">Is tijdsgebonden</strong>
+          </label>
+          <div style="display:none; margin-top:10px; background:white; padding:10px; border-radius:6px; border:1px solid #fde68a;">
+            <label>Tijdlimiet (sec):</label><input type="number" data-field="tlimit" value="60">
+            <div class="form-row">
+              <div style="flex:1;"><label>Strafpunten:</label><input type="number" data-field="ppen" value="1"></div>
+              <div style="flex:1;"><label>Elke (sec):</label><input type="number" data-field="psec" value="10"></div>
+            </div>
+          </div>
+        </div>
+        `;
     }
 
     if(type === "location"){
@@ -1723,6 +1741,15 @@ const pEmpty = qs("#panel-empty");
       navWrap.append(lblGood, selGood, lblBad, selBad);
     
       pDyn.appendChild(navWrap);
+
+// Sla gamification data op
+        data.maxPoints = Number(qs('[data-field="pts"]', b)?.value) || 10;
+        data.hintCost = Number(qs('[data-field="hintcost"]', b)?.value) || 2;
+        data.isTimed = !!qs('[data-field="istimed"]', b)?.checked;
+        data.timeLimit = Number(qs('[data-field="tlimit"]', b)?.value) || 60;
+        data.penaltyPoints = Number(qs('[data-field="ppen"]', b)?.value) || 1;
+        data.penaltySec = Number(qs('[data-field="psec"]', b)?.value) || 10;
+
     }
 
     // LOCATION BLOCK
