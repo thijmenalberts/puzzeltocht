@@ -843,6 +843,13 @@ if(m.type==="question"){
         qs('[data-field="lng"]',    block).value = data?.lng ?? "";
         qs('[data-field="radius"]', block).value = data?.radius ?? 50;
       }
+    
+      // Universele Gamification Inladen
+      const sAiK = qs('[data-field="aiknowledge"]', block);
+      const sHst = qs('[data-field="hintcost"]', block);
+      if(sAiK) sAiK.value = data.aiKnowledge || "";
+      if(sHst) sHst.value = data.hintCost !== undefined ? data.hintCost : 2;
+
     });
 
     setPageTitleUI();
@@ -1234,7 +1241,13 @@ if (type === "aiphoto") {
         <input type="number" data-field="ai-points" value="10" style="width: 80px;">
       `;
     }
-
+    // Voeg onzichtbare opslagvelden toe aan ELK blok voor de Universele AI Hints
+    const hiddenFields = document.createElement("div");
+    hiddenFields.innerHTML = `
+      <input type="hidden" data-field="aiknowledge">
+      <input type="hidden" data-field="hintcost" value="2">
+    `;
+    div.appendChild(hiddenFields);
     wireBlock(div);
     return div;
   }
@@ -1545,9 +1558,9 @@ const pEmpty = qs("#panel-empty");
 
 // QUESTION BLOCK - PERFECT SYNC
     if (type === "question") {
-      const sAiK = block.querySelector('[data-field="aiknowledge"]');
+
       const sPts = block.querySelector('[data-field="pts"]');
-      const sHst = block.querySelector('[data-field="hintcost"]');
+
       const sIst = block.querySelector('[data-field="istimed"]');
       const sTli = block.querySelector('[data-field="tlimit"]');
       const sPpen = block.querySelector('[data-field="ppen"]');
@@ -1669,6 +1682,33 @@ const pEmpty = qs("#panel-empty");
       qs("#p-lng").oninput = () => { if(lng) lng.value = qs("#p-lng").value; };
       qs("#p-r").oninput   = () => { if(r)   r.value   = qs("#p-r").value;   };
     }
+    
+    // ==========================================
+    // UNIVERSELE AI HINT BOX (Altijd zichtbaar)
+    // ==========================================
+    const sAiK = block.querySelector('[data-field="aiknowledge"]');
+    const sHst = block.querySelector('[data-field="hintcost"]');
+
+    if (sAiK && sHst) {
+      pDyn.innerHTML += `
+        <hr style="border:none; border-top:1px solid #e5e7eb; margin:20px 0 15px;">
+        <label style="color:#4f46e5; font-weight:800;">💡 AI Geheime Kennis (voor hints)</label>
+        <div class="helper" style="margin-bottom:4px; line-height:1.4;">Wat mag de AI vertellen als de speler hier om een hint vraagt? <br><em>(Laat dit veld leeg als je geen hint-knop wilt tonen bij deze module)</em></div>
+        <textarea id="p-aik-global" rows="3" placeholder="Bijv: Het antwoord hangt onder de brug. Verwijs subtiel naar water." style="border:1px solid #c7d2fe;"></textarea>
+        
+        <label style="margin-top:12px; font-weight:700;">Hint Kosten (punten)</label>
+        <input type="number" id="p-hst-global">
+      `;
+      
+      const iAik = document.getElementById("p-aik-global");
+      iAik.value = sAiK.value;
+      iAik.oninput = () => { sAiK.value = iAik.value; };
+
+      const iHst = document.getElementById("p-hst-global");
+      iHst.value = sHst.value;
+      iHst.oninput = () => { sHst.value = iHst.value; };
+    }
+    
   }
 
   function clearPanel(){
@@ -1793,7 +1833,9 @@ if (type === "historychat") {
         data.lng    = lng !== "" ? Number(lng) : null;
         data.radius = rad !== "" ? Number(rad) : 50;
       }
-    
+      // Universele Gamification Opslag
+      data.aiKnowledge = qs('[data-field="aiknowledge"]', b)?.value || "";
+      data.hintCost = Number(qs('[data-field="hintcost"]', b)?.value) || 0;
       return { type, data };
     });
   }
