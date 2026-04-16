@@ -293,44 +293,56 @@ app.get("/admin-puzzles/export/:id", requireAdmin, async (req, res) => {
     res.status(500).send("Export mislukt.");
   }
 });
-// --- JSON IMPORT ROUTE (Verbeterde versie) ---
+
+// --- JSON IMPORT ROUTE (De 'Stofzuiger' Versie) ---
 app.post("/admin-puzzles/import", requireAdmin, uploadMedia.single("file"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).send("Geen bestand geüpload.");
-    
+
+    // 1. Lees het geüploade JSON bestand
     const rawData = fs.readFileSync(req.file.path, 'utf8');
     const puzzleData = JSON.parse(rawData);
-    
-    // 1. Verwijder ID's van het hoofdbestand
-    delete puzzleData._id;
-    delete puzzleData.id;
-    delete puzzleData.createdAt;
-    delete puzzleData.updatedAt;
 
-    // 2. ZEER BELANGRIJK: Verwijder ook de ID's van alle pagina's
-    // Anders krijg je fouten bij het opslaan in de database
-    if (Array.isArray(puzzleData.pages)) {
-      puzzleData.pages.forEach(page => {
-        delete page._id;
-        delete page.id;
-        // Als er modules in de pagina zitten, die laten we zo, 
-        // maar pagina-ID's moeten echt weg.
-      });
+    // 2. DE STOFZUIGER FUNCTIE: Graaft door de hele puzzel heen
+    function cleanDatabaseTraces(obj) {
+      if (Array.isArray(obj)) {
+        obj.forEach(cleanDatabaseTraces);
+      } else if (obj && typeof obj === 'object') {
+        // Verwijder alle Mongoose/MongoDB specifieke sleutels
+        delete obj._id;
+        delete obj.id;
+        delete obj.__v; // Mongoose versie controle
+        delete obj.createdAt;
+        delete obj.updatedAt;
+        
+        // Graaf dieper de modules en data in
+        for (let key in obj) {
+          cleanDatabaseTraces(obj[key]);
+        }
+      }
     }
 
-    // 3. Maak de nieuwe puzzel aan
+    // 3. Voer de grote schoonmaak uit
+    cleanDatabaseTraces(puzzleData);
+
+    // 4. UX Tip: Pas de naam iets aan zodat je de import herkent
+    if (puzzleData.name) {
+      puzzleData.name = puzzleData.name + " (Backup)";
+    }
+
+    // 5. Maak de compleet schone puzzel aan in de database
     const newPuzzle = await Puzzle.create(puzzleData);
-    
-    // 4. Ruim het tijdelijke bestand op
-    if (fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
-    
+
+    // 6. Ruim het tijdelijke upload-bestand op
+    safeUnlink(req.file.path);
+
     console.log("✅ Puzzel succesvol geïmporteerd:", newPuzzle.name);
     res.redirect("/admin-puzzles");
   } catch (err) {
     console.error("Import error:", err);
-    res.status(500).send("Fout bij importeren: " + err.message);
+    // Ruim het bestand ook op als de import faalt!
+    if (req.file) safeUnlink(req.file.path); 
+    res.status(500).send("Fout bij importeren: De opbouw van het JSON bestand klopt niet.");
   }
 });
 
