@@ -220,14 +220,9 @@ app.post("/admin-files/delete", requireAdmin, express.json(), (req, res) => {
 });
 
 app.get("/", (req, res) => res.render("index", { error: null }));
-app.post("/check-code", async (req, res) => {
-  const rawCode = req.body.code || "";
-  
-  if (result.admin) {
-    return res.redirect("/admin-login");
-  }
+app.post("/check-code", checkCodeLimiter, async (req, res) => {
   try {
-    const result = await checkCode(rawCode);
+    const result = await checkCode(req.body.code);
 
     // ❌ Ongeldige code
     if (!result.valid) {
@@ -236,11 +231,16 @@ app.post("/check-code", async (req, res) => {
       });
     }
 
-    // ✅ Geldige code → door
+    // ✅ Admin-code (alleen als je dit ondersteunt)
+    if (result.admin) {
+      return res.redirect("/admin-login");
+    }
+
+    // ✅ Geldige gebruikerscode
     return res.redirect("/next");
 
   } catch (err) {
-    console.error("Check-code fout:", err);
+    console.error("check-code error:", err);
     return res.render("index", {
       error: "Er ging iets mis, probeer opnieuw",
     });
