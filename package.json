@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node index.js"
   },
-  "dependencies": {
+    "dependencies": {
+    "@google/generative-ai": "^0.21.0",
     "bcryptjs": "^2.4.3",
     "connect-mongo": "^5.1.0",
     "csv-parser": "^3.0.0",
@@ -13,10 +14,9 @@
     "ejs": "^3.1.10",
     "express": "^4.19.2",
     "express-ejs-layouts": "^2.5.1",
+    "express-rate-limit": "^7.5.0",
     "express-session": "^1.17.3",
     "mongoose": "^8.5.0",
-    "multer": "^1.4.5-lts.1",
-    "@google/generative-ai": "^0.21.0"
-    "express-rate-limit": "^7.x.x"
+    "multer": "^1.4.5-lts.1"
   }
 }
