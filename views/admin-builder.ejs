@@ -1558,37 +1558,35 @@ const pEmpty = qs("#panel-empty");
       };
     }
 
-    // QUESTION BLOCK
+// QUESTION BLOCK - GEPERFECTIONEERD VOOR FASE 2 & 3
     if (type === "question") {
-      const q        = qs('[data-field="question"]', block);
-      const qt       = qs('[data-field="questionType"]', block);
-      const openWrap = qs('[data-open]', block);
-      const mcWrap   = qs('[data-mc]', block);
-      const optWrap  = qs('[data-options]', block);
-      const addBtn   = qs('[data-add-option]', block);
+      // 1. Haal de bron-elementen uit de telefoon-preview
+      const sourceQ = block.querySelector('[data-field="question"]');
+      const sourceQt = block.querySelector('[data-field="questionType"]');
+      const sourceA = block.querySelector('[data-field="answer"]');
+      const sourceAiK = block.querySelector('[data-field="aiknowledge"]');
+      const sourcePts = block.querySelector('[data-field="pts"]');
+      const sourceHst = block.querySelector('[data-field="hintcost"]');
+      const sourceIst = block.querySelector('[data-field="istimed"]');
+      const sourceTli = block.querySelector('[data-field="tlimit"]');
+      
+      const openWrap = block.querySelector('[data-open]');
+      const mcWrap   = block.querySelector('[data-mc]');
+      const optWrap  = block.querySelector('[data-options]');
+      const addBtn   = block.querySelector('[data-add-option]');
+      const goodHidden = block.querySelector('[data-field="goodPage"]');
+      const badHidden  = block.querySelector('[data-field="badPage"]');
     
-      const goodHidden = qs('[data-field="goodPage"]', block);
-      const badHidden  = qs('[data-field="badPage"]', block);
-
-      const aiK = qs('[data-field="aiknowledge"]', block);
-      const aiInput = qs("#p-aik"); // Dit is de ID van de textarea in de zijbalk
-
-if (aiInput && aiK) {
-  aiInput.value = aiK.value || "";
-  aiInput.oninput = () => { aiK.value = aiInput.value; };
-}
-    
+      // 2. Maak de zijbalk leeg en bouw de nieuwe UI op
       pDyn.innerHTML = "";
     
-      /* ===== VRAAG ===== */
-      pDyn.innerHTML += `
-        <label>Vraag</label>
-        <input id="p-q">
-      `;
-      qs("#p-q").value = q.value || "";
-      qs("#p-q").oninput = () => q.value = qs("#p-q").value;
+      // VRAAG TEKST
+      pDyn.innerHTML += `<label>Vraag</label><input id="p-q">`;
+      const inputQ = document.getElementById("p-q");
+      inputQ.value = sourceQ ? sourceQ.value : "";
+      inputQ.oninput = () => { if(sourceQ) sourceQ.value = inputQ.value; };
     
-      /* ===== VRAAGTYPE ===== */
+      // VRAAG TYPE SELECTIE
       pDyn.innerHTML += `
         <label>Vraagtype</label>
         <select id="p-qt">
@@ -1596,227 +1594,86 @@ if (aiInput && aiK) {
           <option value="mc">Multiple choice</option>
         </select>
       `;
-      qs("#p-qt").value = qt.value || "open";
+      const selectQt = document.getElementById("p-qt");
+      selectQt.value = sourceQt ? sourceQt.value : "open";
+      
+      const syncUI = () => {
+        const val = selectQt.value;
+        if(sourceQt) sourceQt.value = val;
+        if(openWrap) openWrap.style.display = (val === "open") ? "block" : "none";
+        if(mcWrap) mcWrap.style.display = (val === "mc") ? "block" : "none";
+      };
+      selectQt.onchange = syncUI;
+      syncUI();
 
-/* ===== AI KENNIS & HINTS (Nieuw voor Fase 3) ===== */
-      const aiK = qs('[data-field="aiknowledge"]', block);
+      // AI GEHEIME KENNIS (Nieuw voor Fase 3)
       pDyn.innerHTML += `
         <label style="margin-top:12px; color:#4f46e5; font-weight:bold;">💡 AI Geheime Kennis (voor hints)</label>
         <textarea id="p-aik" rows="3" placeholder="Vertel de AI hier het geheim van de vraag..."></textarea>
       `;
-      const aiInput = qs("#p-aik");
-      aiInput.value = aiK ? aiK.value : "";
-      aiInput.oninput = () => { if(aiK) aiK.value = aiInput.value; };
+      const inputAiK = document.getElementById("p-aik");
+      inputAiK.value = sourceAiK ? sourceAiK.value : "";
+      inputAiK.oninput = () => { if(sourceAiK) sourceAiK.value = inputAiK.value; };
 
-      /* ===== SCORE & TIMERS (Nieuw voor Fase 2) ===== */
-      const pts = qs('[data-field="pts"]', block);
-      const hst = qs('[data-field="hintcost"]', block);
-      const ist = qs('[data-field="istimed"]', block);
-      const tli = qs('[data-field="tlimit"]', block);
-
+      // GAMIFICATION BOX (Fase 2)
       pDyn.innerHTML += `
-        <div style="background:#fef3c7; padding:10px; border-radius:8px; margin-top:15px; border:1px solid #fde68a;">
-          <label>Max Punten</label>
-          <input type="number" id="p-pts">
-          
-          <label>Hint Kosten (punten)</label>
-          <input type="number" id="p-hst">
+        <div style="background:#fef3c7; padding:12px; border-radius:10px; margin-top:15px; border:1px solid #fde68a;">
+          <label style="margin:0; color:#b45309; font-weight:800;">🏆 Score & Punten</label>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
+            <div><label style="font-size:11px;">Max Punten</label><input type="number" id="p-pts"></div>
+            <div><label style="font-size:11px;">Hint Kosten</label><input type="number" id="p-hst"></div>
+          </div>
 
-          <hr style="border:0; border-top:1px solid #fde68a; margin:10px 0;">
-          
-          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-            <input type="checkbox" id="p-ist" style="width:auto;"> <strong>Tijdlimiet gebruiken</strong>
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-top:12px;">
+            <input type="checkbox" id="p-ist" style="width:auto; margin:0;"> <strong>Tijdlimiet gebruiken</strong>
           </label>
 
-          <div id="p-time-settings" style="display:${ist && ist.checked ? 'block' : 'none'}; margin-top:10px;">
-            <label>Tijd (sec)</label>
+          <div id="p-time-settings" style="display:none; margin-top:10px; padding-top:10px; border-top:1px solid #fde68a;">
+            <label>Tijd (seconden)</label>
             <input type="number" id="p-tli">
           </div>
         </div>
       `;
 
-      // Koppel de waarden aan de zijbalk
-      qs("#p-pts").value = pts ? pts.value : 10;
-      qs("#p-pts").oninput = () => { if(pts) pts.value = qs("#p-pts").value; };
+      // Koppel waarden aan de gamification velden
+      const inputPts = document.getElementById("p-pts");
+      inputPts.value = sourcePts ? sourcePts.value : 10;
+      inputPts.oninput = () => { if(sourcePts) sourcePts.value = inputPts.value; };
 
-      qs("#p-hst").value = hst ? hst.value : 2;
-      qs("#p-hst").oninput = () => { if(hst) hst.value = qs("#p-hst").value; };
+      const inputHst = document.getElementById("p-hst");
+      inputHst.value = sourceHst ? sourceHst.value : 2;
+      inputHst.oninput = () => { if(sourceHst) sourceHst.value = inputHst.value; };
 
-      if(ist) {
-        qs("#p-ist").checked = ist.checked;
-        qs("#p-ist").onchange = () => {
-          ist.checked = qs("#p-ist").checked;
-          qs("#p-time-settings").style.display = ist.checked ? 'block' : 'none';
+      const checkIst = document.getElementById("p-ist");
+      const inputTli = document.getElementById("p-tli");
+      if(sourceIst) {
+        checkIst.checked = sourceIst.checked;
+        document.getElementById("p-time-settings").style.display = sourceIst.checked ? 'block' : 'none';
+        checkIst.onchange = () => {
+          sourceIst.checked = checkIst.checked;
+          document.getElementById("p-time-settings").style.display = checkIst.checked ? 'block' : 'none';
         };
       }
+      inputTli.value = sourceTli ? sourceTli.value : 60;
+      inputTli.oninput = () => { if(sourceTli) sourceTli.value = inputTli.value; };
 
-      qs("#p-tli").value = tli ? tli.value : 60;
-      qs("#p-tli").oninput = () => { if(tli) tli.value = qs("#p-tli").value; };
-
-      const syncType = () => {
-        const v = qs("#p-qt").value;
-        qt.value = v;
-        openWrap.style.display = v === "open" ? "block" : "none";
-        mcWrap.style.display   = v === "mc"   ? "block" : "none";
-      };
-      qs("#p-qt").onchange = syncType;
-      syncType();
+      // NAVIGATIE (GOED/FOUT PAGINA)
+      const lblG = document.createElement("label");
+      lblG.textContent = "Bij goed antwoord → ga naar pagina";
+      lblG.style.marginTop = "15px";
+      const selG = buildPageSelect("p-good");
+      selG.value = (goodHidden && goodHidden.value) ? goodHidden.value : "";
+      selG.onchange = () => { if(goodHidden) goodHidden.value = selG.value; };
     
-      /* ===== MULTIPLE CHOICE OPTIES ===== */
-      function createOption(text = "", correct = false) {
-        const div = document.createElement("div");
-        div.className = "mc-option";
-        div.setAttribute("data-option", "");
-        div.draggable = true;
-        div.style.display = "flex";
-        div.style.flexDirection = "column";
-        div.style.gap = "6px";
-        div.style.marginBottom = "12px";
-      
-        div.innerHTML = `
-          <label style="font-size:12px; font-weight:600; color:#6b7280;">
-            Juist
-          </label>
-      
-          <div style="display:flex; align-items:center; gap:10px;">
-            <span class="drag-handle" title="Sleep om te sorteren">☰</span>
-      
-            <input
-              type="text"
-              data-text
-              placeholder="Antwoord"
-              style="flex:1; padding:8px 10px; border-radius:8px; border:1px solid #d1d5db;"
-            >
-      
-            <input
-              type="checkbox"
-              data-correct
-              style="width:18px; height:18px;"
-            >
-      
-            <button
-              type="button"
-              data-remove
-              title="Antwoord verwijderen"
-              style="
-                background:#fee2e2;
-                color:#991b1b;
-                border:1px solid #fecaca;
-                border-radius:6px;
-                width:28px;
-                height:28px;
-                font-weight:700;
-                cursor:pointer;
-              "
-            >
-              ✕
-            </button>
-          </div>
-        `;
-      
-        const textInput  = div.querySelector('[data-text]');
-        const correctBox = div.querySelector('[data-correct]');
-        const removeBtn  = div.querySelector('[data-remove]');
-      
-        textInput.value = text;
-        correctBox.checked = !!correct;
-      
-        // ❌ verwijderen (minimaal 1 optie behouden)
-        removeBtn.onclick = () => {
-          const wrap = div.parentElement;
-          if (!wrap) return;
-      
-          if (wrap.querySelectorAll('[data-option]').length <= 1) {
-            alert("Je moet minimaal één antwoord hebben.");
-            return;
-          }
-          div.remove();
-        };
-      
-        return div;
-      }
+      const lblB = document.createElement("label");
+      lblB.textContent = "Bij fout antwoord → ga naar pagina";
+      const selB = buildPageSelect("p-bad");
+      selB.value = (badHidden && badHidden.value) ? badHidden.value : "";
+      selB.onchange = () => { if(badHidden) badHidden.value = selB.value; };
     
-      if (optWrap.children.length === 0) {
-        optWrap.appendChild(createOption());
-        optWrap.appendChild(createOption());
-      }
-    
-      addBtn.onclick = () => {
-        optWrap.appendChild(createOption());
-      };
-
-      let draggedOption = null;
-
-      optWrap.addEventListener("dragstart", (e) => {
-        const opt = e.target.closest(".mc-option");
-        if (!opt) return;
-        draggedOption = opt;
-        opt.classList.add("dragging");
-        e.dataTransfer.effectAllowed = "move";
-      });
-      
-      optWrap.addEventListener("dragend", () => {
-        if (draggedOption) draggedOption.classList.remove("dragging");
-        draggedOption = null;
-      });
-      
-      optWrap.addEventListener("dragover", (e) => {
-        e.preventDefault();
-        const after = getDragAfterElement(optWrap, e.clientY);
-        if (!draggedOption) return;
-      
-        if (after == null) {
-          optWrap.appendChild(draggedOption);
-        } else {
-          optWrap.insertBefore(draggedOption, after);
-        }
-      });
-      
-      function getDragAfterElement(container, y) {
-        const items = [...container.querySelectorAll(".mc-option:not(.dragging)")];
-      
-        return items.reduce((closest, child) => {
-          const box = child.getBoundingClientRect();
-          const offset = y - box.top - box.height / 2;
-          if (offset < 0 && offset > closest.offset) {
-            return { offset, element: child };
-          }
-          return closest;
-        }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
-      }
-
-      /* ===== DOORSTUREN BIJ GOED / FOUT ===== */
-    
-      // GOOD PAGE
-      const lblGood = document.createElement("label");
-      lblGood.textContent = "Bij goed antwoord → ga naar pagina";
-    
-      const selGood = buildPageSelect("p-good");
-      selGood.value = goodHidden.value ?? "";
-      selGood.onchange = () => goodHidden.value = selGood.value;
-    
-      // BAD PAGE
-      const lblBad = document.createElement("label");
-      lblBad.textContent = "Bij fout antwoord → ga naar pagina";
-    
-      const selBad = buildPageSelect("p-bad");
-      selBad.value = badHidden.value ?? "";
-      selBad.onchange = () => badHidden.value = selBad.value;
-    
-      const navWrap = document.createElement("div");
-      navWrap.style.marginTop = "12px";
-      navWrap.append(lblGood, selGood, lblBad, selBad);
-    
-      pDyn.appendChild(navWrap);
-
-// Sla gamification data op
-        data.maxPoints = Number(qs('[data-field="pts"]', b)?.value) || 10;
-        data.hintCost = Number(qs('[data-field="hintcost"]', b)?.value) || 2;
-        data.isTimed = !!qs('[data-field="istimed"]', b)?.checked;
-        data.timeLimit = Number(qs('[data-field="tlimit"]', b)?.value) || 60;
-        data.penaltyPoints = Number(qs('[data-field="ppen"]', b)?.value) || 1;
-        data.penaltySec = Number(qs('[data-field="psec"]', b)?.value) || 10;
-
+      const navContainer = document.createElement("div");
+      navContainer.append(lblG, selG, lblB, selB);
+      pDyn.appendChild(navContainer);
     }
 
     // LOCATION BLOCK
