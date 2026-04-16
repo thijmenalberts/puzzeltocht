@@ -417,7 +417,7 @@ app.post("/api/get-hint", express.json(), async (req, res) => {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.5-flash-lite", 
+      model: "gemini-2.5-flash-lite-preview", 
       systemInstruction: `Je bent de Hint-Meester. Opdracht: "${questionText}". Geheim: "${secretKnowledge}". Geef een subtiele hint op de vraag "${userMessage}". Verklap NOOIT het antwoord.`
     });
 
