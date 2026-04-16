@@ -293,27 +293,38 @@ app.get("/admin-puzzles/export/:id", requireAdmin, async (req, res) => {
     res.status(500).send("Export mislukt.");
   }
 });
-
-// --- JSON IMPORT ROUTE ---
+// --- JSON IMPORT ROUTE (Verbeterde versie) ---
 app.post("/admin-puzzles/import", requireAdmin, uploadMedia.single("file"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).send("Geen bestand geüpload.");
     
-    // Lees het bestand
-    const rawData = fs.readFileSync(req.file.path);
+    const rawData = fs.readFileSync(req.file.path, 'utf8');
     const puzzleData = JSON.parse(rawData);
     
-    // Belangrijk: Verwijder de oude Database-ID's zodat MongoDB nieuwe aanmaakt
+    // 1. Verwijder ID's van het hoofdbestand
     delete puzzleData._id;
     delete puzzleData.id;
-    if (puzzleData.createdAt) delete puzzleData.createdAt;
-    if (puzzleData.updatedAt) delete puzzleData.updatedAt;
+    delete puzzleData.createdAt;
+    delete puzzleData.updatedAt;
 
-    // Maak de nieuwe puzzel aan
+    // 2. ZEER BELANGRIJK: Verwijder ook de ID's van alle pagina's
+    // Anders krijg je fouten bij het opslaan in de database
+    if (Array.isArray(puzzleData.pages)) {
+      puzzleData.pages.forEach(page => {
+        delete page._id;
+        delete page.id;
+        // Als er modules in de pagina zitten, die laten we zo, 
+        // maar pagina-ID's moeten echt weg.
+      });
+    }
+
+    // 3. Maak de nieuwe puzzel aan
     const newPuzzle = await Puzzle.create(puzzleData);
     
-    // Verwijder het tijdelijke upload-bestand
-    safeUnlink(req.file.path);
+    // 4. Ruim het tijdelijke bestand op
+    if (fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
     
     console.log("✅ Puzzel succesvol geïmporteerd:", newPuzzle.name);
     res.redirect("/admin-puzzles");
