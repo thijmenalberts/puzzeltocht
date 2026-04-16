@@ -85,7 +85,9 @@
 
 <% (page.modules || []).forEach((mod, qIndex) => { %>
   <% var mData = mod.data || {}; %>
-  <% var qId = "q-" + pageIndex + "-" + qIndex; %> <% if (mod.type === "title") { %>
+  <% var qId = "q-" + pageIndex + "-" + qIndex; %>
+
+  <% if (mod.type === "title") { %>
     <div class="card"><h2 class="title-module"><%= t(mData.title) %></h2></div>
   <% } %>
 
@@ -130,14 +132,14 @@
       var maxPts = Number(mData.maxPoints) || 10;
       var pSec = Number(mData.penaltySec) || 10;
       var pPts = Number(mData.penaltyPoints) || 1;
-      var qTextClean = t(mData.question).replace(/'/g, "\\'"); // Escaping for JS
+      var qTextClean = t(mData.question).replace(/'/g, "\\'");
     %>
     
     <% if (isTimed) { %>
       <div id="prep-screen-<%= qIndex %>" class="card" style="border: 3px solid #f59e0b; text-align: center; padding: 30px 20px;">
         <div style="font-size: 50px; margin-bottom: 10px;">⏱️</div>
         <h3 style="color: #d97706; margin-top:0; font-size: 22px;">Tijdsgebonden Opdracht</h3>
-       <p style="color: #475569; font-size: 16px;">Je hebt <strong><%= limit %> seconden</strong>. Hierna verdien je steeds minder punten!<br><small style="opacity: 0.7; font-size: 13px;">(De pagina opnieuw laden heeft geen zin 😉)</small></p>
+        <p style="color: #475569; font-size: 16px;">Je hebt <strong><%= limit %> seconden</strong>. Hierna verdien je steeds minder punten!<br><small style="opacity: 0.7; font-size: 13px;">(De pagina opnieuw laden heeft geen zin 😉)</small></p>
         <button class="btn" style="background: #f59e0b; margin-top: 20px; font-size: 18px;" onclick="startTimedChallenge('<%= qIndex %>', '<%= qId %>', <%= limit %>, <%= pSec %>, <%= pPts %>, <%= maxPts %>)">🚀 Start de Tijd!</button>
       </div>
     <% } %>
@@ -182,14 +184,13 @@
            
            <div id="hint-box-<%= qIndex %>" style="display:none; background: #fffbeb; padding: 15px; border-radius: 10px; border: 1px solid #fcd34d;">
               <% if (mData.hintType === 'static') { %>
-                <p style="margin-top:0; color: #92400e; font-size: 14px;">Deze hint kost <strong><%= mData.hintCost %> punten</strong>. Weet je het zeker?</p>
-                <button class="btn" style="background: #d97706; padding: 10px;" onclick="executeStaticHint(this, '<%= qIndex %>', '<%= encodeURIComponent(mData.staticHintText) %>', <%= mData.hintCost %>, '<%= qTextClean %>', '<%= qId %>')">🔓 Koop Hint</button>
+                <button class="btn" style="background: #d97706; padding: 10px;" onclick="executeStaticHint(this, '<%= qIndex %>', '<%= encodeURIComponent(mData.staticHintText) %>', <%= mData.hintCost %>, '<%= qTextClean %>', '<%= qId %>')">🔓 Koop Hint (-<%= mData.hintCost %> pt)</button>
               <% } else { %>
                 <p style="margin-top:0; color: #92400e; font-size: 14px;">Stel een specifieke vraag aan de AI Hint-Meester (-<%= mData.hintCost %> pt):</p>
                 <div style="display:flex; gap:8px;">
                   <input type="text" id="hint-in-<%= qIndex %>" placeholder="Waar loop je vast?" style="border-color: #fcd34d;">
-                  <button class="btn" style="background: #d97706; width: auto; padding: 10px 16px;" onclick="executeAiHint(this, '<%= qIndex %>', '<%= encodeURIComponent(mData.aiKnowledge) %>', <%= mData.hintCost %>, '<%= qTextClean %>', '<%= qId %>')">Vraag</button> // -----------------
-                </div>                                                                                        
+                  <button class="btn" style="background: #d97706; width: auto; padding: 10px 16px;" onclick="executeAiHint(this, '<%= qIndex %>', '<%= encodeURIComponent(mData.aiKnowledge) %>', <%= mData.hintCost %>, '<%= qTextClean %>', '<%= qId %>')">Vraag</button>
+                </div>
               <% } %>
               <div id="hint-res-<%= qIndex %>" style="margin-top: 12px; font-size: 15px; font-weight: 600; color: #b45309; line-height: 1.5;"></div>
            </div>
@@ -212,7 +213,7 @@
     </div>
   <% } %>
 
- <% if (mod.type === 'historychat') { %>
+  <% if (mod.type === 'historychat') { %>
     <div class="card" data-maxturns="<%= mData.maxTurns || 3 %>" style="border: 2px solid #fee2e2; padding: 0; overflow: hidden;">
       <div style="background: #fee2e2; padding: 15px; display: flex; align-items: center; gap: 12px;">
         <div style="width: 45px; height: 45px; background: #991b1b; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px;">🎭</div>
@@ -271,33 +272,25 @@
 <div class="img-overlay" id="imgOverlay" onclick="this.style.display='none'"><img id="overlayImg"></div>
 
 <script>
-/* ==========================================
-   UI UTILS
-========================================== */
 function openImage(src){ document.getElementById("overlayImg").src = src; document.getElementById("imgOverlay").style.display = "flex"; }
 function updateGlobalScore(newScore) { const el = document.getElementById("ui-score"); if(el) el.innerText = newScore; }
 
-/* ==========================================
-   FASE 1 & 2: SERVER-SIDE TIMERS & VERIFICATIE
-========================================== */
 window.activeTimers = {};
 
 async function startTimedChallenge(idx, questionId, limit, pSec, pPts, maxPts) {
   document.getElementById(`prep-screen-${idx}`).style.display = 'none';
   document.getElementById(`question-content-${idx}`).style.display = 'block';
   
-  // 1. BEVEILIGING: Register start time on backend
   try {
     await fetch('/api/timer/start', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ questionId }) });
   } catch(e) { console.error("Klok kon niet op server starten."); }
 
-  // 2. Visuele Client Klok
   window.activeTimers[idx] = { startTime: Date.now(), limit, pSec, pPts, maxPts };
   const clockEl = document.getElementById(`timer-clock-${idx}`);
   const ptsEl = document.getElementById(`timer-pts-${idx}`);
   
   setInterval(() => {
-    if(!window.activeTimers[idx]) return; // stopt visueel als beantwoord
+    if(!window.activeTimers[idx]) return;
     let passed = Math.floor((Date.now() - window.activeTimers[idx].startTime) / 1000);
     clockEl.innerText = `${String(Math.floor(passed / 60)).padStart(2, '0')}:${String(passed % 60).padStart(2, '0')}`;
     let currentPts = maxPts;
@@ -311,7 +304,6 @@ async function startTimedChallenge(idx, questionId, limit, pSec, pPts, maxPts) {
   }, 1000);
 }
 
-// Centrale Handler voor het wegschrijven van scores en navigeren
 async function handleCorrectAnswer(btn, idx, questionId, maxPts, limit, pSec, pPts, isTimed, questionText) {
   btn.disabled = true;
   const fb = document.getElementById(`fb-${idx}`);
@@ -320,7 +312,7 @@ async function handleCorrectAnswer(btn, idx, questionId, maxPts, limit, pSec, pP
   try {
     let res;
     if (isTimed) {
-      delete window.activeTimers[idx]; // stop visuele klok
+      delete window.activeTimers[idx];
       res = await fetch('/api/timer/stop', {
         method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ questionId, maxPts, limit, pSec, pPts, logMessage: `Vraag beantwoord: "${questionText}"` })
@@ -335,7 +327,6 @@ async function handleCorrectAnswer(btn, idx, questionId, maxPts, limit, pSec, pP
     updateGlobalScore(data.totalScore);
     fb.innerHTML = `✅ Goed! (+${isTimed ? data.earnedPoints : maxPts} pt)`;
     
-    // Auto-navigatie na goed antwoord
     setTimeout(() => {
       const form = document.getElementById(`form-${idx}`);
       const goodPage = isTimed ? form.parentElement.querySelector(`[data-good]`)?.dataset.good : document.getElementById(`good-${idx}`)?.value;
@@ -373,9 +364,6 @@ function verifyOpen(btn, idx, questionId, maxPts, limit, pSec, pPts, isTimed, qT
   }
 }
 
-/* ==========================================
-   FASE 3: HYBRIDE HINT ENGINE
-========================================== */
 async function executeStaticHint(btn, idx, staticTextEn, cost, qText, qId) {
   if (!confirm(`Weet je het zeker? Een hint vragen kost punten! (Let op: een tweede hint kost extra).`)) return;
   
@@ -421,9 +409,6 @@ async function executeAiHint(btn, idx, aiKnowledgeEn, cost, qText, qId) {
   } catch(e) { resDiv.innerHTML = "⚠️ De AI is even offline."; btn.disabled = false; input.disabled = false; btn.innerHTML = "Vraag"; }
 }
 
-/* ==========================================
-   FASE 4 & 5: AI REISVERSLAG & CONFETTI
-========================================== */
 async function triggerFinale(puzzleId) {
   const btn = document.getElementById('btn-finale');
   const loading = document.getElementById('finale-loading');
@@ -447,7 +432,6 @@ async function triggerFinale(puzzleId) {
     document.getElementById('finale-score').innerText = data.score;
     document.getElementById('finale-time').innerText = data.timeMin;
 
-    // BOOM! CONFETTI TIME 🎉
     if (typeof confetti === "function") {
       var duration = 3000; var end = Date.now() + duration;
       (function frame() {
@@ -461,9 +445,6 @@ async function triggerFinale(puzzleId) {
   }
 }
 
-/* ==========================================
-   AI PHOTO JURY LOGICA (INTEGRATIE)
-========================================== */
 document.querySelectorAll('.ai-camera-btn').forEach(btn => {
   btn.addEventListener('click', () => btn.parentElement.querySelector('.ai-file-input').click());
 });
@@ -489,7 +470,6 @@ document.querySelectorAll('.ai-file-input').forEach(input => {
       const result = await res.json();
       if (!res.ok) throw new Error(result.error);
       
-      // Auto Update de Global Score
       const currentScore = parseInt(document.getElementById("ui-score")?.innerText || "0");
       updateGlobalScore(currentScore + result.pointsAwarded);
 
@@ -509,9 +489,6 @@ document.querySelectorAll('.ai-file-input').forEach(input => {
   });
 });
 
-/* ==========================================
-   HISTORISCHE CHAT LOGICA
-========================================== */
 document.querySelectorAll('[id^="chat-btn-"]').forEach(btn => {
   btn.addEventListener('click', async () => {
     const idx = btn.id.split('-').pop();
@@ -524,7 +501,7 @@ document.querySelectorAll('[id^="chat-btn-"]').forEach(btn => {
     win.innerHTML += `<div style="background: #991b1b; color: white; padding: 12px; border-radius: 12px 12px 0 12px; align-self: flex-end; max-width: 85%;">${msg}</div>`;
     win.scrollTop = win.scrollHeight;
 
-try {
+    try {
       const mod = btn.closest('.card');
       const charName = mod.querySelector('strong').innerText; 
       
@@ -534,20 +511,19 @@ try {
           message: msg, 
           characterName: charName, 
           systemPrompt: "Je bent " + charName,
-          maxTurns: mod.dataset.maxturns // Haalt de limiet uit de HTML!
+          maxTurns: mod.dataset.maxturns
         })
       });
       
       const data = await res.json();
       win.innerHTML += `<div style="background: #f3f4f6; padding: 12px; border-radius: 12px 12px 12px 0; align-self: flex-start; max-width: 85%;">${data.reply || "..."}</div>`;
       
-      // ✅ BELANGRIJK: Sluit het gesprek af als de AI aangeeft dat de beurten op zijn!
       if (data.closeChat) {
          input.placeholder = "Gesprek beëindigd.";
          input.disabled = true; 
          btn.style.opacity = "0.5";
          btn.disabled = true;
-         return; // Zorg dat de inputs niet meer heropend worden
+         return;
       }
 
     } catch(e) { 
@@ -556,15 +532,8 @@ try {
     
     input.disabled = false; btn.disabled = false; win.scrollTop = win.scrollHeight;
   });
-catch(e) { win.innerHTML += `<div style="color:red; text-align:center; font-size:12px;">Fout bij laden bericht.</div>`; }
-    
-    input.disabled = false; btn.disabled = false; win.scrollTop = win.scrollHeight;
-  });
 });
 
-/* ==========================================
-   NORMALE FOTO & TEAM LOGICA
-========================================== */
 async function uploadPhoto(input, pIdx, mIdx) {
   const file = input.files?.[0]; if (!file) return;
   const fb = document.getElementById(`photo-feedback-${pIdx}-${mIdx}`);
@@ -595,6 +564,21 @@ async function saveTeamName(name) {
 }
 </script>
 
+<% if (typeof isCompleted !== 'undefined' && isCompleted) { %>
+  <script>
+    document.querySelectorAll('input, select, textarea, button').forEach(el => {
+      el.disabled = true;
+      el.style.opacity = '0.5';
+      el.style.cursor = 'not-allowed';
+    });
+    document.querySelectorAll('a.btn.secondary').forEach(el => {
+      el.style.opacity = '1';
+      el.style.cursor = 'pointer';
+      el.style.pointerEvents = 'auto';
+    });
+  </script>
+<% } %>
+
 <% if (page.isMap) { %>
 <script>
   const target = L.latLng(<%= page.targetLat || 0 %>, <%= page.targetLng || 0 %>);
@@ -618,22 +602,6 @@ async function saveTeamName(name) {
     },()=>{ fb.textContent="Locatie niet beschikbaar"; fb.style.color="red"; });
   } else { document.getElementById("mapFeedback").textContent = "Geen doellocatie ingesteld voor deze kaart."; }
 </script>
-
-<% if (typeof isCompleted !== 'undefined' && isCompleted) { %>
-  <script>
-    // Maak alle invulvelden en knoppen onbruikbaar
-    document.querySelectorAll('input, select, textarea, button').forEach(el => {
-      el.disabled = true;
-      el.style.opacity = '0.5';
-      el.style.cursor = 'not-allowed';
-    });
-    // Zorg dat de speler wél nog op de 'Volgende Pagina' link kan klikken!
-    document.querySelectorAll('a.btn.secondary').forEach(el => {
-      el.style.opacity = '1';
-      el.style.cursor = 'pointer';
-      el.style.pointerEvents = 'auto';
-    });
-  </script>
 <% } %>
 
 </body>
