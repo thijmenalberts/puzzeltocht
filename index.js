@@ -590,13 +590,40 @@ app.get("/leaderboard/:puzzleId", async (req, res) => {
   try {
     const scores = await Leaderboard.find({ puzzleId: req.params.puzzleId })
       .sort({ totalScore: -1, totalTimeSec: 1 }) 
-      .limit(10);
+      .limit(10).lean();
+
+    // Zoek de score van de huidige speler als hij niet in de top 10 staat
+    if (req.session.teamName) {
+      const inTop10 = scores.findIndex(s => s.teamName === req.session.teamName);
+      if (inTop10 === -1) {
+         const myScore = await Leaderboard.findOne({ puzzleId: req.params.puzzleId, teamName: req.session.teamName }).lean();
+         if (myScore) {
+            // Bereken de echte positie
+            const higherScores = await Leaderboard.countDocuments({
+               puzzleId: req.params.puzzleId,
+               $or: [
+                 { totalScore: { $gt: myScore.totalScore } },
+                 { totalScore: myScore.totalScore, totalTimeSec: { $lt: myScore.totalTimeSec } }
+               ]
+            });
+            myScore.realRank = higherScores + 1;
+            myScore.isOwn = true; // Vlaggetje voor EJS
+            scores.push(myScore); // Voeg hem onderaan de lijst toe!
+         }
+      } else {
+         scores[inTop10].isOwn = true;
+         scores[inTop10].realRank = inTop10 + 1;
+      }
+    }
+
+    // Geef de rest van de top 10 hun rank nummer
+    scores.forEach((s, i) => { if (!s.realRank) s.realRank = i + 1; });
+
     res.render("leaderboard", { scores }); 
   } catch(e) {
     res.status(500).send("Fout bij ophalen leaderboard.");
   }
 });
-
 // ==========================================
 // PLAYER / TEAM PHOTO & TAAL
 // ==========================================
