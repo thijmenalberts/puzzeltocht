@@ -281,6 +281,18 @@ app.get("/admin-puzzles", requireAdmin, async (req, res) => {
   const puzzles = await Puzzle.find().sort({ createdAt: -1 });
   res.render("admin-puzzles", { puzzles });
 });
+// --- JSON EXPORT ROUTE ---
+app.get("/admin-puzzles/export/:id", requireAdmin, async (req, res) => {
+  try {
+    const puzzle = await Puzzle.findById(req.params.id).lean();
+    if (!puzzle) return res.status(404).send("Puzzel niet gevonden");
+    res.setHeader('Content-disposition', `attachment; filename=puzzle_backup_${puzzle.name.replace(/\s+/g, '_')}.json`);
+    res.setHeader('Content-type', 'application/json');
+    res.send(JSON.stringify(puzzle, null, 2));
+  } catch (error) {
+    res.status(500).send("Export mislukt.");
+  }
+});
 app.get("/admin-puzzles/new", requireAdmin, (req, res) => res.render("admin-new-puzzle"));
 app.post("/admin-puzzles/new", requireAdmin, async (req, res) => {
   const puzzle = await Puzzle.create({ name: req.body.name, pages: [{ title: "Pagina 1", showNext: true, isMap: false, modules: [] }] });
@@ -392,9 +404,22 @@ app.post("/api/timer/stop", express.json(), (req, res) => {
 // GAME ENGINE: FASE 3 (HYBRIDE HINT ENGINE)
 // ==========================================
 app.post("/api/get-hint", express.json(), async (req, res) => {
-  const { questionText, hintType, staticHintText, secretKnowledge, userMessage, hintCost } = req.body;
+  const { questionText, hintType, staticHintText, secretKnowledge, userMessage, hintCost, questionId } = req.body;
   
-  const cost = Number(hintCost) || 0;
+  // --- HINT ESCALATIE LOGICA ---
+  if (!req.session.hintAttempts) req.session.hintAttempts = {};
+  const attempts = req.session.hintAttempts[questionId] || 0;
+
+  if (attempts >= 2) {
+    return res.json({ hint: "Je hebt het maximum van 2 hints voor deze vraag bereikt!", newScore: req.session.totalScore, limitReached: true });
+  }
+
+  let cost = Number(hintCost) || 0;
+  if (attempts === 1) cost += 2; // 2e hint kost 2 punten extra!
+  
+  req.session.hintAttempts[questionId] = attempts + 1;
+  // ------------------------------
+
   if (req.session.totalScore === undefined) req.session.totalScore = 0;
   if (!req.session.logbook) req.session.logbook = [];
   
@@ -481,10 +506,24 @@ app.post("/api/chat-persona", express.json(), async (req, res) => {
     if (!message || !systemPrompt) return res.status(400).json({ error: "Bericht ontbreekt." });
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// --- CHAT LIMIET BEVEILIGING ---
+    if (!req.session.chatTurns) req.session.chatTurns = {};
+    const chatKey = characterNameStr;
+    if (!req.session.chatTurns[chatKey]) req.session.chatTurns[chatKey] = 0;
+    
+    req.session.chatTurns[chatKey]++;
+    const turns = req.session.chatTurns[chatKey];
+
+    if (turns > 4) {
+      return res.json({ reply: "Ik moet nu echt weer verder. Succes met jullie tocht, reiziger!", closeChat: true });
+    }
+
+    let extraInstruction = "";
+    if (turns === 4) extraInstruction = " DIT IS JE LAATSTE BERICHT. Neem subtiel en definitief afscheid en zeg dat je geen tijd meer hebt. als je nog niet hebt benoemd wat je moet zeggen, verwerk dit ook subtie in je berichtje";
 
     const model = genAI.getGenerativeModel({ 
       model: "gemini-2.5-flash-lite",
-      systemInstruction: `Rol: ${characterNameStr}. Achtergrond: ${systemPrompt}. Reageer altijd in karakter, kort (max 3 zinnen).`
+      systemInstruction: `Rol: ${characterNameStr}. Achtergrond: ${systemPrompt}. Reageer altijd in karakter, kort (max 3 zinnen).${extraInstruction}`
     });
 
     const chat = model.startChat({ history: history || [] });
@@ -603,6 +642,18 @@ app.get("/puzzle/:id", async (req, res) => {
 
 app.get("/puzzle/:id/:page", async (req, res) => {
   const puzzle = await Puzzle.findById(req.params.id).lean();
+  // --- ANTI-CHEAT: Progressie Slot ---
+  const pageNum = Number(req.params.page);
+  if (!req.session.maxPage) req.session.maxPage = {};
+  if (req.session.maxPage[req.params.id] === undefined) req.session.maxPage[req.params.id] = 0;
+
+  if (pageNum > req.session.maxPage[req.params.id]) {
+    req.session.maxPage[req.params.id] = pageNum; // Update hoogste pagina
+  } else if (pageNum < req.session.maxPage[req.params.id] && req.session.hasFinished !== true) {
+    // Speler probeert terug te gaan via de browser, stuur ze direct terug naar de actuele pagina!
+    return res.redirect(`/puzzle/${req.params.id}/${req.session.maxPage[req.params.id]}`);
+  }
+  // -----------------------------------
   if (!puzzle) return res.status(404).send("Puzzel niet gevonden");
   const lang = req.session.language || puzzle.defaultLanguage || "nl";
   res.render("puzzle-page", {
