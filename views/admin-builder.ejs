@@ -1585,7 +1585,62 @@ const pEmpty = qs("#panel-empty");
         </select>
       `;
       qs("#p-qt").value = qt.value || "open";
-    
+
+/* ===== AI KENNIS & HINTS (Nieuw voor Fase 3) ===== */
+      const aiK = qs('[data-field="aiknowledge"]', block);
+      pDyn.innerHTML += `
+        <label style="margin-top:12px; color:#4f46e5; font-weight:bold;">💡 AI Geheime Kennis (voor hints)</label>
+        <textarea id="p-aik" rows="3" placeholder="Vertel de AI hier het geheim van de vraag..."></textarea>
+      `;
+      const aiInput = qs("#p-aik");
+      aiInput.value = aiK ? aiK.value : "";
+      aiInput.oninput = () => { if(aiK) aiK.value = aiInput.value; };
+
+      /* ===== SCORE & TIMERS (Nieuw voor Fase 2) ===== */
+      const pts = qs('[data-field="pts"]', block);
+      const hst = qs('[data-field="hintcost"]', block);
+      const ist = qs('[data-field="istimed"]', block);
+      const tli = qs('[data-field="tlimit"]', block);
+
+      pDyn.innerHTML += `
+        <div style="background:#fef3c7; padding:10px; border-radius:8px; margin-top:15px; border:1px solid #fde68a;">
+          <label>Max Punten</label>
+          <input type="number" id="p-pts">
+          
+          <label>Hint Kosten (punten)</label>
+          <input type="number" id="p-hst">
+
+          <hr style="border:0; border-top:1px solid #fde68a; margin:10px 0;">
+          
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" id="p-ist" style="width:auto;"> <strong>Tijdlimiet gebruiken</strong>
+          </label>
+
+          <div id="p-time-settings" style="display:${ist && ist.checked ? 'block' : 'none'}; margin-top:10px;">
+            <label>Tijd (sec)</label>
+            <input type="number" id="p-tli">
+          </div>
+        </div>
+      `;
+
+      // Koppel de waarden aan de zijbalk
+      qs("#p-pts").value = pts ? pts.value : 10;
+      qs("#p-pts").oninput = () => { if(pts) pts.value = qs("#p-pts").value; };
+
+      qs("#p-hst").value = hst ? hst.value : 2;
+      qs("#p-hst").oninput = () => { if(hst) hst.value = qs("#p-hst").value; };
+
+      if(ist) {
+        qs("#p-ist").checked = ist.checked;
+        qs("#p-ist").onchange = () => {
+          ist.checked = qs("#p-ist").checked;
+          qs("#p-time-settings").style.display = ist.checked ? 'block' : 'none';
+        };
+      }
+
+      qs("#p-tli").value = tli ? tli.value : 60;
+      qs("#p-tli").oninput = () => { if(tli) tli.value = qs("#p-tli").value; };
+
       const syncType = () => {
         const v = qs("#p-qt").value;
         qt.value = v;
