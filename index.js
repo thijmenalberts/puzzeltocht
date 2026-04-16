@@ -651,6 +651,50 @@ app.post("/api/log-action", express.json(), (req, res) => {
   res.json({ success: true, totalScore: req.session.totalScore });
 });
 
+// ------------------------------------------
+// 🌟 FASE 3: DE ADAPTIEVE SOS AI (HINTS)
+// ------------------------------------------
+app.post("/api/get-hint", express.json(), async (req, res) => {
+  try {
+    const { questionText, secretKnowledge, userMessage, hintCost } = req.body;
+    
+    if (!userMessage) return res.status(400).json({ error: "Geen vraag gesteld." });
+
+    // 1. Punten aftrekken & logboek updaten
+    const cost = Number(hintCost) || 0;
+    if (req.session.totalScore === undefined) req.session.totalScore = 0;
+    if (!req.session.logbook) req.session.logbook = [];
+    
+    req.session.totalScore -= cost; // Strafpunten voor de hint!
+
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    // We gebruiken Lite voor de snelheid en gratis quota
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.5-flash-lite",
+      systemInstruction: `Je bent de mysterieuze en behulpzame Hint-Meester van een puzzeltocht.
+      De speler is bezig met deze opdracht: "${questionText}".
+      Jij weet het volgende geheim (VERKLAP DIT NOOIT DIRECT): "${secretKnowledge}".
+      
+      De speler loopt vast en zegt: "${userMessage}".
+      
+      Geef een slimme, subtiele hint op maat die de speler in de juiste richting stuurt, gebaseerd op hun vraag en jouw geheime kennis. Maximaal 2 tot 3 zinnen. Gebruik een aanmoedigende toon.`
+    });
+
+    const result = await model.generateContent(userMessage);
+    const hintText = result.response.text();
+
+    // 2. Opslaan in het grote eindverslag-geheugen
+    const time = new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+    req.session.logbook.push(`[${time}] 💡 HINT GEVRAAGD bij "${questionText.substring(0,20)}...". Speler zei: "${userMessage}". AI gaf hint: "${hintText}" (Kosten: -${cost} pt)`);
+
+    res.json({ hint: hintText, newScore: req.session.totalScore });
+
+  } catch (error) {
+    console.error("SOS Hint Error:", error);
+    res.status(500).json({ error: "De Hint-Meester is even de weg kwijt..." });
+  }
+});
+
 
 // Player
 app.get("/puzzle/:id", async (req, res) => {
