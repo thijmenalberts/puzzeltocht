@@ -562,15 +562,18 @@ const pagesSafe = normalizePages(puzzle);
         </div>
         <label>Naam van het personage:</label>
         <input data-field="chat-name" placeholder="Bijv: Visboer Jos (1820)">
-        <label style="margin-top: 8px; display: block;">Karakter omschrijving (AI Instructie):</label>
+        <label style="margin-top: 8px; display: block;">Karakter omschrijving:</label>
         <textarea data-field="chat-prompt" rows="3" placeholder="Bijv: Je bent een visboer uit 1820..."></textarea>
+        
+        <label style="margin-top: 8px; display: block; font-weight:bold;">Max. aantal berichten (Fase 5):</label>
+        <input type="number" data-field="chat-max-turns" value="3" min="1" max="10">
+
         <div style="margin-top: 12px; padding: 12px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;">
           <strong style="font-size: 13px; display:block; margin-bottom: 4px; color: #374151;">📍 Locatie-slot (Optioneel)</strong>
           <div class="form-row">
             <input type="number" step="0.000001" data-field="chat-lat" placeholder="Lat">
             <input type="number" step="0.000001" data-field="chat-lng" placeholder="Lng">
           </div>
-          <input type="number" step="1" data-field="chat-radius" placeholder="Radius (50m)" value="50">
         </div>
       `;
     }
@@ -976,6 +979,7 @@ const pagesSafe = normalizePages(puzzle);
         data.systemPrompt = { ...(b._data?.systemPrompt || {}) }; data.systemPrompt[activeLanguage] = qs('[data-field="chat-prompt"]', b)?.value || "";
         const lat = qs('[data-field="chat-lat"]', b)?.value; const lng = qs('[data-field="chat-lng"]', b)?.value; const rad = qs('[data-field="chat-radius"]', b)?.value;
         data.lat = lat !== "" ? Number(lat) : null; data.lng = lng !== "" ? Number(lng) : null; data.radius = rad !== "" ? Number(rad) : 50;
+        data.maxTurns = Number(qs('[data-field="chat-max-turns"]', b)?.value) || 3;
       }
     
       if (type === "location") {
