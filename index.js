@@ -12,6 +12,7 @@ import multer from "multer";
 import csv from "csv-parser";
 import fs from "fs";
 import crypto from "crypto";
+import rateLimit from "express-rate-limit";
 
 import Puzzle from "./models/Puzzle.js";
 import Admin from "./models/Admin.js";
@@ -172,6 +173,19 @@ function requireAdmin(req, res, next) {
   if (req.session?.isAdmin) return next();
   res.redirect("/admin-login");
 }
+
+const checkCodeLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minuten
+  max: 5,                  // max 5 pogingen
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    return res.render("index", {
+      error: "Te veel pogingen. Probeer het over 10 minuten opnieuw.",
+    });
+  },
+});
+
 
 // ==========================================
 // ADMIN & BUILDER ROUTES
