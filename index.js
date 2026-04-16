@@ -293,6 +293,36 @@ app.get("/admin-puzzles/export/:id", requireAdmin, async (req, res) => {
     res.status(500).send("Export mislukt.");
   }
 });
+
+// --- JSON IMPORT ROUTE ---
+app.post("/admin-puzzles/import", requireAdmin, uploadMedia.single("file"), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).send("Geen bestand geüpload.");
+    
+    // Lees het bestand
+    const rawData = fs.readFileSync(req.file.path);
+    const puzzleData = JSON.parse(rawData);
+    
+    // Belangrijk: Verwijder de oude Database-ID's zodat MongoDB nieuwe aanmaakt
+    delete puzzleData._id;
+    delete puzzleData.id;
+    if (puzzleData.createdAt) delete puzzleData.createdAt;
+    if (puzzleData.updatedAt) delete puzzleData.updatedAt;
+
+    // Maak de nieuwe puzzel aan
+    const newPuzzle = await Puzzle.create(puzzleData);
+    
+    // Verwijder het tijdelijke upload-bestand
+    safeUnlink(req.file.path);
+    
+    console.log("✅ Puzzel succesvol geïmporteerd:", newPuzzle.name);
+    res.redirect("/admin-puzzles");
+  } catch (err) {
+    console.error("Import error:", err);
+    res.status(500).send("Fout bij importeren: " + err.message);
+  }
+});
+
 app.get("/admin-puzzles/new", requireAdmin, (req, res) => res.render("admin-new-puzzle"));
 app.post("/admin-puzzles/new", requireAdmin, async (req, res) => {
   const puzzle = await Puzzle.create({ name: req.body.name, pages: [{ title: "Pagina 1", showNext: true, isMap: false, modules: [] }] });
@@ -659,29 +689,32 @@ app.get("/puzzle/:id/:page", async (req, res) => {
     const puzzle = await Puzzle.findById(req.params.id).lean();
     if (!puzzle) return res.status(404).send("Puzzel niet gevonden");
 
-    const pageNum = parseInt(req.params.page);
+    const pageNum = parseInt(req.params.page) || 0;
     if (!req.session.maxPage) req.session.maxPage = {};
-
+    
+    // Initialiseer voortgang voor deze puzzel
     if (req.session.maxPage[req.params.id] === undefined) {
       req.session.maxPage[req.params.id] = 0;
     }
 
-    // Update hoogst bereikte pagina
+    // Update hoogste pagina
     if (pageNum > req.session.maxPage[req.params.id]) {
       req.session.maxPage[req.params.id] = pageNum;
     }
 
-    // 🚨 ANTI-CHEAT CHECK: Is de speler op een oude pagina?
+    // BEPALEN: Is dit een oude pagina? (Voor de "grayed out" anti-cheat)
     const isCompleted = pageNum < req.session.maxPage[req.params.id];
 
     const lang = req.session.language || puzzle.defaultLanguage || "nl";
+    
+    // ✅ Nu geven we 'isCompleted' WEL mee aan de pagina!
     res.render("puzzle-page", {
       puzzle,
       page: puzzle.pages[pageNum],
       pageIndex: pageNum,
       lang,
       session: req.session,
-      isCompleted // <-- Dit sturen we nu mee naar de voorkant!
+      isCompleted: isCompleted 
     });
   } catch (err) {
     console.error("Render error:", err);
