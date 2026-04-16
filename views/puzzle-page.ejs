@@ -206,8 +206,8 @@
     </div>
   <% } %>
 
-  <% if (mod.type === 'historychat') { %>
-    <div class="card" style="border: 2px solid #fee2e2; padding: 0; overflow: hidden;">
+ <% if (mod.type === 'historychat') { %>
+    <div class="card" data-maxturns="<%= mData.maxTurns || 3 %>" style="border: 2px solid #fee2e2; padding: 0; overflow: hidden;">
       <div style="background: #fee2e2; padding: 15px; display: flex; align-items: center; gap: 12px;">
         <div style="width: 45px; height: 45px; background: #991b1b; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px;">🎭</div>
         <div>
@@ -518,20 +518,24 @@ document.querySelectorAll('[id^="chat-btn-"]').forEach(btn => {
     win.innerHTML += `<div style="background: #991b1b; color: white; padding: 12px; border-radius: 12px 12px 0 12px; align-self: flex-end; max-width: 85%;">${msg}</div>`;
     win.scrollTop = win.scrollHeight;
 
-    try {
-      // Gebruik de API call en config die je in eerdere iteraties al had (dit pakt CharacterName via context)
-      // Hier haal ik de EJS logica simpel terug:
+try {
       const mod = btn.closest('.card');
       const charName = mod.querySelector('strong').innerText; 
-      // Opmerking: SystemPrompt en History beheren we via een breder script, dit is de basis-fallback.
+      
       const res = await fetch('/api/chat-persona', {
         method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ message: msg, characterName: charName, systemPrompt: "Je bent " + charName })
+        body: JSON.stringify({ 
+          message: msg, 
+          characterName: charName, 
+          systemPrompt: "Je bent " + charName,
+          maxTurns: mod.dataset.maxturns // Haalt de limiet uit de HTML!
+        })
       });
+      
       const data = await res.json();
       win.innerHTML += `<div style="background: #f3f4f6; padding: 12px; border-radius: 12px 12px 12px 0; align-self: flex-start; max-width: 85%;">${data.reply || "..."}</div>`;
       
-      // Sluit het gesprek af als limiet is bereikt
+      // ✅ BELANGRIJK: Sluit het gesprek af als de AI aangeeft dat de beurten op zijn!
       if (data.closeChat) {
          input.placeholder = "Gesprek beëindigd.";
          input.disabled = true; 
@@ -540,7 +544,13 @@ document.querySelectorAll('[id^="chat-btn-"]').forEach(btn => {
          return; // Zorg dat de inputs niet meer heropend worden
       }
 
-    } catch(e) { win.innerHTML += `<div style="color:red; text-align:center; font-size:12px;">Fout bij laden bericht.</div>`; }
+    } catch(e) { 
+      win.innerHTML += `<div style="color:red; text-align:center; font-size:12px;">Fout bij laden bericht.</div>`; 
+    }
+    
+    input.disabled = false; btn.disabled = false; win.scrollTop = win.scrollHeight;
+  });
+catch(e) { win.innerHTML += `<div style="color:red; text-align:center; font-size:12px;">Fout bij laden bericht.</div>`; }
     
     input.disabled = false; btn.disabled = false; win.scrollTop = win.scrollHeight;
   });
