@@ -272,7 +272,7 @@ app.post("/api/verify-aiphoto", uploadTeamPhoto.single("file"), async (req, res)
     const limit = Number(maxPoints) || 10;
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 
     const fileData = fs.readFileSync(req.file.path);
     const imagePart = {
@@ -348,7 +348,7 @@ app.post("/api/chat-persona", express.json(), async (req, res) => {
     
     // Gebruik Flash-Lite voor hogere gratis quota
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
+      model: "gemini-1.5-flash-latest",
       systemInstruction: `Je bent het volgende personage: ${characterName}. Jouw achtergrond en gedrag: ${systemPrompt}. Reageer altijd in karakter. Houd je antwoorden kort en krachtig (max 3 zinnen).`
     });
 
@@ -670,7 +670,7 @@ app.post("/api/get-hint", express.json(), async (req, res) => {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     // We gebruiken Lite voor de snelheid en gratis quota
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
+      model: "gemini-1.5-flash-latest",
       systemInstruction: `Je bent de mysterieuze en behulpzame Hint-Meester van een puzzeltocht.
       De speler is bezig met deze opdracht: "${questionText}".
       Jij weet het volgende geheim (VERKLAP DIT NOOIT DIRECT): "${secretKnowledge}".
@@ -763,7 +763,7 @@ app.post("/api/get-hint", express.json(), async (req, res) => {
     const { questionText, secretKnowledge, userMessage, hintCost } = req.body;
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
+      model: "gemini-1.5-flash-latest",
       systemInstruction: `Je bent de Hint-Meester. Opdracht: "${questionText}". Geheim: "${secretKnowledge}". 
       Geef een subtiele hint op de vraag "${userMessage}". Verklap NOOIT het antwoord.`
     });
