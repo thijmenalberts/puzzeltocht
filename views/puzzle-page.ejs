@@ -3,71 +3,589 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet"
-        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <style>
-    body {
-      font-family: system-ui, sans-serif;
-      background:#f5f7fa;
-      padding:24px;
-      margin:0;
-    }
-
+    body { font-family: system-ui, sans-serif; background:#f5f7fa; padding:24px; margin:0; }
     h1, h2 { margin-top:0; }
+    .card { background:#fff; border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 4px 12px rgba(0,0,0,.08); }
+    .btn { display:inline-block; padding:12px 18px; border-radius:8px; background:#2563eb; color:#fff; text-decoration:none; border:none; cursor:pointer; font-size:15px; }
+    .btn.secondary { background:#334155; margin-top:24px; }
+    .feedback { margin-top:8px; font-weight:600; }
+    label { display:flex; gap:8px; margin-top:6px; align-items:center; cursor:pointer; }
+    .img-thumb, .photo-preview { max-width:100%; border-radius:8px; cursor: zoom-in; }
+    .img-overlay { position:fixed; inset:0; background:rgba(0,0,0,.75); display:none; align-items:center; justify-content:center; z-index:1000; }
+    .img-overlay img { max-width:90%; max-height:90%; border-radius:12px; }
+    #map { height:320px; border-radius:12px; }
+    .team-header { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+    .team-photo { width:80px; height:80px; border-radius:50%; object-fit:cover; }
+    .title-module { font-size: 26px; font-weight: 800; line-height: 1.3; margin: 0; }
+  </style>
+</head>
 
-    .card {
-      background:#fff;
-      border-radius:12px;
-      padding:16px;
-      margin-bottom:16px;
-      box-shadow:0 4px 12px rgba(0,0,0,.08);
+<body>
+
+<%
+  if (!page) {
+    return; // Stop rendering als de pagina niet bestaat
+  }
+
+  const activeLanguage = lang || puzzle.defaultLanguage || "nl";
+  const fallback = puzzle.defaultLanguage || "nl";
+
+  /* Centrale vertaalhelper met safety checks */
+  const t = (value) =>
+    typeof value === "string"
+      ? value
+      : value?.[activeLanguage]
+        || value?.[fallback]
+        || "";
+%>
+
+<form id="language-form" style="margin-bottom:16px;" onchange="this.submit()" method="POST" action="/puzzle/set-language">
+  <label style="display:flex; align-items:center; gap:8px;">
+    <strong>Taal:</strong>
+    <select name="language">
+      <% (puzzle.languages || ['nl']).forEach(l => { %>
+        <option value="<%= l %>" <%= l === activeLanguage ? "selected" : "" %>>
+          <%= l.toUpperCase() %>
+        </option>
+      <% }) %>
+    </select>
+  </label>
+  <input type="hidden" name="redirect" value="/puzzle/<%= puzzle._id %>/<%= pageIndex %>">
+</form>
+
+<% if (page.playSoundOnStart && page.soundUrl) { %>
+<script>
+  new Audio("<%= page.soundUrl %>").play().catch(()=>{});
+</script>
+<% } %>
+
+<% if (page.isMap) { %>
+  <div class="card">
+    <div id="map"></div>
+    <div class="feedback" id="mapFeedback">Locatie bepalen…</div>
+  </div>
+<% } %>
+
+<% (page.modules || []).forEach((mod, qIndex) => { %>
+  <% const mData = mod.data || {}; /* Veiligheidsvangnet voor module data */ %>
+
+  <% if (mod.type === "title") { %>
+    <div class="card">
+      <h2 class="title-module"><%= t(mData.title) %></h2>
+    </div>
+  <% } %>
+
+  <% if (mod.type === "text") { %>
+    <div class="card"><%- t(mData.text) %></div>
+  <% } %>
+
+  <% if (mod.type === "image") { %>
+    <div class="card">
+      <img src="<%= mData.url || '' %>" class="img-thumb" onclick="openImage(this.src)">
+    </div>
+  <% } %>
+
+  <% if (mod.type === "audio") { %>
+    <div class="card">
+      <audio controls preload="none" style="width:100%;">
+        <source src="<%= mData.url || '' %>">
+      </audio>
+    </div>
+  <% } %>
+
+  <% if (mod.type === "team-name") { %>
+    <div class="card">
+      <strong>Teamnaam</strong>
+      <input type="text" placeholder="Voer jullie teamnaam in" value="<%= session?.teamName || '' %>" onblur="saveTeamName(this.value)">
+      <div class="feedback" id="teamname-feedback"></div>
+    </div>
+  <% } %>
+
+  <% if (mod.type === "photo") { %>
+    <div class="card">
+      <strong>Maak een foto</strong>
+      <input type="file" accept="image/*" capture="environment" onchange="uploadPhoto(this,<%=pageIndex%>,<%=qIndex%>)">
+      <input type="hidden" id="photo-url-<%=pageIndex%>-<%=qIndex%>" value="<%= mData.url || '' %>">
+      <div class="feedback" id="photo-feedback-<%=pageIndex%>-<%=qIndex%>"></div>
+      <% if (mData.url) { %>
+        <img src="<%= mData.url %>" class="photo-preview" onclick="openImage(this.src)">
+      <% } %>
+      <button class="btn" style="margin-top:8px" onclick="setAsTeamPhoto(document.getElementById('photo-url-<%=pageIndex%>-<%=qIndex%>').value)">⭐ Zet als teamfoto</button>
+    </div>
+  <% } %>
+
+  <% if (mod.type === "question") { %>
+    <div class="card">
+      <strong><%= t(mData.question) %></strong>
+
+      <% if (mData.questionType === "mc") { %>
+        <div data-mc
+             data-options='<%- JSON.stringify(mData.options || []) %>'
+             data-good="<%= mData.goodPage ?? '' %>"
+             data-bad="<%= mData.badPage ?? '' %>"
+             data-puzzle="<%= puzzle._id %>">
+
+          <% /* VEILIGHEIDSVANGNET: || [] zorgt dat oude DB data niet crasht */ %>
+          <% (mData.options || []).forEach((opt,i)=>{ %>
+            <label>
+              <input type="radio" name="mc-<%=qIndex%>" value="<%= i %>">
+              <span><%= t(opt.text) %></span>
+            </label>
+          <% }) %>
+
+          <button class="btn" onclick="handleMC(this)">Controleer</button>
+          <div class="feedback"></div>
+        </div>
+      <% } else { %>
+        <form onsubmit="return handleOpen(event,this)">
+          <input name="answer" placeholder="Jouw antwoord">
+          <button class="btn" style="margin-top:10px;">Controleer</button>
+          <div class="feedback"></div>
+          <input type="hidden" name="correct" value="<%= t(mData.answer) %>">
+          <input type="hidden" name="good" value="<%= mData.goodPage ?? '' %>">
+          <input type="hidden" name="bad" value="<%= mData.badPage ?? '' %>">
+          <input type="hidden" name="puzzle" value="<%= puzzle._id %>">
+        </form>
+      <% } %>
+    </div>
+  <% } %>
+
+  <% if (mod.type === 'historychat') { %>
+    <% 
+       const charName = t(mData.characterName || 'Historisch Persoon');
+       const sysPrompt = t(mData.systemPrompt || '');
+       const targetLat = mData.lat || null;
+       const targetLng = mData.lng || null;
+       const targetRadius = mData.radius || 50;
+       const hasLocation = targetLat !== null && targetLng !== null;
+    %>
+    
+    <div class="card module-historychat" style="border: 2px solid #fee2e2; overflow: hidden; padding: 0; display: flex; flex-direction: column;">
+      <div style="background: #fee2e2; padding: 12px 16px; display: flex; align-items: center; gap: 12px;">
+        <div style="width: 44px; height: 44px; background: #991b1b; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        </div>
+        <div>
+          <strong style="display: block; color: #991b1b; font-size: 1.1rem;"><%= charName %></strong>
+          <span style="font-size: 12px; color: #b91c1c;">Historisch figuur</span>
+        </div>
+      </div>
+
+      <div id="chat-locker-<%= qIndex %>" style="display: <%= hasLocation ? 'flex' : 'none' %>; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; background: #fffcfc; text-align: center;">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#991b1b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 12px; opacity: 0.8;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+        <strong style="color: #991b1b; font-size: 1.1rem;">Locatie Vergrendeld</strong>
+        <p style="font-size: 0.9rem; color: #6b7280; margin: 6px 0 16px;">Loop naar de locatie om in gesprek te gaan met <%= charName %>.</p>
+        <div id="chat-distance-<%= qIndex %>" style="font-weight: bold; color: #991b1b; padding: 10px 16px; background: #fee2e2; border-radius: 20px; font-size: 0.95rem;">
+          📍 Zoeken naar GPS...
+        </div>
+      </div>
+
+      <div id="chat-container-<%= qIndex %>" style="display: <%= hasLocation ? 'none' : 'flex' %>; flex-direction: column;">
+        <div id="chat-win-<%= qIndex %>" style="height: 50vh; min-height: 280px; max-height: 450px; overflow-y: auto; padding: 16px; background: #fffcfc; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth;">
+          <div style="background: #f3f4f6; padding: 10px 14px; border-radius: 14px 14px 14px 0; align-self: flex-start; font-size: 0.95rem; max-width: 85%; color: #111827; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+            Gegroet reiziger! Ik ben <%= charName %>. Heb je vragen voor mij?
+          </div>
+        </div>
+
+        <div style="padding: 12px; border-top: 1px solid #fee2e2; display: flex; gap: 10px; background: white;">
+          <input type="text" id="chat-input-<%= qIndex %>" placeholder="Typ je vraag..." style="flex: 1; border: 1px solid #e5e7eb; padding: 12px 16px; border-radius: 24px; font-size: 0.95rem; outline: none; background: #f9fafb;">
+          <button id="chat-btn-<%= qIndex %>" style="background: #991b1b; color: white; border: none; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; flex-shrink: 0;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function() {
+        const qIndex = "<%= qIndex %>";
+        const config = <%- JSON.stringify({ charName: charName, sysPrompt: sysPrompt, targetLat: targetLat, targetLng: targetLng, targetRadius: targetRadius, hasLocation: hasLocation }) %>;
+        
+        const win = document.getElementById('chat-win-' + qIndex);
+        const input = document.getElementById('chat-input-' + qIndex);
+        const btn = document.getElementById('chat-btn-' + qIndex);
+        
+        const locker = document.getElementById('chat-locker-' + qIndex);
+        const container = document.getElementById('chat-container-' + qIndex);
+        const distanceDiv = document.getElementById('chat-distance-' + qIndex);
+        
+        let history = [];
+
+        function getDistance(lat1, lon1, lat2, lon2) {
+          const R = 6371e3; 
+          const p1 = lat1 * Math.PI/180;
+          const p2 = lat2 * Math.PI/180;
+          const dp = (lat2-lat1) * Math.PI/180;
+          const dl = (lon2-lon1) * Math.PI/180;
+          const a = Math.sin(dp/2) * Math.sin(dp/2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl/2) * Math.sin(dl/2);
+          return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+        }
+
+        if (config.hasLocation) {
+          if ("geolocation" in navigator) {
+            navigator.geolocation.watchPosition(
+              (pos) => {
+                const dist = getDistance(pos.coords.latitude, pos.coords.longitude, config.targetLat, config.targetLng);
+                if (dist <= config.targetRadius) {
+                  locker.style.display = 'none';
+                  container.style.display = 'flex';
+                } else {
+                  locker.style.display = 'flex';
+                  container.style.display = 'none';
+                  distanceDiv.innerHTML = `Nog <strong>${Math.max(1, Math.round(dist - config.targetRadius))}m</strong> lopen...`;
+                }
+              },
+              (err) => {
+                distanceDiv.innerHTML = "⚠️ Locatie-toegang nodig.";
+                distanceDiv.style.background = "#fff";
+                distanceDiv.style.border = "1px solid #fecaca";
+              },
+              { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+            );
+          } else {
+            distanceDiv.innerHTML = "Geen GPS ondersteuning.";
+          }
+        }
+
+        async function send() {
+          const msg = input.value.trim();
+          if(!msg) return;
+          
+          input.value = '';
+          input.disabled = true;
+          btn.disabled = true;
+          btn.style.opacity = '0.5';
+
+          const userDiv = document.createElement('div');
+          userDiv.style.cssText = "background: #991b1b; color: white; padding: 10px 14px; border-radius: 14px 14px 0 14px; align-self: flex-end; font-size: 0.95rem; max-width: 85%; box-shadow: 0 1px 2px rgba(0,0,0,0.1);";
+          userDiv.textContent = msg;
+          win.appendChild(userDiv);
+          win.scrollTop = win.scrollHeight;
+
+          const loadDiv = document.createElement('div');
+          loadDiv.style.cssText = "color: #991b1b; font-size: 0.8rem; align-self: flex-start; font-style: italic;";
+          loadDiv.textContent = config.charName + " typt...";
+          win.appendChild(loadDiv);
+          win.scrollTop = win.scrollHeight;
+
+          try {
+            const res = await fetch('/api/chat-persona', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ message: msg, characterName: config.charName, systemPrompt: config.sysPrompt, history: history })
+            });
+            
+            const data = await res.json();
+            if (win.contains(loadDiv)) win.removeChild(loadDiv);
+            if(!res.ok) throw new Error(data.error);
+            
+            const botDiv = document.createElement('div');
+            botDiv.style.cssText = "background: #f3f4f6; color: #111827; padding: 10px 14px; border-radius: 14px 14px 14px 0; align-self: flex-start; font-size: 0.95rem; max-width: 85%; box-shadow: 0 1px 2px rgba(0,0,0,0.05);";
+            botDiv.textContent = data.reply;
+            win.appendChild(botDiv);
+            win.scrollTop = win.scrollHeight;
+            
+            history.push({ role: "user", parts: [{ text: msg }] });
+            history.push({ role: "model", parts: [{ text: data.reply }] });
+          } catch (e) {
+            if (win.contains(loadDiv)) win.removeChild(loadDiv);
+            const errDiv = document.createElement('div');
+            errDiv.style.cssText = "color: #ef4444; font-size: 0.85rem; text-align: center; font-weight: bold;";
+            errDiv.textContent = e.message || "Verbinding verbroken...";
+            win.appendChild(errDiv);
+          } finally {
+            input.disabled = false;
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            input.focus();
+          }
+        }
+
+        btn.addEventListener('click', send);
+        input.addEventListener('keypress', (e) => { if(e.key === 'Enter') send(); });
+      })();
+    </script>
+  <% } %>
+
+  <% if (mod.type === 'aiphoto') { %>
+    <% 
+       const aiInstruction = t(mData.instruction || 'Maak de foto');
+       const aiPrompt = t(mData.prompt || '');
+       const maxPoints = mData.points || 10;
+    %>
+    
+    <div class="card module-aiphoto" 
+         id="ai-mod-<%= qIndex %>"
+         data-prompt="<%= aiPrompt %>" 
+         data-maxpoints="<%= maxPoints %>" 
+         style="border: 2px solid #c7d2fe;">
+         
+      <h3 style="margin-top: 0; font-size: 1.2rem; font-weight: 800; color: #4f46e5; display: flex; align-items: center; gap: 8px;">
+        ✨ AI Opdracht
+      </h3>
+      <p style="margin-bottom: 16px; font-size: 1rem; color: #374151;">
+        <strong>Opdracht:</strong> <%= aiInstruction %>
+      </p>
+
+      <div class="ai-interaction-area" style="display: flex; flex-direction: column; gap: 12px;">
+        <input type="file" accept="image/*" capture="environment" class="ai-file-input" style="display: none;">
+        
+        <button type="button" class="btn ai-camera-btn" style="width: 100%; padding: 14px; font-weight: bold; background: #4f46e5; color: white; border: none;">
+          📸 Maak Foto & Controleer
+        </button>
+        
+        <div class="ai-status" style="display: none; padding: 14px; border-radius: 8px; font-size: 0.95rem; font-weight: 600; line-height: 1.4;"></div>
+        
+        <img class="ai-preview" style="display: none; width: 100%; border-radius: 8px; margin-top: 4px; border: 1px solid #e5e7eb;">
+      </div>
+    </div>
+
+    <script>
+      (function() {
+        const module = document.getElementById('ai-mod-<%= qIndex %>');
+        const btn = module.querySelector('.ai-camera-btn');
+        const fileInput = module.querySelector('.ai-file-input');
+        const statusDiv = module.querySelector('.ai-status');
+        const previewImg = module.querySelector('.ai-preview');
+
+        btn.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', async () => {
+          const file = fileInput.files[0];
+          if (!file) return;
+
+          btn.disabled = true;
+          btn.innerHTML = "🤖 AI jury overlegt...";
+          statusDiv.style.display = "block";
+          statusDiv.style.background = "#eef2ff";
+          statusDiv.style.color = "#4f46e5";
+          statusDiv.innerHTML = "De jury beoordeelt je foto...";
+          
+          previewImg.src = URL.createObjectURL(file);
+          previewImg.style.display = "block";
+
+          const fd = new FormData();
+          fd.append("file", file);
+          fd.append("prompt", module.dataset.prompt);
+          fd.append("maxPoints", module.dataset.maxpoints);
+
+          try {
+            const res = await fetch('/api/verify-aiphoto', { method: 'POST', body: fd });
+            const result = await res.json();
+
+            if (!res.ok) throw new Error(result.error);
+
+            if (result.match) {
+              statusDiv.style.background = "#dcfce7";
+              statusDiv.style.color = "#166534";
+              statusDiv.innerHTML = `✅ <strong>Goedgekeurd!</strong> (Score: ${result.score}%)<br>` +
+                                   `Je verdient <strong>${result.pointsAwarded} van de ${result.maxPoints} punten!</strong><br>` +
+                                   `<small style="font-weight:normal;">${result.reason}</small>`;
+              btn.style.display = "none"; 
+            } else {
+              statusDiv.style.background = "#fee2e2";
+              statusDiv.style.color = "#991b1b";
+              statusDiv.innerHTML = "❌ <strong>Helaas!</strong><br>" + result.reason;
+              btn.disabled = false;
+              btn.innerHTML = "📸 Probeer opnieuw";
+            }
+          } catch (err) {
+            statusDiv.style.background = "#fee2e2";
+            statusDiv.style.color = "#991b1b";
+            statusDiv.innerHTML = "⚠️ Fout: " + err.message;
+            btn.disabled = false;
+            btn.innerHTML = "📸 Probeer opnieuw";
+          }
+        });
+      })();
+    </script>
+  <% } %>
+
+<% }) %> <% if (page.showNext && pageIndex + 1 < puzzle.pages.length) { %>
+  <a class="btn secondary"
+     href="/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>">
+     Volgende pagina →
+  </a>
+<% } %>
+
+<div class="img-overlay" id="imgOverlay" onclick="this.style.display='none'">
+  <img id="overlayImg">
+</div>
+
+<script>
+function openImage(src){
+  overlayImg.src = src;
+  imgOverlay.style.display = "flex";
+}
+</script>
+
+<script>
+/* === QUESTIONS === */
+function handleMC(btn) {
+  const b = btn.closest('[data-mc]');
+  const fb = b.querySelector('.feedback');
+  const r = b.querySelector('input:checked');
+  if (!r) {
+    fb.textContent = "Kies een antwoord.";
+    fb.style.color = "red";
+    return;
+  }
+
+  const opts = JSON.parse(b.dataset.options || "[]");
+  const ok = !!opts[r.value]?.correct;
+  const go = ok ? b.dataset.good : b.dataset.bad;
+
+  if (go !== "") {
+    location.href = `/puzzle/${b.dataset.puzzle}/${go}`;
+    return;
+  }
+
+  fb.textContent = ok ? "Goed!" : "Fout!";
+  fb.style.color = ok ? "green" : "red";
+}
+
+function handleOpen(e, f) {
+  e.preventDefault();
+
+  const ok =
+    f.answer.value.trim().toLowerCase() ===
+    f.correct.value.trim().toLowerCase();
+
+  const go = ok ? f.good.value : f.bad.value;
+  if (go !== "") {
+    location.href = `/puzzle/${f.puzzle.value}/${go}`;
+    return false;
+  }
+
+  const fb = f.querySelector('.feedback');
+  fb.textContent = ok ? "Goed!" : "Fout!";
+  fb.style.color = ok ? "green" : "red";
+  return false;
+}
+
+/* === PHOTO UPLOAD === */
+async function uploadPhoto(input, pageIndex, moduleIndex) {
+  const file = input.files?.[0];
+  if (!file) return;
+
+  const fb = document.getElementById(`photo-feedback-${pageIndex}-${moduleIndex}`);
+  const fd = new FormData();
+  fd.append("file", file);
+
+  try {
+    fb.textContent = "Uploaden…";
+
+    const res = await fetch("/upload-photo", {
+      method: "POST",
+      body: fd
+    });
+
+    if (!res.ok) throw new Error();
+
+    const json = await res.json();
+    document.getElementById(`photo-url-${pageIndex}-${moduleIndex}`).value = json.url;
+
+    fb.textContent = "✅ Foto opgeslagen";
+    fb.style.color = "green";
+  } catch {
+    fb.textContent = "❌ Upload mislukt";
+    fb.style.color = "red";
+  }
+}
+
+/* === TEAM PHOTO === */
+async function setAsTeamPhoto(photoUrl) {
+  if (!photoUrl) {
+    alert("Maak eerst een foto.");
+    return;
+  }
+  if (!confirm("Deze foto instellen als teamfoto?")) return;
+
+  const res = await fetch("/team/profile-photo", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ photoUrl })
+  });
+
+  if (!res.ok) {
+    alert("Instellen mislukt");
+    return;
+  }
+  location.reload();
+}
+
+/* === TEAM NAME === */
+async function saveTeamName(name) {
+  name = name.trim();
+  if (!name) return;
+
+  const fb = document.getElementById("teamname-feedback");
+
+  const res = await fetch("/team/name", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name })
+  });
+
+  if (!res.ok) {
+    fb.textContent = "❌ Opslaan mislukt";
+    fb.style.color = "red";
+    return;
+  }
+
+  fb.textContent = "✅ Teamnaam opgeslagen";
+  fb.style.color = "green";
+}
+</script>
+
+<% if (page.isMap) { %>
+<script>
+const target = L.latLng(<%= page.targetLat || 0 %>, <%= page.targetLng || 0 %>);
+const radius = <%= page.targetRadius || 50 %>;
+const showTarget = <%= page.showTarget ? "true" : "false" %>;
+const autoNext = <%= page.autoNext ? "true" : "false" %>;
+
+// Bouw alleen de map als de coordinaten bestaan (!= 0)
+if (<%= page.targetLat || 0 %> !== 0 && <%= page.targetLng || 0 %> !== 0) {
+  const map = L.map("map").setView(target,16);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+
+  if(showTarget){
+    L.marker(target).addTo(map);
+    L.circle(target,{radius,color:"green",fillOpacity:.15}).addTo(map);
+  }
+
+  const fb = document.getElementById("mapFeedback");
+  const nextBtn = document.querySelector(".btn.secondary");
+
+  navigator.geolocation.watchPosition(p=>{
+    const user = L.latLng(p.coords.latitude,p.coords.longitude);
+    map.setView(user,17);
+    L.marker(user).addTo(map);
+
+    const d = map.distance(user,target);
+    if(d<=radius){
+      fb.textContent="✅ Doel bereikt!";
+      fb.style.color="green";
+      if(autoNext && nextBtn){
+        setTimeout(()=>location.href=nextBtn.href,1000);
+      }
+    } else {
+      fb.textContent=`Afstand: ${Math.round(d)} meter`;
     }
+  },()=>{ fb.textContent="Locatie niet beschikbaar"; fb.style.color="red"; });
+} else {
+  document.getElementById("mapFeedback").textContent = "Geen doellocatie ingesteld voor deze kaart.";
+}
+</script>
+<% } %>
 
-    .btn {
-      display:inline-block;
-      padding:12px 18px;
-      border-radius:8px;
-      background:#2563eb;
-      color:#fff;
-      text-decoration:none;
-      border:none;
-      cursor:pointer;
-      font-size:15px;
-    }
-
-    .btn.secondary {
-      background:#334155;
-      margin-top:24px;
-    }
-
-    .feedback {
-      margin-top:8px;
-      font-weight:600;
-    }
-
-    label {
-      display:flex;
-      gap:8px;
-      margin-top:6px;
-      align-items:center;
-      cursor:pointer;
-    }
-
-    .img-thumb,
-    .photo-preview {
-      max-width:100%;
-      border-radius:8px;
-      cursor: zoom-in;
-    }
-
-    .img-overlay {
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,.75);
-      display:none;
-      align-items:center;
+</body>
+</html>      align-items:center;
       justify-content:center;
       z-index:1000;
     }
