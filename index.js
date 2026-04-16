@@ -356,7 +356,7 @@ app.post("/api/chat-persona", express.json(), async (req, res) => {
       history: history || []
     });
 
-   const result = await chat.sendMessage(message);
+    const result = await chat.sendMessage(message);
     const responseText = result.response.text();
 
     // --- START CHAT GEHEUGEN (VOOR DE FINALE) ---
@@ -371,14 +371,9 @@ app.post("/api/chat-persona", express.json(), async (req, res) => {
 
   } catch (error) { 
     console.error("Chat Error:", error);
-    
-    res.json({ reply: responseText });
-
-  } catch (error) { 
-    console.error("Chat Error:", error);
 
     // Als de daglimiet van Google op is (Error 429)
-    if (error.message.includes("429")) {
+    if (error.message && error.message.includes("429")) {
         return res.status(429).json({ 
             error: `Oei! ${characterName} heeft vandaag al teveel gekletst en heeft even rust nodig.` 
         });
@@ -390,7 +385,6 @@ app.post("/api/chat-persona", express.json(), async (req, res) => {
     });
   }
 });
-
 
 // ------------------------------------------
 // SET TEAM NAME & INITIALISEER LOGBOEK
