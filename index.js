@@ -101,6 +101,23 @@ const uploadTeamPhoto = multer({
   }
 });
 
+// --- NIEUW: Speciale filter voor JSON imports ---
+const uploadJSON = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, uploadDir),
+    filename: (req, file, cb) => {
+      cb(null, "import-" + Date.now() + ".json");
+    }
+  }),
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === "application/json" || file.originalname.endsWith(".json")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Alleen JSON bestanden toegestaan"), false);
+    }
+  }
+});
+
 // ------------------------------------------
 // 3. MONGO CONNECT (RAILWAY FIX: Non-blocking)
 // ------------------------------------------
@@ -295,7 +312,7 @@ app.get("/admin-puzzles/export/:id", requireAdmin, async (req, res) => {
 });
 
 // --- JSON IMPORT ROUTE (De 'Stofzuiger' Versie) ---
-app.post("/admin-puzzles/import", requireAdmin, uploadMedia.single("file"), async (req, res) => {
+app.post("/admin-puzzles/import", requireAdmin, uploadJSON.single("file"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).send("Geen bestand geüpload.");
 
