@@ -131,7 +131,7 @@
       <div id="prep-screen-<%= qIndex %>" class="card" style="border: 3px solid #f59e0b; text-align: center; padding: 30px 20px;">
         <div style="font-size: 50px; margin-bottom: 10px;">⏱️</div>
         <h3 style="color: #d97706; margin-top:0; font-size: 22px;">Tijdsgebonden Opdracht</h3>
-        <p style="color: #475569; font-size: 16px;">Je hebt <strong><%= limit %> seconden</strong>. Daarna kost het je punten!</p>
+       <p style="color: #475569; font-size: 16px;">Je hebt <strong><%= limit %> seconden</strong>. Hierna verdien je steeds minder punten!<br><small style="opacity: 0.7; font-size: 13px;">(De pagina opnieuw laden heeft geen zin 😉)</small></p>
         <button class="btn" style="background: #f59e0b; margin-top: 20px; font-size: 18px;" onclick="startTimedChallenge('<%= qIndex %>', '<%= qId %>', <%= limit %>, <%= pSec %>, <%= pPts %>, <%= maxPts %>)">🚀 Start de Tijd!</button>
       </div>
     <% } %>
@@ -177,13 +177,13 @@
            <div id="hint-box-<%= qIndex %>" style="display:none; background: #fffbeb; padding: 15px; border-radius: 10px; border: 1px solid #fcd34d;">
               <% if (mData.hintType === 'static') { %>
                 <p style="margin-top:0; color: #92400e; font-size: 14px;">Deze hint kost <strong><%= mData.hintCost %> punten</strong>. Weet je het zeker?</p>
-                <button class="btn" style="background: #d97706; padding: 10px;" onclick="executeStaticHint(this, '<%= qIndex %>', '<%= encodeURIComponent(mData.staticHintText) %>', <%= mData.hintCost %>, '<%= qTextClean %>')">🔓 Koop Hint</button>
+                <button class="btn" style="background: #d97706; padding: 10px;" onclick="executeStaticHint(this, '<%= qIndex %>', '<%= encodeURIComponent(mData.staticHintText) %>', <%= mData.hintCost %>, '<%= qTextClean %>', '<%= qId %>')">🔓 Koop Hint</button>
               <% } else { %>
                 <p style="margin-top:0; color: #92400e; font-size: 14px;">Stel een specifieke vraag aan de AI Hint-Meester (-<%= mData.hintCost %> pt):</p>
                 <div style="display:flex; gap:8px;">
                   <input type="text" id="hint-in-<%= qIndex %>" placeholder="Waar loop je vast?" style="border-color: #fcd34d;">
-                  <button class="btn" style="background: #d97706; width: auto; padding: 10px 16px;" onclick="executeAiHint(this, '<%= qIndex %>', '<%= encodeURIComponent(mData.aiKnowledge) %>', <%= mData.hintCost %>, '<%= qTextClean %>')">Vraag</button>
-                </div>
+                  <button class="btn" style="background: #d97706; width: auto; padding: 10px 16px;" onclick="executeAiHint(this, '<%= qIndex %>', '<%= encodeURIComponent(mData.aiKnowledge) %>', <%= mData.hintCost %>, '<%= qTextClean %>', '<%= qId %>')">Vraag</button> // -----------------
+                </div>                                                                                        
               <% } %>
               <div id="hint-res-<%= qIndex %>" style="margin-top: 12px; font-size: 15px; font-weight: 600; color: #b45309; line-height: 1.5;"></div>
            </div>
@@ -370,24 +370,29 @@ function verifyOpen(btn, idx, questionId, maxPts, limit, pSec, pPts, isTimed, qT
 /* ==========================================
    FASE 3: HYBRIDE HINT ENGINE
 ========================================== */
-async function executeStaticHint(btn, idx, staticTextEn, cost, qText) {
+async function executeStaticHint(btn, idx, staticTextEn, cost, qText, qId) {
+  if (!confirm(`Weet je het zeker? Een hint vragen kost punten! (Let op: een tweede hint kost extra).`)) return;
+  
   btn.disabled = true; btn.innerHTML = "Laden...";
   try {
     const res = await fetch('/api/get-hint', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ hintType: 'static', staticHintText: decodeURIComponent(staticTextEn), hintCost: cost, questionText: qText })
+      body: JSON.stringify({ hintType: 'static', staticHintText: decodeURIComponent(staticTextEn), hintCost: cost, questionText: qText, questionId: qId })
     });
     const data = await res.json();
-    document.getElementById(`hint-res-${idx}`).innerHTML = "💡 " + data.hint;
+    if (data.limitReached) btn.style.display = 'none';
+    document.getElementById(`hint-res-${idx}`).innerHTML = "💡 " + (data.hint || "De Hint-Meester kon even geen antwoord vinden.");
     updateGlobalScore(data.newScore);
-    btn.style.display = 'none'; // Verberg knop na koop
-  } catch(e) { btn.disabled = false; btn.innerHTML = "⚠️ Fout"; }
+    if (!data.limitReached) { btn.disabled = false; btn.innerHTML = "🔓 Koop nog een hint (+2 pt extra)"; }
+  } catch(e) { btn.disabled = false; btn.innerHTML = "⚠️ Fout, probeer opnieuw"; }
 }
 
-async function executeAiHint(btn, idx, aiKnowledgeEn, cost, qText) {
+async function executeAiHint(btn, idx, aiKnowledgeEn, cost, qText, qId) {
   const input = document.getElementById(`hint-in-${idx}`);
   const msg = input.value.trim();
   if(!msg) { alert("Typ eerst je vraag!"); return; }
+  
+  if (!confirm(`Weet je zeker dat je dit wilt vragen? Dit kost punten! (Let op: een 2e vraag kost extra).`)) return;
   
   btn.disabled = true; input.disabled = true; btn.innerHTML = "⏳";
   const resDiv = document.getElementById(`hint-res-${idx}`);
@@ -396,12 +401,17 @@ async function executeAiHint(btn, idx, aiKnowledgeEn, cost, qText) {
   try {
     const res = await fetch('/api/get-hint', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ hintType: 'ai', userMessage: msg, secretKnowledge: decodeURIComponent(aiKnowledgeEn), hintCost: cost, questionText: qText })
+      body: JSON.stringify({ hintType: 'ai', userMessage: msg, secretKnowledge: decodeURIComponent(aiKnowledgeEn), hintCost: cost, questionText: qText, questionId: qId })
     });
     const data = await res.json();
-    resDiv.innerHTML = "🤖 " + data.hint;
+    
+    if (data.limitReached) {
+       input.style.display = 'none'; btn.style.display = 'none';
+    }
+    
+    resDiv.innerHTML = "🤖 " + (data.hint || "De AI gaf een leeg antwoord. Probeer het opnieuw.");
     updateGlobalScore(data.newScore);
-    btn.innerHTML = "Vraag"; btn.disabled = false; input.disabled = false; input.value = "";
+    if (!data.limitReached) { btn.innerHTML = "Vraag (Kans 2/2)"; btn.disabled = false; input.disabled = false; input.value = ""; }
   } catch(e) { resDiv.innerHTML = "⚠️ De AI is even offline."; btn.disabled = false; input.disabled = false; btn.innerHTML = "Vraag"; }
 }
 
@@ -519,7 +529,17 @@ document.querySelectorAll('[id^="chat-btn-"]').forEach(btn => {
         body: JSON.stringify({ message: msg, characterName: charName, systemPrompt: "Je bent " + charName })
       });
       const data = await res.json();
-      win.innerHTML += `<div style="background: #f3f4f6; padding: 12px; border-radius: 12px 12px 12px 0; align-self: flex-start; max-width: 85%;">${data.reply}</div>`;
+      win.innerHTML += `<div style="background: #f3f4f6; padding: 12px; border-radius: 12px 12px 12px 0; align-self: flex-start; max-width: 85%;">${data.reply || "..."}</div>`;
+      
+      // Sluit het gesprek af als limiet is bereikt
+      if (data.closeChat) {
+         input.placeholder = "Gesprek beëindigd.";
+         input.disabled = true; 
+         btn.style.opacity = "0.5";
+         btn.disabled = true;
+         return; // Zorg dat de inputs niet meer heropend worden
+      }
+
     } catch(e) { win.innerHTML += `<div style="color:red; text-align:center; font-size:12px;">Fout bij laden bericht.</div>`; }
     
     input.disabled = false; btn.disabled = false; win.scrollTop = win.scrollHeight;
