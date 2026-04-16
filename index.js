@@ -634,22 +634,18 @@ app.get("/puzzle/:id/:page", async (req, res) => {
 
     const pageNum = parseInt(req.params.page);
     if (!req.session.maxPage) req.session.maxPage = {};
-    
-    // Initialiseer maxPage voor deze specifieke puzzel
+
     if (req.session.maxPage[req.params.id] === undefined) {
       req.session.maxPage[req.params.id] = 0;
     }
 
-    // Blokkeer teruggaan (behalve als de game klaar is)
-    if (pageNum < req.session.maxPage[req.params.id] && !req.session.hasFinished) {
-      console.log(`⚠️ Anti-cheat: Team probeerde naar pagina ${pageNum} te gaan, terug naar ${req.session.maxPage[req.params.id]}`);
-      return res.redirect(`/puzzle/${req.params.id}/${req.session.maxPage[req.params.id]}`);
-    }
-
-    // Update voortgang
+    // Update hoogst bereikte pagina
     if (pageNum > req.session.maxPage[req.params.id]) {
       req.session.maxPage[req.params.id] = pageNum;
     }
+
+    // 🚨 ANTI-CHEAT CHECK: Is de speler op een oude pagina?
+    const isCompleted = pageNum < req.session.maxPage[req.params.id];
 
     const lang = req.session.language || puzzle.defaultLanguage || "nl";
     res.render("puzzle-page", {
@@ -657,7 +653,8 @@ app.get("/puzzle/:id/:page", async (req, res) => {
       page: puzzle.pages[pageNum],
       pageIndex: pageNum,
       lang,
-      session: req.session
+      session: req.session,
+      isCompleted // <-- Dit sturen we nu mee naar de voorkant!
     });
   } catch (err) {
     console.error("Render error:", err);
