@@ -415,9 +415,9 @@ app.post("/api/get-hint", express.json(), async (req, res) => {
     if (!userMessage) return res.status(400).json({ error: "Geen vraag gesteld." });
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    // STRIKTE FIX: EXACT GEMINI-1.5-FLASH
+
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash", 
+      model: "gemini-2.5-flash-lite", 
       systemInstruction: `Je bent de Hint-Meester. Opdracht: "${questionText}". Geheim: "${secretKnowledge}". Geef een subtiele hint op de vraag "${userMessage}". Verklap NOOIT het antwoord.`
     });
 
@@ -448,8 +448,8 @@ app.post("/api/verify-aiphoto", uploadTeamPhoto.single("file"), async (req, res)
     limit = Number(req.body.maxPoints) || 10;
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    // STRIKTE FIX: EXACT GEMINI-1.5-FLASH
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
     const fileData = fs.readFileSync(req.file.path);
     const imagePart = { inlineData: { data: fileData.toString("base64"), mimeType: req.file.mimetype }};
@@ -481,9 +481,9 @@ app.post("/api/chat-persona", express.json(), async (req, res) => {
     if (!message || !systemPrompt) return res.status(400).json({ error: "Bericht ontbreekt." });
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    // STRIKTE FIX: EXACT GEMINI-1.5-FLASH
+
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-flash-lite",
       systemInstruction: `Rol: ${characterNameStr}. Achtergrond: ${systemPrompt}. Reageer altijd in karakter, kort (max 3 zinnen).`
     });
 
@@ -531,10 +531,10 @@ app.post("/api/generate-finale-report", express.json(), async (req, res) => {
       req.session.hasFinished = true; 
     }
 
-    // 2. FASE 5: GEMINI AI REISVERSLAG
+    // 2. FASE 5: GEMINI AI REISVERSLAG met duure AI
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-flash",
       systemInstruction: `Je bent een geestige, professionele ceremoniemeester die een puzzeltocht afsluit. Geef een hilarische maar waarderende samenvatting (een 'roast') van de prestaties van het team.`
     });
 
