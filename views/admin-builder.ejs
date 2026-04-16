@@ -1895,43 +1895,124 @@ function collect(){
           qs('input[data-field="url"]', b)?.value?.trim() || "";
       }
     
-      if (type === "question") {
-        data.question = {
-          ...(b._data?.question || {})
-        };
+// QUESTION BLOCK
+    if (type === "question") {
+      const q         = qs('[data-field="question"]', block);
+      const qt        = qs('[data-field="questionType"]', block);
+      const openWrap  = qs('[data-open]', block);
+      const mcWrap    = qs('[data-mc]', block);
+      const optWrap   = qs('[data-options]', block);
+      const addBtn    = qs('[data-add-option]', block);
+      const goodHidden = qs('[data-field="goodPage"]', block);
+      const badHidden  = qs('[data-field="badPage"]', block);
       
-        data.question[activeLanguage] =
-          qs('[data-field="question"]', b)?.value || "";
-            data.questionType =
-          qs('[data-field="questionType"]', b)?.value || "open";
+      // Pak de gamification data uit het blok
+      const aiK = qs('[data-field="aiknowledge"]', block);
+      const pts = qs('[data-field="pts"]', block);
+      const hst = qs('[data-field="hintcost"]', block);
+      const ist = qs('[data-field="istimed"]', block);
+      const tli = qs('[data-field="tlimit"]', block);
+
+      // Reset de zijbalk en begin met opbouwen
+      pDyn.innerHTML = "";
     
-        if (data.questionType === "open") {
-          data.answer = {
-            ...(b._data?.answer || {})
-          };
-          data.answer[activeLanguage] =
-            qs('[data-field="answer"]', b)?.value || "";
-        } else {
-          data.options = qsa('[data-option]', b).map((opt, i) => {
-            const textObj = {
-              ...(b._data?.options?.[i]?.text || {})
-            };
-          
-            textObj[activeLanguage] =
-              opt.querySelector('[data-text]')?.value || "";
-          
-            return {
-              text: textObj,
-              correct: !!opt.querySelector('[data-correct]')?.checked
-            };
-          });
-        }
+      /* 1. DE VRAAG */
+      pDyn.innerHTML += `<label>Vraag</label><input id="p-q">`;
+      const pq = qs("#p-q");
+      pq.value = q ? q.value : "";
+      pq.oninput = () => { if(q) q.value = pq.value; };
     
-        data.goodPage =
-          Number(qs('[data-field="goodPage"]', b)?.value) || null;
-        data.badPage =
-          Number(qs('[data-field="badPage"]', b)?.value) || null;
+      /* 2. VRAAGTYPE */
+      pDyn.innerHTML += `
+        <label>Vraagtype</label>
+        <select id="p-qt">
+          <option value="open">Open vraag</option>
+          <option value="mc">Multiple choice</option>
+        </select>
+      `;
+      const pqt = qs("#p-qt");
+      pqt.value = qt ? qt.value : "open";
+      
+      const syncType = () => {
+        const v = pqt.value;
+        if(qt) qt.value = v;
+        if(openWrap) openWrap.style.display = v === "open" ? "block" : "none";
+        if(mcWrap) mcWrap.style.display = v === "mc" ? "block" : "none";
+      };
+      pqt.onchange = syncType;
+      syncType();
+
+      /* 3. AI GEHEIME KENNIS (Voor Fase 3 Hints) */
+      pDyn.innerHTML += `
+        <label style="margin-top:12px; color:#4f46e5; font-weight:bold;">💡 AI Geheime Kennis (voor hints)</label>
+        <textarea id="p-aik" rows="3" placeholder="Vertel de AI hier het geheim van de vraag..."></textarea>
+      `;
+      const paik = qs("#p-aik");
+      paik.value = aiK ? aiK.value : "";
+      paik.oninput = () => { if(aiK) aiK.value = paik.value; };
+
+      /* 4. SCORE & TIMERS (Voor Fase 2) */
+      pDyn.innerHTML += `
+        <div style="background:#fef3c7; padding:12px; border-radius:10px; margin-top:15px; border:1px solid #fde68a;">
+          <label style="margin:0; color:#b45309;">🏆 Punten & Timers</label>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px;">
+            <div><label style="font-size:11px;">Max Punten</label><input type="number" id="p-pts"></div>
+            <div><label style="font-size:11px;">Hint Kosten</label><input type="number" id="p-hst"></div>
+          </div>
+
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-top:12px;">
+            <input type="checkbox" id="p-ist" style="width:auto; margin:0;"> <strong>Tijdlimiet gebruiken</strong>
+          </label>
+
+          <div id="p-time-settings" style="display:none; margin-top:10px; padding-top:10px; border-top:1px solid #fde68a;">
+            <label>Tijd (seconden)</label>
+            <input type="number" id="p-tli">
+          </div>
+        </div>
+      `;
+
+      // Waarden koppelen aan de nieuwe UI velden
+      const ppts = qs("#p-pts");
+      ppts.value = pts ? pts.value : 10;
+      ppts.oninput = () => { if(pts) pts.value = ppts.value; };
+
+      const phst = qs("#p-hst");
+      phst.value = hst ? hst.value : 2;
+      phst.oninput = () => { if(hst) hst.value = phst.value; };
+
+      const pist = qs("#p-ist");
+      const ptli = qs("#p-tli");
+      if(ist) {
+        pist.checked = ist.checked;
+        qs("#p-time-settings").style.display = ist.checked ? 'block' : 'none';
+        pist.onchange = () => {
+          ist.checked = pist.checked;
+          qs("#p-time-settings").style.display = ist.checked ? 'block' : 'none';
+        };
       }
+      ptli.value = tli ? tli.value : 60;
+      ptli.oninput = () => { if(tli) tli.value = ptli.value; };
+
+      /* 5. DOORSTUREN BIJ GOED/FOUT */
+      const lblGood = document.createElement("label");
+      lblGood.textContent = "Bij goed antwoord → ga naar pagina";
+      lblGood.style.marginTop = "15px";
+    
+      const selGood = buildPageSelect("p-good");
+      selGood.value = goodHidden ? (goodHidden.value ?? "") : "";
+      selGood.onchange = () => { if(goodHidden) goodHidden.value = selGood.value; };
+    
+      const lblBad = document.createElement("label");
+      lblBad.textContent = "Bij fout antwoord → ga naar pagina";
+    
+      const selBad = buildPageSelect("p-bad");
+      selBad.value = badHidden ? (badHidden.value ?? "") : "";
+      selBad.onchange = () => { if(badHidden) badHidden.value = selBad.value; };
+    
+      const navWrap = document.createElement("div");
+      navWrap.append(lblGood, selGood, lblBad, selBad);
+      pDyn.appendChild(navWrap);
+    }
     
       if (type === "photo") {
         data.url =
