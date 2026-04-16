@@ -306,7 +306,18 @@ app.post("/api/verify-aiphoto", uploadTeamPhoto.single("file"), async (req, res)
 
     // Berekening: (percentage / 100) * max punten uit de builder
     const awarded = Math.round((aiResult.score / 100) * limit);
-
+    // --- START GAMIFICATION MEMORY ---
+    if (req.session.totalScore === undefined) req.session.totalScore = 0;
+    if (!req.session.logbook) req.session.logbook = [];
+    
+    // Voeg de punten toe aan het totaal
+    req.session.totalScore += awarded;
+    
+    // Schrijf het op in het AI Logboek voor het eindverslag
+    const time = new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+    req.session.logbook.push(`[${time}] AI Foto Check: "${prompt}" -> Kreeg score ${aiResult.score}% en verdiende ${awarded} punten.`);
+    // --- EINDE GAMIFICATION MEMORY ---
+    
     res.json({
       success: true,
       match: aiResult.match,
@@ -345,9 +356,22 @@ app.post("/api/chat-persona", express.json(), async (req, res) => {
       history: history || []
     });
 
-    const result = await chat.sendMessage(message);
+   const result = await chat.sendMessage(message);
     const responseText = result.response.text();
 
+    // --- START CHAT GEHEUGEN (VOOR DE FINALE) ---
+    if (!req.session.logbook) req.session.logbook = [];
+    const time = new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+    
+    // We slaan exact op met WIE ze praten, WAT ze vroegen, en WAT het antwoord was
+    req.session.logbook.push(`[${time}] Chat met ${characterName} -> Speler: "${message}" | Reactie: "${responseText}"`);
+    // --- EINDE CHAT GEHEUGEN ---
+
+    res.json({ reply: responseText });
+
+  } catch (error) { 
+    console.error("Chat Error:", error);
+    
     res.json({ reply: responseText });
 
   } catch (error) { 
@@ -369,7 +393,7 @@ app.post("/api/chat-persona", express.json(), async (req, res) => {
 
 
 // ------------------------------------------
-// SET TEAM NAME
+// SET TEAM NAME & INITIALISEER LOGBOEK
 // ------------------------------------------
 app.post("/team/name", express.json(), (req, res) => {
   const { name } = req.body;
@@ -379,6 +403,9 @@ app.post("/team/name", express.json(), (req, res) => {
   }
 
   req.session.teamName = name.trim();
+  req.session.totalScore = 0; // Reset score
+  req.session.logbook = [];   // Start een leeg logboek voor de eind-AI
+
   res.json({ ok: true });
 });
 
@@ -658,6 +685,25 @@ app.get("/puzzle/:id/:page", async (req, res) => {
   });
 });
 
+// ------------------------------------------
+// UNIVERSELE SCORE & LOGBOEK ROUTE
+// ------------------------------------------
+app.post("/api/log-action", express.json(), (req, res) => {
+  const { points, logMessage } = req.body;
+
+  if (req.session.totalScore === undefined) req.session.totalScore = 0;
+  if (!req.session.logbook) req.session.logbook = [];
+
+  const earned = Number(points) || 0;
+  req.session.totalScore += earned;
+
+  if (logMessage) {
+    const time = new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+    req.session.logbook.push(`[${time}] ${logMessage} (Punten: ${earned})`);
+  }
+
+  res.json({ success: true, totalScore: req.session.totalScore });
+});
 
 // ------------------------------------------
 // 10. 404
