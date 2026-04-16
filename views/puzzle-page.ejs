@@ -64,6 +64,12 @@
   </div>
 <% } %>
 
+<% if (typeof isCompleted !== 'undefined' && isCompleted) { %>
+  <div style="background: #e5e7eb; color: #4b5563; padding: 12px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: bold; border: 2px dashed #9ca3af;">
+    🔒 Je bekijkt een oude pagina. Vragen beantwoorden is uitgeschakeld.
+  </div>
+<% } %>
+
 <% if (page.playSoundOnStart && page.soundUrl) { %>
 <script>
   new Audio("<%= page.soundUrl %>").play().catch(()=>{ console.warn("Autoplay geblokkeerd"); });
@@ -612,6 +618,22 @@ async function saveTeamName(name) {
     },()=>{ fb.textContent="Locatie niet beschikbaar"; fb.style.color="red"; });
   } else { document.getElementById("mapFeedback").textContent = "Geen doellocatie ingesteld voor deze kaart."; }
 </script>
+
+<% if (typeof isCompleted !== 'undefined' && isCompleted) { %>
+  <script>
+    // Maak alle invulvelden en knoppen onbruikbaar
+    document.querySelectorAll('input, select, textarea, button').forEach(el => {
+      el.disabled = true;
+      el.style.opacity = '0.5';
+      el.style.cursor = 'not-allowed';
+    });
+    // Zorg dat de speler wél nog op de 'Volgende Pagina' link kan klikken!
+    document.querySelectorAll('a.btn.secondary').forEach(el => {
+      el.style.opacity = '1';
+      el.style.cursor = 'pointer';
+      el.style.pointerEvents = 'auto';
+    });
+  </script>
 <% } %>
 
 </body>
