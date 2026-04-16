@@ -501,44 +501,31 @@ app.post("/api/verify-aiphoto", uploadTeamPhoto.single("file"), async (req, res)
 
 app.post("/api/chat-persona", express.json(), async (req, res) => {
   let characterNameStr = req.body.characterName || "Historisch Figuur";
+  const maxTurnsAllowed = Number(req.body.maxTurns) || 3; // Dynamisch uit de builder!
+  
   try {
     const { message, systemPrompt, history } = req.body;
-    if (!message || !systemPrompt) return res.status(400).json({ error: "Bericht ontbreekt." });
-
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-// --- CHAT LIMIET BEVEILIGING ---
-    if (!req.session.chatTurns) req.session.chatTurns = {};
-    const chatKey = characterNameStr;
-    if (!req.session.chatTurns[chatKey]) req.session.chatTurns[chatKey] = 0;
     
-    req.session.chatTurns[chatKey]++;
-    const turns = req.session.chatTurns[chatKey];
+    if (!req.session.chatTurns) req.session.chatTurns = {};
+    if (!req.session.chatTurns[characterNameStr]) req.session.chatTurns[characterNameStr] = 0;
+    
+    req.session.chatTurns[characterNameStr]++;
 
-    if (turns > 4) {
-      return res.json({ reply: "Ik moet nu echt weer verder. Succes met jullie tocht, reiziger!", closeChat: true });
+    if (req.session.chatTurns[characterNameStr] > maxTurnsAllowed) {
+      return res.json({ reply: "Ik moet nu echt gaan. Veel succes nog!", closeChat: true });
     }
 
-    let extraInstruction = "";
-    if (turns === 4) extraInstruction = " DIT IS JE LAATSTE BERICHT. Neem subtiel en definitief afscheid en zeg dat je geen tijd meer hebt. als je nog niet hebt benoemd wat je moet zeggen, verwerk dit ook subtie in je berichtje";
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    
+    const result = await model.generateContent(`${systemPrompt}\n\nSpeler zegt: ${message}`);
+    const response = result.response;
+    const text = response.text(); // Dit is nu veiliger binnen de try/catch
 
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.5-flash-lite",
-      systemInstruction: `Rol: ${characterNameStr}. Achtergrond: ${systemPrompt}. Reageer altijd in karakter, kort (max 3 zinnen).${extraInstruction}`
-    });
-
-    const chat = model.startChat({ history: history || [] });
-    const result = await chat.sendMessage(message);
-    const responseText = result.response.text();
-
-    if (!req.session.logbook) req.session.logbook = [];
-    const time = new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
-    req.session.logbook.push(`[${time}] Chat met ${characterNameStr} -> Speler: "${message}" | Reactie: "${responseText}"`);
-
-    res.json({ reply: responseText });
-  } catch (error) { 
-    console.error("Chat Error:", error);
-    if (error.message && error.message.includes("429")) return res.status(429).json({ error: `${characterNameStr} heeft even rust nodig.` });
-    res.status(500).json({ error: `${characterNameStr} is sprakeloos... Probeer opnieuw!` });
+    res.json({ reply: text, turnsUsed: req.session.chatTurns[characterNameStr] });
+  } catch (error) {
+    console.error("Gemini Error:", error);
+    res.json({ reply: "Ik begrijp je even niet, kun je dat herhalen?", error: true });
   }
 });
 
@@ -641,28 +628,41 @@ app.get("/puzzle/:id", async (req, res) => {
 });
 
 app.get("/puzzle/:id/:page", async (req, res) => {
-  const puzzle = await Puzzle.findById(req.params.id).lean();
-  // --- ANTI-CHEAT: Progressie Slot ---
-  const pageNum = Number(req.params.page);
-  if (!req.session.maxPage) req.session.maxPage = {};
-  if (req.session.maxPage[req.params.id] === undefined) req.session.maxPage[req.params.id] = 0;
+  try {
+    const puzzle = await Puzzle.findById(req.params.id).lean();
+    if (!puzzle) return res.status(404).send("Puzzel niet gevonden");
 
-  if (pageNum > req.session.maxPage[req.params.id]) {
-    req.session.maxPage[req.params.id] = pageNum; // Update hoogste pagina
-  } else if (pageNum < req.session.maxPage[req.params.id] && req.session.hasFinished !== true) {
-    // Speler probeert terug te gaan via de browser, stuur ze direct terug naar de actuele pagina!
-    return res.redirect(`/puzzle/${req.params.id}/${req.session.maxPage[req.params.id]}`);
+    const pageNum = parseInt(req.params.page);
+    if (!req.session.maxPage) req.session.maxPage = {};
+    
+    // Initialiseer maxPage voor deze specifieke puzzel
+    if (req.session.maxPage[req.params.id] === undefined) {
+      req.session.maxPage[req.params.id] = 0;
+    }
+
+    // Blokkeer teruggaan (behalve als de game klaar is)
+    if (pageNum < req.session.maxPage[req.params.id] && !req.session.hasFinished) {
+      console.log(`⚠️ Anti-cheat: Team probeerde naar pagina ${pageNum} te gaan, terug naar ${req.session.maxPage[req.params.id]}`);
+      return res.redirect(`/puzzle/${req.params.id}/${req.session.maxPage[req.params.id]}`);
+    }
+
+    // Update voortgang
+    if (pageNum > req.session.maxPage[req.params.id]) {
+      req.session.maxPage[req.params.id] = pageNum;
+    }
+
+    const lang = req.session.language || puzzle.defaultLanguage || "nl";
+    res.render("puzzle-page", {
+      puzzle,
+      page: puzzle.pages[pageNum],
+      pageIndex: pageNum,
+      lang,
+      session: req.session
+    });
+  } catch (err) {
+    console.error("Render error:", err);
+    res.status(500).send("Er ging iets mis bij het laden van de pagina.");
   }
-  // -----------------------------------
-  if (!puzzle) return res.status(404).send("Puzzel niet gevonden");
-  const lang = req.session.language || puzzle.defaultLanguage || "nl";
-  res.render("puzzle-page", {
-    puzzle,
-    page: puzzle.pages[Number(req.params.page)],
-    pageIndex: Number(req.params.page),
-    lang,
-    session: req.session
-  });
 });
 
 app.use((req, res) => res.status(404).send("Pagina niet gevonden"));
