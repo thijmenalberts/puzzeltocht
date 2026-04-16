@@ -743,15 +743,21 @@ const pagesSafe = normalizePages(puzzle);
         if (promptInput) promptInput.value = typeof data.prompt === "string" ? data.prompt : data.prompt?.[activeLanguage] || "";
         if (pointsInput) pointsInput.value = data.points !== undefined ? data.points : 10;
       }
-// AI chat ---------------------------------------------------------
 
 if (m.type === "historychat") {
         const nameInput = qs('[data-field="chat-name"]', block);
         const promptInput = qs('[data-field="chat-prompt"]', block);
+        const latInput = qs('[data-field="chat-lat"]', block);
+        const lngInput = qs('[data-field="chat-lng"]', block);
+        const radInput = qs('[data-field="chat-radius"]', block);
+
         if (nameInput) nameInput.value = typeof data.characterName === "string" ? data.characterName : data.characterName?.[activeLanguage] || "";
         if (promptInput) promptInput.value = typeof data.systemPrompt === "string" ? data.systemPrompt : data.systemPrompt?.[activeLanguage] || "";
+        if (latInput) latInput.value = data.lat ?? "";
+        if (lngInput) lngInput.value = data.lng ?? "";
+        if (radInput) radInput.value = data.radius ?? 50;
       }
-// AI foto ---------------------------------------------------------
+
       if (m.type === "photo") {
         const url = data?.url;
       
@@ -1016,22 +1022,36 @@ function createBlock(type){
     `;
 
     const content = qs(".content", div);
-// AI chat ---------------------------------------------------------
-if (type === "historychat") {
-      content.innerHTML = `
-        <div style="background: #fdf2f2; padding: 10px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #fecaca;">
-          <strong style="color: #991b1b;">🎭 Historische Chat</strong>
-        </div>
-        
-        <label>Naam van het personage:</label>
-        <input data-field="chat-name" placeholder="Bijv: Jan de Bakker (1750)">
 
-        <label style="margin-top: 8px; display: block;">Karakter omschrijving (AI Instructie):</label>
-        <div class="helper">Beschrijf hoe de AI moet reageren.</div>
-        <textarea data-field="chat-prompt" rows="4" placeholder="Bijv: Je bent een bakker uit 1750. Je bent vriendelijk maar begrijpt niks van moderne techniek..."></textarea>
-      `;
-    }
-// AI chat ---------------------------------------------------------
+if (type === "historychat") {
+        content.innerHTML = `
+          <div style="background: #fdf2f2; padding: 10px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #fecaca;">
+            <strong style="color: #991b1b; display: flex; align-items: center; gap: 6px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+              Historische Chat
+            </strong>
+          </div>
+          
+          <label>Naam van het personage:</label>
+          <input data-field="chat-name" placeholder="Bijv: Visboer Jos (1820)">
+
+          <label style="margin-top: 8px; display: block;">Karakter omschrijving (AI Instructie):</label>
+          <div class="helper">Beschrijf hoe de AI moet reageren.</div>
+          <textarea data-field="chat-prompt" rows="3" placeholder="Bijv: Je bent een visboer uit 1820..."></textarea>
+
+          <div style="margin-top: 12px; padding: 12px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;">
+            <strong style="font-size: 13px; display:block; margin-bottom: 4px; color: #374151;">📍 Locatie-slot (Optioneel)</strong>
+            <div class="helper" style="margin-bottom: 8px;">Speler kan pas chatten als deze binnen de straal is. Laat leeg om de chat altijd open te houden.</div>
+            <div class="form-row">
+              <input type="number" step="0.000001" data-field="chat-lat" placeholder="Lat (bijv. 52.92)">
+              <input type="number" step="0.000001" data-field="chat-lng" placeholder="Lng (bijv. 6.79)">
+            </div>
+            <label style="margin-top: 6px;">Straal (meters)</label>
+            <input type="number" step="1" data-field="chat-radius" placeholder="50" value="50">
+          </div>
+        `;
+      }
+
 
     if (type === "title") {
       content.innerHTML = `
@@ -1186,7 +1206,7 @@ if (type === "historychat") {
       `;
     }
 
-// AI foto ---------------------------------------------------------
+
 if (type === "aiphoto") {
       content.innerHTML = `
         <div style="display:flex; gap:8px; margin-bottom:12px;">
@@ -1207,7 +1227,7 @@ if (type === "aiphoto") {
         <input type="number" data-field="ai-points" value="10" style="width: 80px;">
       `;
     }
-// AI foto ---------------------------------------------------------
+
     wireBlock(div);
     return div;
   }
@@ -1823,7 +1843,7 @@ function collect(){
         data.url =
           qs('[data-field="url"]', b)?.value || "";
       }
-// ----------------------------------------------------------------- AI mongoDB
+
       if (type === "aiphoto") {
         data.instruction = { ...(b._data?.instruction || {}) };
         data.instruction[activeLanguage] = qs('[data-field="ai-instruction"]', b)?.value || "";
@@ -1833,7 +1853,7 @@ function collect(){
 
         data.points = Number(qs('[data-field="ai-points"]', b)?.value) || 10;
       }
-// ----------------------------------------------------------------- AI CHAT
+
 
 if (type === "historychat") {
         data.characterName = { ...(b._data?.characterName || {}) };
@@ -1841,8 +1861,16 @@ if (type === "historychat") {
 
         data.systemPrompt = { ...(b._data?.systemPrompt || {}) };
         data.systemPrompt[activeLanguage] = qs('[data-field="chat-prompt"]', b)?.value || "";
+
+        const lat = qs('[data-field="chat-lat"]', b)?.value;
+        const lng = qs('[data-field="chat-lng"]', b)?.value;
+        const rad = qs('[data-field="chat-radius"]', b)?.value;
+
+        data.lat = lat !== "" && lat !== undefined ? Number(lat) : null;
+        data.lng = lng !== "" && lng !== undefined ? Number(lng) : null;
+        data.radius = rad !== "" && rad !== undefined ? Number(rad) : 50;
       }
-////////////////////////////////////////////////
+
       // ✅ TEAM NAME MODULE
       if (type === "team-name") {
         data = {}; // dit mag nu wel
