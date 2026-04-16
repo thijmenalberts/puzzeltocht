@@ -875,7 +875,7 @@ if (m.type === "historychat") {
         qs('[data-field="tlimit"]', block).value = data.timeLimit ?? 60;
         qs('[data-field="ppen"]', block).value = data.penaltyPoints ?? 1;
         qs('[data-field="psec"]', block).value = data.penaltySec ?? 10;
-
+        qs('[data-field="aiknowledge"]', block).value = data.aiKnowledge ?? "";
 }
 
       if(m.type==="location"){
@@ -1176,7 +1176,11 @@ if(type === "question"){
           <option value="open">Open vraag</option>
           <option value="mc">Multiple choice</option>
         </select>
-    
+
+<label style="margin-top:12px; color:#4f46e5; font-weight:700;">💡 Geheime AI-Kennis (voor hints):</label>
+<div class="helper">Deze informatie gebruikt de AI om hints te geven zonder het antwoord te verklappen.</div>
+<textarea data-field="aiknowledge" rows="2" placeholder="Bijv: Het antwoord hangt onder de brug..." style="border-color:#c7d2fe;"></textarea>
+
         <div data-mc style="display:none; margin-top:8px;">
           <label>Antwoordopties</label>
           <div data-options></div>
@@ -1565,6 +1569,14 @@ const pEmpty = qs("#panel-empty");
     
       const goodHidden = qs('[data-field="goodPage"]', block);
       const badHidden  = qs('[data-field="badPage"]', block);
+
+      const aiK = qs('[data-field="aiknowledge"]', block);
+      const aiInput = qs("#p-aik"); // Dit is de ID van de textarea in de zijbalk
+
+if (aiInput && aiK) {
+  aiInput.value = aiK.value || "";
+  aiInput.oninput = () => { aiK.value = aiInput.value; };
+}
     
       pDyn.innerHTML = "";
     
