@@ -19,8 +19,10 @@ import Admin from "./models/Admin.js";
 import { checkCode } from "./models/Code.js";
 import Theme from "./models/Theme.js";
 import Team from "./models/Team.js"; 
+import GlobalTeam from "./models/GlobalTeam.js";
+import GameSession from "./models/GameSession.js";
+import AirtableMap from "./models/AirtableMap.js";
 import "./models/cron.js";
-
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
@@ -392,18 +394,43 @@ app.post("/admin-builder/:id/save-all", requireAdmin, express.json(), async (req
 // GAME ENGINE: FASE 1 & 2 (DATA, TIMERS & SCORE)
 // ==========================================
 
-// 1. Teamnaam Kiezen -> Start de Master Klok
-app.post("/team/name", express.json(), (req, res) => {
-  const { name } = req.body;
-  if (!name || typeof name !== "string" || name.length > 40) return res.status(400).json({ error: "Ongeldige teamnaam" });
+// 1. Teamnaam & Email Kiezen -> Start Geïsoleerde Sessie
+app.post("/team/name", express.json(), async (req, res) => {
+  const { name, email, puzzleId } = req.body;
+  if (!name || !email) return res.status(400).json({ error: "Naam en E-mail zijn verplicht" });
 
-  req.session.teamName = name.trim();
-  req.session.totalScore = 0;
-  req.session.logbook = [];
-  req.session.timers = {}; // Reset alle actieve sub-timers
-  req.session.gameStartTime = Date.now(); // FASE 4: MASTER KLOK START
-  
-  res.json({ ok: true });
+  try {
+    const cleanEmail = email.trim().toLowerCase();
+    // Zoek of maak Global Team (Persistent)
+    let team = await GlobalTeam.findOne({ email: cleanEmail });
+    if (team) {
+      team.teamName = name.trim(); // Update naam indien gewijzigd
+      await team.save();
+    } else {
+      team = await GlobalTeam.create({ email: cleanEmail, teamName: name.trim() });
+    }
+
+    // Maak 24-uurs sessie aan (Transient)
+    const sessionId = crypto.randomBytes(16).toString("hex");
+    await GameSession.create({
+      globalTeamId: team._id,
+      puzzleId: puzzleId || req.session.pendingPuzzleId,
+      sessionId: sessionId
+    });
+
+    // Koppel aan Express sessie
+    req.session.teamName = name.trim();
+    req.session.currentSessionId = sessionId;
+    req.session.totalScore = 0;
+    req.session.logbook = [];
+    req.session.timers = {}; 
+    req.session.gameStartTime = Date.now(); 
+    
+    res.json({ ok: true, isReturningUser: !!team });
+  } catch (error) {
+    console.error("Team aanmaken fout:", error);
+    res.status(500).json({ error: "Fout bij opslaan teamgegevens" });
+  }
 });
 
 // 2. Server-Side Timers (Beveiligd tegen pagina-verversen)
