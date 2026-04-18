@@ -222,8 +222,11 @@
           <span style="font-size: 13px; color: #b91c1c;">Historisch figuur</span>
         </div>
       </div>
-      <div id="chat-win-<%= qIndex %>" style="height: 350px; overflow-y: auto; padding: 15px; background: #fffcfc; display: flex; flex-direction: column; gap: 10px;">
+      <div id="chat-win-<%= qIndex %>" style="height: 350px; overflow-y: auto; padding: 15px; background: #fffcfc; display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth;">
         <div style="background: #f3f4f6; padding: 12px; border-radius: 12px 12px 12px 0; align-self: flex-start; max-width: 85%;">Gegroet reiziger! Heb je vragen voor mij?</div>
+        <div id="typing-indicator-<%= qIndex %>" class="typing-indicator">
+          <span style="font-weight:600;"><%= t(mData.characterName) %></span> is aan het typen<span class="typing-dots"><span></span><span></span><span></span></span>
+        </div>
       </div>
       <div style="padding: 12px; border-top: 1px solid #fee2e2; display: flex; gap: 10px; background: white;">
         <input type="text" id="chat-input-<%= qIndex %>" placeholder="Typ je vraag..." style="background: #f9fafb; border-radius: 20px;">
@@ -505,15 +508,41 @@ document.querySelectorAll('[id^="chat-btn-"]').forEach(btn => {
       const mod = btn.closest('.card');
       const charName = mod.querySelector('strong').innerText; 
       
+      // Toon typing indicator & scroll naar beneden
+      const indicator = document.getElementById(`typing-indicator-${idx}`);
+      win.appendChild(indicator); // Verplaats hem naar onderen
+      indicator.style.display = 'block';
+      win.scrollTop = win.scrollHeight;
+
       const res = await fetch('/api/chat-persona', {
         method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ 
           message: msg, 
           characterName: charName, 
           systemPrompt: "Je bent " + charName,
-          maxTurns: mod.dataset.maxturns
+          maxTurns: mod.dataset.maxturns,
+          history: [] // Optioneel: Voeg history array hier later toe
         })
       });
+      
+      indicator.style.display = 'none'; // Verberg typen zodra API klaar is
+      const data = await res.json();
+      
+      win.innerHTML += `<div style="background: #f3f4f6; padding: 12px; border-radius: 12px 12px 12px 0; align-self: flex-start; max-width: 85%;">${data.reply || "..."}</div>`;
+      win.appendChild(indicator); // Zet indicator weer helemaal onderaan (verborgen)
+      
+      if (data.closeChat) {
+         input.placeholder = "Gesprek beëindigd door " + charName;
+         input.disabled = true; 
+         btn.style.opacity = "0.5";
+         btn.disabled = true;
+         return;
+      }
+
+    } catch(e) { 
+      document.getElementById(`typing-indicator-${idx}`).style.display = 'none';
+      win.innerHTML += `<div style="color:red; text-align:center; font-size:12px;">Fout bij laden bericht.</div>`; 
+    }
       
       const data = await res.json();
       win.innerHTML += `<div style="background: #f3f4f6; padding: 12px; border-radius: 12px 12px 12px 0; align-self: flex-start; max-width: 85%;">${data.reply || "..."}</div>`;
@@ -554,13 +583,57 @@ async function setAsTeamPhoto(url) {
     if (res.ok) location.reload(); else alert("Instellen mislukt");
   }
 }
+// Gamification Animatie
+function popScoreAnim(points) {
+  const el = document.createElement("div");
+  el.className = "score-float";
+  el.innerText = "+" + points;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1600);
+}
 
-async function saveTeamName(name) {
-  name = name.trim(); if (!name) return;
+// Overschrijf de oude updateGlobalScore om animaties af te spelen!
+const oldUpdate = updateGlobalScore;
+updateGlobalScore = function(newScore) {
+  const el = document.getElementById("ui-score");
+  if(el) {
+    const oldScore = parseInt(el.innerText || 0);
+    if(newScore > oldScore) popScoreAnim(newScore - oldScore);
+    el.innerText = newScore;
+  }
+};
+
+async function saveTeamName() {
+  const nameEl = document.getElementById("team-name-input");
+  const emailEl = document.getElementById("team-email-input");
+  if(!nameEl || !emailEl) return;
+  
+  const name = nameEl.value.trim();
+  const email = emailEl.value.trim();
   const fb = document.getElementById("teamname-feedback");
-  const res = await fetch("/team/name", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) });
-  if (res.ok) { fb.textContent = "✅ Teamnaam opgeslagen (Tijd loopt!)"; fb.style.color = "green"; setTimeout(()=>location.reload(), 1000); } 
-  else { fb.textContent = "❌ Opslaan mislukt"; fb.style.color = "red"; }
+
+  if (!name || !email) { fb.textContent = "Vul beide velden in!"; fb.style.color = "red"; return; }
+
+  fb.textContent = "Opslaan..."; fb.style.color = "black";
+  
+  // Haal puzzle ID uit de pagina URL of een verborgen veld
+  const puzzleId = "<%= puzzle._id %>"; 
+
+  const res = await fetch("/team/name", { 
+    method: "POST", 
+    headers: { "Content-Type": "application/json" }, 
+    body: JSON.stringify({ name, email, puzzleId }) 
+  });
+  
+  const data = await res.json();
+  if (res.ok) { 
+    fb.textContent = data.isReturningUser ? "✅ Welkom terug! De klok loopt." : "✅ Team geregistreerd! De klok loopt."; 
+    fb.style.color = "green"; 
+    nameEl.disabled = true; emailEl.disabled = true;
+    setTimeout(()=>location.reload(), 1000); 
+  } else { 
+    fb.textContent = "❌ Opslaan mislukt"; fb.style.color = "red"; 
+  }
 }
 </script>
 
