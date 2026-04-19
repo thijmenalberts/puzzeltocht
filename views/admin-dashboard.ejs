@@ -5,20 +5,40 @@
 <!-- Puzzeltochten -->
 
 <div class="card p-4 border bg-blue-50">
-  <h2 class="font-semibold mb-3 text-blue-800">📍 Airtable Koppeling (Redirect)</h2>
-  <p class="text-xs text-blue-600 mb-4">Koppel een naam uit Airtable (bijv. "Borger") aan een interne Puzzel ID.</p>
+  <h2 class="font-semibold mb-3 text-blue-800">📍 Airtable Koppeling</h2>
+  <p class="text-xs text-blue-600 mb-4">Koppel een Airtable naam aan een puzzeltocht.</p>
   
   <form action="/admin/map-airtable" method="POST" class="space-y-3">
-    <input type="text" name="airtableString" placeholder="Naam in Airtable (exact)" required class="border p-2 rounded w-full"/>
-    <input type="text" name="internalId" placeholder="MongoDB Puzzel ID" required class="border p-2 rounded w-full"/>
+    <div>
+      <label class="text-xs font-bold text-gray-500 uppercase">Naam in Airtable:</label>
+      <input type="text" name="airtableString" placeholder="Bijv: Borger" required class="border p-2 rounded w-full"/>
+    </div>
+    
+    <div>
+      <label class="text-xs font-bold text-gray-500 uppercase">Koppel aan Puzzeltocht:</label>
+      <select name="internalId" required class="border p-2 rounded w-full bg-white">
+        <option value="">-- Selecteer een puzzel --</option>
+        <% puzzles.forEach(puz => { %>
+          <option value="<%= puz._id %>"><%= puz.name %></option>
+        <% }) %>
+      </select>
+    </div>
+    
     <button class="bg-blue-600 text-white px-4 py-2 rounded w-full font-bold">Koppeling Opslaan</button>
   </form>
-</div>
 
-<a class="block p-4 border rounded card hover:ring-2 ring-blue-200" href="/admin-puzzles">
-<h2 class="font-semibold mb-1">Puzzeltochten</h2>
-<p class="text-sm text-gray-600">Maak en beheer puzzeltochten.</p>
-</a>
+  <% if (mappings && mappings.length > 0) { %>
+    <div class="mt-4 pt-4 border-t border-blue-200">
+      <h3 class="text-xs font-bold text-blue-800 mb-2 uppercase">Actieve Koppelingen:</h3>
+      <% mappings.forEach(m => { %>
+        <div class="flex justify-between text-sm py-1 border-b border-blue-100 italic text-gray-600">
+          <span><%= m.airtableString %></span>
+          <span>➜ <%= m.internalPuzzleId ? m.internalPuzzleId.name : 'Puzzel verwijderd' %></span>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+</div>
 
 
 <!-- Theme -->
