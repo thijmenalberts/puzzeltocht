@@ -551,4 +551,44 @@ let draggedPageIndex = null;
     return originalFetch.apply(this, args);
   };
 })();
+// Voeg dit toe vlak voor de sluitende </script> tag onderaan admin-builder.ejs
+const themePreset = document.getElementById('auto-theme-preset');
+const themeColor = document.getElementById('auto-theme-color');
+const phonePreview = document.getElementById('phone');
+
+function updateLivePreview() {
+  if(!themePreset || !phonePreview) return;
+  const preset = themePreset.value;
+  const color = themeColor.value;
+  
+  // Update de kleur variabele
+  phonePreview.style.setProperty('--primary', color);
+  
+  // Standaard styling reset
+  phonePreview.style.background = '#f8fafc';
+  phonePreview.style.color = '#0f172a';
+  phonePreview.style.fontFamily = 'Inter, sans-serif';
+  phonePreview.style.backgroundImage = 'none';
+
+  // Sfeer toepassing in de builder
+  if (preset === 'medieval') {
+    phonePreview.style.background = '#e2d1b3 url("https://www.transparenttextures.com/patterns/papyros.png")';
+    phonePreview.style.fontFamily = 'Georgia, serif';
+    phonePreview.style.color = '#3e2723';
+  } else if (preset === 'future') {
+    phonePreview.style.background = '#020617';
+    phonePreview.style.color = '#38bdf8';
+    phonePreview.style.fontFamily = 'Courier New, monospace';
+  } else if (preset === 'iceage') {
+    phonePreview.style.background = '#f0f9ff';
+    phonePreview.style.color = '#0c4a6e';
+  }
+}
+
+// Luister naar veranderingen
+if(themePreset) themePreset.addEventListener('change', updateLivePreview);
+if(themeColor) themeColor.addEventListener('input', updateLivePreview);
+
+// Roep hem 1x aan bij het opstarten
+setTimeout(updateLivePreview, 500);
 </script>
