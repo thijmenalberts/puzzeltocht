@@ -282,7 +282,24 @@
 
 <script>
 function openImage(src){ document.getElementById("overlayImg").src = src; document.getElementById("imgOverlay").style.display = "flex"; }
-function updateGlobalScore(newScore) { const el = document.getElementById("ui-score"); if(el) el.innerText = newScore; }
+function updateGlobalScore(newScore) {
+  const el = document.getElementById("ui-score");
+  if(el) {
+    const oldScore = parseInt(el.innerText || 0);
+    const difference = newScore - oldScore;
+    
+    if(difference > 0) {
+      // Speel animatie af bij winst
+      const float = document.createElement("div");
+      float.className = "score-float";
+      float.innerText = `+${difference}`;
+      document.body.appendChild(float);
+      setTimeout(() => float.remove(), 2000);
+    }
+    
+    el.innerText = newScore;
+  }
+}
 
 window.activeTimers = {};
 
