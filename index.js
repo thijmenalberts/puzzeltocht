@@ -439,19 +439,25 @@ app.get("/admin-builder/:id", requireAdmin, async (req, res) => {
   const puzzle = await Puzzle.findById(req.params.id).lean();
   res.render("admin-builder", { puzzle, builderPage: true });
 });
-app.post("/admin-builder/:id/save-all", requireAdmin, express.json(), async (req, res) => {
+app.post("/admin-builder/:id/save-all", requireAdmin, async (req, res) => {
   try {
     const puzzle = await Puzzle.findById(req.params.id);
-    if (!puzzle) return res.status(404).send("Puzzel niet gevonden");
-    puzzle.set({ pages: req.body.pages, languages: req.body.languages, defaultLanguage: req.body.defaultLanguage });
-    puzzle.markModified("pages");
-    puzzle.markModified("languages");
-    puzzle.markModified("defaultLanguage");
+    if (!puzzle) return res.status(404).send("Not found");
+
+    puzzle.pages = req.body.pages || [];
+    puzzle.languages = req.body.languages || ["nl"];
+    puzzle.defaultLanguage = req.body.defaultLanguage || "nl";
+    
+    // 🔥 DIT ONTBRACK: Sla het thema op als het wordt meegestuurd!
+    if (req.body.theme) {
+      puzzle.theme = req.body.theme;
+    }
+
     await puzzle.save();
-    res.json({ ok: true });
+    res.json({ success: true });
   } catch (err) {
-    console.error("SAVE-ALL ERROR:", err);
-    res.status(500).send("Server error");
+    console.error("Fout bij opslaan puzzel:", err);
+    res.status(500).json({ error: "Opslaan mislukt" });
   }
 });
 
