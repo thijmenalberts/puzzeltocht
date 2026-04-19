@@ -283,14 +283,41 @@ app.post("/admin-login", async (req, res) => {
   res.redirect("/admin-dashboard");
 });
 app.get("/admin-logout", (req, res) => req.session.destroy(() => res.redirect("/admin-login")));
-// Vernieuwde Dashboard Route (haalt puzzels op voor de dropdown)
+
+// Vernieuwde Dashboard Route met data voor de Mapping UI 
 app.get("/admin-dashboard", requireAdmin, async (req, res) => {
   try {
     const puzzles = await Puzzle.find().sort({ name: 1 }).lean();
     const mappings = await AirtableMap.find().populate("internalPuzzleId").lean();
     res.render("admin-dashboard", { puzzles, mappings });
   } catch (err) {
+    console.error("Dashboard error:", err);
     res.status(500).send("Fout bij laden dashboard.");
+  }
+});
+
+// Route voor het opslaan van de Airtable-naammaps [cite: 27]
+app.post("/admin/map-airtable", requireAdmin, async (req, res) => {
+  const { airtableString, internalId } = req.body;
+  try {
+    await AirtableMap.findOneAndUpdate(
+      { airtableString },
+      { internalPuzzleId: internalId },
+      { upsert: true }
+    );
+    res.redirect("/admin-dashboard");
+  } catch (err) {
+    res.status(500).send("Fout bij opslaan mapping.");
+  }
+});
+
+// Fase 3: Feedback Overzichtspagina [cite: 22]
+app.get("/admin/feedback", requireAdmin, async (req, res) => {
+  try {
+    const teams = await GlobalTeam.find({ "feedbackHistory.0": { $exists: true } }).lean();
+    res.render("admin-feedback", { teams });
+  } catch (err) {
+    res.status(500).send("Fout bij laden feedback.");
   }
 });
 
