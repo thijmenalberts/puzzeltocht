@@ -28,6 +28,12 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 dotenv.config();
 
+app.get("/admin-theme", requireAdmin, async (req, res) => {
+  // We sturen ze simpelweg naar de puzzellijst, 
+  // want thema's worden nu PER puzzel in de builder ingesteld (veel krachtiger!)
+  res.redirect("/admin-puzzles");
+});
+
 // ------------------------------------------
 // 0. LEADERBOARD SCHEMA (Inline gedefinieerd voor Fase 4)
 // ------------------------------------------
