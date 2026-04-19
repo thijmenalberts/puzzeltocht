@@ -1,3 +1,4 @@
+// models/Code.js
 import base from "./airtable.js"; 
 
 export async function checkCode(rawCode) {
@@ -5,19 +6,19 @@ export async function checkCode(rawCode) {
   if (code === "ADMIN-1234") return { valid: true, admin: true };
 
   try {
-    // Zoek in tabel 'Codes', kolom 'Toegangscode'
+    // Zoek in Airtable: Tabel 'Codes', Kolom 'Toegangscode'
     const records = await base("Codes").select({
       filterByFormula: `{Toegangscode} = '${code}'`,
       maxRecords: 1
     }).firstPage();
 
-    if (records.length === 0) return { valid: false, error: "Code niet gevonden in Airtable." };
+    if (records.length === 0) return { valid: false, error: "Code niet gevonden." };
 
     const record = records[0];
     const status = record.fields["Status"]; 
     const puzzleName = record.fields["Puzzeltocht"]; 
 
-    if (status === "Gebruikt") return { valid: false, error: "Deze code is al verbruikt." };
+    if (status === "Gebruikt") return { valid: false, error: "Code is al gebruikt." };
 
     return { 
       valid: true, 
