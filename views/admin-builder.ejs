@@ -1121,4 +1121,37 @@ if (type === "historychat") {
   updateLanguageSelect(); renderPageList(); renderPage(currentPage);
 })();
 </script>
+<script>
+  (function() {
+    const originalFetch = window.fetch;
+    window.fetch = async function(...args) {
+      const url = args[0] || "";
+      const options = args[1] || {};
+
+      // We kijken of de applicatie een opslag-actie probeert te doen naar de server
+      if (options.method && options.method.toUpperCase() === 'POST' && typeof options.body === 'string') {
+        if (url.includes('/edit') || url.includes('/save') || url.includes('/admin-builder')) {
+          try {
+            let payload = JSON.parse(options.body);
+            
+            // Haal de waarden op uit het menu dat je al succesvol had toegevoegd
+            const preset = document.getElementById('auto-theme-preset')?.value || 'standard';
+            const color = document.getElementById('auto-theme-color')?.value || '#4f46e5';
+            
+            // Voeg ze toe aan het datapakket
+            payload.theme = { preset: preset, primaryColor: color };
+            
+            // Pak het weer in en stuur het door naar de server
+            options.body = JSON.stringify(payload);
+            console.log("✅ Thema succesvol geïnjecteerd in de opslag:", payload.theme);
+          } catch(e) {
+            console.warn("⚠️ Thema injectie overgeslagen (geen geldige JSON body).", e);
+          }
+        }
+      }
+      // Voer de originele fetch uit met onze geüpdatete data
+      return originalFetch.apply(this, args);
+    };
+  })();
+</script>
 </div>
