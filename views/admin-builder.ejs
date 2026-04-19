@@ -1029,6 +1029,21 @@ if (type === "historychat") {
     });
   }
 
+<div style="background: #f8fafc; border: 1px solid #cbd5e1; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+  <h3 style="font-size: 12px; font-weight: 900; color: #334155; text-transform: uppercase; margin-top: 0;">🎨 Visueel Thema</h3>
+  
+  <label style="display: block; font-size: 11px; font-weight: bold; margin-top: 10px; margin-bottom: 4px;">Sfeer Preset:</label>
+  <select id="theme-preset" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px;">
+    <option value="standard" <%= puzzle.theme?.preset === 'standard' ? 'selected' : '' %>>Standaard (Modern)</option>
+    <option value="medieval" <%= puzzle.theme?.preset === 'medieval' ? 'selected' : '' %>>🏰 Middeleeuwen (Perkament)</option>
+    <option value="future" <%= puzzle.theme?.preset === 'future' ? 'selected' : '' %>>🚀 De Toekomst (Cyberpunk)</option>
+    <option value="iceage" <%= puzzle.theme?.preset === 'iceage' ? 'selected' : '' %>>🥶 De Ijstijd (Bevroren)</option>
+  </select>
+
+  <label style="display: block; font-size: 11px; font-weight: bold; margin-top: 10px; margin-bottom: 4px;">Accent Kleur:</label>
+  <input type="color" id="theme-color" value="<%= puzzle.theme?.primaryColor || '#4f46e5' %>" style="width: 100%; height: 35px; border: none; border-radius: 6px; cursor: pointer;">
+</div>
+
   async function saveAll(){
     savePageSettings(); pages[currentPage].modules = collect();
     try{
