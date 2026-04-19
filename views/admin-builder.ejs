@@ -1,71 +1,497 @@
-<style>
-  <% 
-    const theme = puzzle.theme?.preset || 'standard'; 
-    const primary = puzzle.theme?.primaryColor || '#0066cc';
-  %>
+<%
+const normalizePages = (puz) => {
+  if (!puz || !Array.isArray(puz.pages) || !puz.pages.length) {
+    return [{
+      title: { nl: "Pagina 1" }, showNext: true, isMap: false, showTarget: true, autoNext: false,
+      playSoundOnStart: false, soundUrl: "", modules: []
+    }];
+  }
+  return puz.pages.map(pg => ({
+    title: typeof pg.title === "string" ? { nl: pg.title } : (pg.title || {}),
+    showNext: !!pg.showNext, isMap: !!pg.isMap, showTarget: pg.showTarget !== false,
+    autoNext: !!pg.autoNext, playSoundOnStart: !!pg.playSoundOnStart, soundUrl: pg.soundUrl || "",
+    targetLat: pg.targetLat ?? null, targetLng: pg.targetLng ?? null, targetRadius: pg.targetRadius ?? 50,
+    modules: Array.isArray(pg.modules) ? JSON.parse(JSON.stringify(pg.modules)) : []
+  }));
+};
+const pagesSafe = normalizePages(puzzle);
+%>
 
-  :root { --primary: <%= primary %>; }
+<style> 
+  :root {
+    --primary: #0066cc; /* Apple Blue */
+    --bg: #f5f5f7;
+    --text: #1d1d1f;
+    --border: #d2d2d7;
+    --card: #ffffff;
+  }
 
-  /* 1. ABSOLUTE BASIS FIXES VOOR INTERACTIE */
-  body { padding: 24px 16px; margin: 0; min-height: 100vh; overflow-x: hidden; position: relative; }
+  body, html { margin: 0; padding: 0; height: 100vh; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, Helvetica, sans-serif; background: var(--bg); color: var(--text); }
   * { box-sizing: border-box; }
+
+  /* 3-KOLOMS LAYOUT (Apple Xcode / Final Cut pro stijl) */
+  .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 0 24px; background: rgba(255,255,255,0.8); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); height: 64px; z-index: 100; position: relative; }
+  .builder-layout { display: grid; grid-template-columns: 280px 1fr 340px; height: calc(100vh - 64px); overflow: hidden; }
   
-  /* De Kaart Basis: Bevat de elementen maar blokkeert niets */
-  .card { padding: 24px; margin-bottom: 24px; position: relative; transition: all 0.3s ease; width: 100%; z-index: 10; word-wrap: break-word; }
+  .column-left { background: #fbfbfd; border-right: 1px solid var(--border); padding: 24px; overflow-y: auto; }
+  .column-main { background: #e5e5ea; display: flex; justify-content: center; align-items: flex-start; padding: 40px 20px; overflow-y: auto; }
+  .column-right { background: #fbfbfd; border-left: 1px solid var(--border); padding: 24px; overflow-y: auto; padding-bottom: 120px; }
+
+  h1, h2, h3 { margin: 0 0 16px 0; font-weight: 600; letter-spacing: -0.02em; }
+  h3 { font-size: 13px; text-transform: uppercase; color: #86868b; letter-spacing: 0.05em; font-weight: 700; margin-bottom: 12px; margin-top: 24px; }
   
-  /* CRUCIAAL: Dwing alle functionele elementen naar voren en maak ze klikbaar */
-  h1, h2, h3, p, .card > div { position: relative; z-index: 20; }
-  .btn, input, select, textarea, .chat-input-container, button { position: relative !important; z-index: 100 !important; pointer-events: auto !important; }
+  /* KNOPPEN */
+  .btn { padding: 8px 16px; border-radius: 8px; border: 1px solid transparent; font-weight: 500; cursor: pointer; transition: 0.2s; font-size: 13px; display: inline-flex; justify-content: center; align-items: center; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: #005bb5; }
+  .btn-secondary { background: #e8e8ed; color: #1d1d1f; }
+  .btn-secondary:hover { background: #d1d1d6; }
+  .btn-danger { background: #fceceb; color: #d93025; border: 1px solid #f9d2ce; }
+
+  /* MODULE KNOPPEN (Left panel) */
+  .element-btn { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; cursor: pointer; font-weight: 500; font-size: 13px; text-align: left; transition: all 0.2s; margin-bottom: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
+  .element-btn:hover { border-color: var(--primary); box-shadow: 0 4px 12px rgba(0,102,204,0.1); transform: translateY(-1px); }
+
+  /* TELEFOON */
+  .phone { width: 375px; min-height: 750px; background: #fff; border: 12px solid #1d1d1f; border-radius: 44px; box-shadow: 0 30px 60px -12px rgba(0,0,0,0.4); padding: 40px 16px 24px; overflow-y: auto; position: relative; flex-shrink: 0; transition: background 0.3s, color 0.3s; }
+  /* Notch simulatie */
+  .phone::before { content:""; position:absolute; top:0; left:50%; transform:translateX(-50%); width:120px; height:24px; background:#1d1d1f; border-bottom-left-radius:16px; border-bottom-right-radius:16px; z-index: 100; }
   
-  /* Zorg dat knoppen niet uitbreken op kleine schermen */
-  .btn { display: block; width: 100%; text-align: center; padding: 16px; cursor: pointer; font-size: 15px; border: none; min-height: 50px; height: auto; white-space: normal; line-height: 1.4; margin-bottom: 12px; }
+  .phone-header { display: flex; justify-content: space-between; font-size: 15px; font-weight: 600; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid rgba(0,0,0,0.1); }
 
-  /* Zorg dat ALLE decoratieve overlays (ijspegels, perkament-randen, etc) NOOIT muiskliks stelen */
-  .card::before, .card::after, body::before, body::after { pointer-events: none !important; z-index: 5 !important; }
+  /* BLOKKEN */
+  .block { padding: 16px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); cursor: grab; position: relative; }
+  .block.dragging { opacity: 0.4; box-shadow: 0 12px 24px rgba(0,0,0,0.1); transform: scale(1.02); z-index: 50; }
+  .block h4 { margin: 0 0 12px; font-size: 12px; display: flex; align-items: center; justify-content: space-between; color: #86868b; text-transform: uppercase; font-weight: 700; }
+  .remove { background: #fceceb; color: #d93025; width: 24px; height: 24px; border: none; border-radius: 50%; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; font-size: 14px; }
 
-  /* 2. DE CSS THEMA ENGINE */
+  /* INPUTS */
+  label { font-size: 12px; font-weight: 500; color: #1d1d1f; display: block; margin: 12px 0 6px; }
+  input[type="text"], input[type="number"], input[type="url"], select, textarea { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); font-family: inherit; font-size: 13px; background: #fff; transition: all 0.2s; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,102,204,0.2); }
+  .helper { font-size: 11px; color: #86868b; line-height: 1.4; margin-bottom: 8px; }
 
-  /* --- THEMA: IJSTIJD (IJs & Sneeuw) --- */
-  <% if (theme === 'iceage') { %>
-    body { background: #f0f9ff; color: #0c4a6e; }
-    
-    /* Bewegende sneeuw */
-    body::before { content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background-image: radial-gradient(#bae6fd 2px, transparent 2px); background-size: 30px 30px; opacity: 0.7; animation: snowAnim 15s linear infinite; }
-    @keyframes snowAnim { 0% { background-position: 0px 0px; } 100% { background-position: 0px 600px; } }
+  /* PAGINA LIJST & SNAPPING */
+  .page-item { padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; cursor: grab; font-size: 13px; font-weight: 500; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; position: relative; }
+  .page-item.active { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(0,102,204,0.3); }
+  
+  /* Snapping visualisatie */
+  .page-item.drag-over-top { border-top: 3px solid var(--primary); padding-top: 9px; }
+  .page-item.drag-over-bottom { border-bottom: 3px solid var(--primary); padding-bottom: 9px; }
 
-    .card { background: rgba(255, 255, 255, 0.7); border: 2px solid #e0f2fe; border-radius: 16px; backdrop-filter: blur(10px); box-shadow: 0 10px 30px rgba(186, 230, 253, 0.6); }
-    
-    /* IJspegels met Base64 SVG (Laden direct in) */
-    .card::after { content: ""; position: absolute; top: -2px; left: 0; width: 100%; height: 25px; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20" preserveAspectRatio="none"><path d="M0,0 L5,20 L10,0 L18,12 L28,0 L40,18 L55,0 L70,10 L80,0 L92,15 L100,0 Z" fill="%23e0f2fe"/></svg>'); }
-
-    .btn { background: #38bdf8; border-radius: 100px; border-bottom: 4px solid #0284c7; color: white; font-weight: 800; text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
-    .btn:active { transform: translateY(4px); border-bottom: 0px; margin-bottom: 16px; }
-
-  /* --- THEMA: MIDDELEEUWEN (Perkament & Waszegels) --- */
-  <% } else if (theme === 'medieval') { %>
-    body { background: #d7c4a3 url('https://www.transparenttextures.com/patterns/papyros.png'); font-family: 'Georgia', serif; color: #3e2723; }
-    
-    /* Rafelige randen simulatie met inset shadow en border */
-    .card { background: #f4e4bc; border: 1px solid #bcaaa4; box-shadow: 6px 6px 15px rgba(0,0,0,0.2); border-radius: 2px; }
-    .card::before { content: ""; position: absolute; top:0; left:0; width:100%; height:100%; box-shadow: inset 0 0 50px rgba(139,69,19,0.15); }
-    
-    /* Waszegel Knoppen */
-    .btn { background: #5d4037; color: #fff; border-radius: 2px; border: 2px solid #3e2723; text-transform: uppercase; letter-spacing: 1.5px; box-shadow: 3px 3px 0px #3e2723; font-weight: 900; }
-    .btn:active { transform: translate(3px, 3px); box-shadow: 0px 0px 0px #3e2723; margin-bottom: 12px; }
-
-  /* --- THEMA: TOEKOMST (Cyberpunk Hologram) --- */
-  <% } else if (theme === 'future') { %>
-    body { background: #020617; color: #38bdf8; font-family: 'Courier New', monospace; background-image: linear-gradient(0deg, transparent 24%, rgba(56, 189, 248, .05) 25%, rgba(56, 189, 248, .05) 26%, transparent 27%, transparent 74%, rgba(56, 189, 248, .05) 75%, rgba(56, 189, 248, .05) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(56, 189, 248, .05) 25%, rgba(56, 189, 248, .05) 26%, transparent 27%, transparent 74%, rgba(56, 189, 248, .05) 75%, rgba(56, 189, 248, .05) 76%, transparent 77%, transparent); background-size: 50px 50px; }
-    
-    .card { background: rgba(15, 23, 42, 0.85); border: 1px solid var(--primary); box-shadow: 0 0 20px rgba(var(--primary), 0.2); backdrop-filter: blur(8px); clip-path: polygon(0 0, 96% 0, 100% 15px, 100% 100%, 4% 100%, 0 calc(100% - 15px)); border-radius: 0; }
-    
-    .btn { background: transparent; border: 1px solid var(--primary); color: var(--primary); text-transform: uppercase; font-weight: 900; box-shadow: inset 0 0 15px rgba(56, 189, 248, 0.1); letter-spacing: 2px; transition: 0.1s; }
-    .btn:hover, .btn:active { background: var(--primary); color: #020617; box-shadow: 0 0 25px var(--primary); }
-
-  /* --- THEMA: STANDAARD (Modern Apple Stijl) --- */
-  <% } else { %>
-    body { background: #f5f5f7; color: #1d1d1f; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif; }
-    .card { background: #ffffff; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); box-shadow: 0 10px 20px rgba(0,0,0,0.03); }
-    .btn { background: var(--primary); border-radius: 12px; color: white; font-weight: 600; }
-  <% } %>
+  .check-row { display: flex; align-items: center; justify-content: space-between; font-weight: 500; font-size: 13px; margin: 12px 0; cursor: pointer; background: #fff; padding: 12px; border-radius: 8px; border: 1px solid var(--border); }
+  .check-row input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary); margin:0; }
+  
+  /* Thema sectie */
+  .theme-box { background: #f5f5f7; padding: 16px; border-radius: 16px; border: 1px solid var(--border); }
+  .theme-box select { background: #fff; }
 </style>
+
+<div class="top-bar">
+  <div style="display:flex; gap:24px; align-items:center;">
+    <h1 style="margin:0; font-size:18px;"> Builder</h1>
+    <div style="width:1px; height:24px; background:var(--border);"></div>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span style="font-size:13px; color:#86868b; font-weight:500;">Taal:</span>
+      <select id="language-select" style="width:auto; padding:6px 10px; background:transparent; border:none; font-weight:600;"></select>
+      <button id="add-language-btn" class="btn btn-secondary" style="padding:4px 8px; font-size:11px;">+ Toevoegen</button>
+    </div>
+  </div>
+  <div style="display:flex; gap:12px;">
+    <button id="btn-reset" class="btn btn-secondary">Herladen</button>
+    <button id="btn-save" class="btn btn-primary">Opslaan in iCloud</button>
+  </div>
+</div>
+
+<div class="builder-layout">
+  <aside class="column-left">
+    <h3 style="margin-top:0;">Inhoud</h3>
+    <button class="element-btn" onclick="addBlock('title')"><span>🏷️</span> Titel</button>
+    <button class="element-btn" onclick="addBlock('text')"><span>📝</span> Paragraaf</button>
+    <button class="element-btn" onclick="addBlock('image')"><span>🖼️</span> Afbeelding</button>
+    <button class="element-btn" onclick="addBlock('audio')"><span>🔊</span> Audio</button>
+    
+    <h3>Interactief</h3>
+    <button class="element-btn" onclick="addBlock('question')"><span>❓</span> Vraag / Quiz</button>
+    <button class="element-btn" onclick="addBlock('team-name')"><span>⏱️</span> Teamnaam & Klok</button>
+    
+    <h3>Intelligentie (AI)</h3>
+    <button class="element-btn" onclick="addBlock('aiphoto')" style="border-color:#d0dceb; background:#f4f9ff;"><span>🤖</span> AI Foto Jury</button> 
+    <button class="element-btn" onclick="addBlock('historychat')" style="border-color:#fceceb; background:#fff8f7;"><span>🎭</span> Historisch Figuur (Chat)</button>
+    <button class="element-btn" onclick="addBlock('feedback')" style="border-color:#e6f4ea; background:#f6fbf8;"><span>⭐</span> Finale Verslag</button>
+  </aside>
+
+  <main class="column-main">
+    <div class="phone" id="phone" data-id="<%= puzzle._id %>">
+      <div class="phone-header">
+        <span id="app-title" style="color:var(--primary);"><%= puzzle.name %></span>
+        <span id="page-title-label" style="color:#86868b;"></span>
+      </div>
+      <div id="phone-content"></div>
+    </div>
+  </main>
+
+  <aside class="column-right">
+    
+    <div class="theme-box">
+      <h3 style="margin-top:0; color:#1d1d1f;">🎨 Sfeer & Thema</h3>
+      <label>Preset Engine</label>
+      <select id="auto-theme-preset">
+        <option value="standard" <%= puzzle.theme?.preset === 'standard' ? 'selected' : '' %>> Standard Modern</option>
+        <option value="medieval" <%= puzzle.theme?.preset === 'medieval' ? 'selected' : '' %>>🏰 Middeleeuwen (Perkament)</option>
+        <option value="future" <%= puzzle.theme?.preset === 'future' ? 'selected' : '' %>>🚀 Toekomst (Cyberpunk)</option>
+        <option value="iceage" <%= puzzle.theme?.preset === 'iceage' ? 'selected' : '' %>>🥶 Ijstijd (IJspegels)</option>
+      </select>
+      <label>Accentkleur</label>
+      <div style="display:flex; gap:12px; align-items:center;">
+        <input type="color" id="auto-theme-color" value="<%= puzzle.theme?.primaryColor || '#0066cc' %>" style="width: 50px; height: 40px; padding: 2px; border-radius: 8px;">
+        <span class="helper" style="margin:0;">Wordt live toegepast</span>
+      </div>
+    </div>
+
+    <h3>Pagina's</h3>
+    <div id="page-list"></div>
+    <button onclick="addPage()" class="btn btn-secondary" style="width:100%; margin-top:10px; border: 1px dashed var(--border);">+ Nieuwe Pagina</button>
+
+    <hr style="border:none; border-top:1px solid var(--border); margin: 24px 0;">
+
+    <h3>Huidige Pagina Instellingen</h3>
+    <label>Titel van de pagina</label>
+    <input id="page-title-input" type="text" placeholder="Bijv: Welkom in Borger" />
+
+    <label class="check-row">
+      <span>Toon "Volgende" knop</span>
+      <input type="checkbox" id="page-shownext">
+    </label>
+    
+    <label class="check-row" style="background: #f4f9ff; border-color: #d0dceb;">
+      <span>Maak dit een GPS Kaart</span>
+      <input id="page-ismap" type="checkbox" />
+    </label>
+
+    <div style="background:#f5f5f7; padding:16px; border-radius:12px; margin-top:16px;">
+      <label class="check-row" style="margin:0; padding:0; border:none; background:transparent;">
+        <span>Speel achtergrondgeluid</span>
+        <input id="page-playsound-start" type="checkbox" />
+      </label>
+      <div id="sound-file-section" style="display:none; margin-top:12px;">
+        <input id="page-soundurl" type="text" placeholder="URL naar .mp3 bestand">
+      </div>
+    </div>
+
+    <div id="map-target-settings" style="display:none; background:#fff8f7; border:1px solid #fceceb; padding:16px; border-radius:12px; margin-top:16px;">
+      <h4 style="margin:0 0 12px; color:#d93025; font-size:12px;">📍 GPS Doel Check</h4>
+      <div class="helper">Speler moet deze cirkel bereiken om verder te gaan.</div>
+      <div style="display:flex; gap:10px; margin-bottom:12px;">
+        <div><label style="margin-top:0;">Lat</label><input id="page-target-lat" type="number" step="0.000001"></div>
+        <div><label style="margin-top:0;">Lng</label><input id="page-target-lng" type="number" step="0.000001"></div>
+      </div>
+      <label>Radius (meters)</label>
+      <input id="page-target-radius" type="number" step="1" value="50">
+      <div style="margin-top:16px;">
+        <label class="check-row" style="padding:8px; margin:4px 0;"><input id="page-showtarget" type="checkbox" /><span>Toon doel op kaart</span></label>
+        <label class="check-row" style="padding:8px; margin:4px 0;"><input id="page-autonext" type="checkbox" /><span>Automatisch doorgaan</span></label>
+      </div>
+    </div>
+
+    <button id="delete-page-btn" class="btn btn-danger" style="width:100%; margin-top:24px;">Pagina Verwijderen</button>
+    
+    <hr style="border:none; border-top:1px solid var(--border); margin: 24px 0;">
+
+    <h3>Configuratie Module</h3>
+    <div id="panel-dynamic">
+      <div class="helper" style="padding:24px; text-align:center; background:#f5f5f7; border-radius:12px; border: 1px dashed var(--border);">
+        Selecteer een module in de telefoon om de instellingen te wijzigen.
+      </div>
+    </div>
+
+  </aside>
+</div>
+
+<script>
+(function(){
+  const puzzleMeta = <%- JSON.stringify({ languages: puzzle.languages || ["nl"], defaultLanguage: puzzle.defaultLanguage || "nl", _id: puzzle._id }) %>;
+  const phone = document.getElementById("phone-content");
+  const qs = (s, p=document) => p.querySelector(s);
+  const qsa = (s, p=document) => Array.from(p.querySelectorAll(s));
+
+  let availableLanguages = [...puzzleMeta.languages];
+  let activeLanguage = puzzleMeta.defaultLanguage || "nl";
+  let pages = <%- JSON.stringify(pagesSafe) %>;
+  let currentPage = 0;
+  let selectedBlock = null;
+
+  // -- TAAL --
+  function updateLangUI() {
+    const sel = qs("#language-select"); sel.innerHTML = "";
+    availableLanguages.forEach(l => { sel.innerHTML += `<option value="${l}">${l.toUpperCase()}</option>`; });
+    sel.value = activeLanguage;
+  }
+  qs("#add-language-btn").onclick = () => {
+    const l = prompt("Taalcode (bijv. en, de):");
+    if(l && !availableLanguages.includes(l)) { availableLanguages.push(l); activeLanguage = l; updateLangUI(); renderPage(); }
+  };
+  qs("#language-select").onchange = (e) => { savePageSettings(); if(!pages[currentPage].isMap) pages[currentPage].modules = collect(); activeLanguage = e.target.value; renderPage(); };
+  updateLangUI();
+
+  // -- PAGINA LOGICA & SNAPPING DRAG/DROP --
+  let draggedPageIdx = null;
+
+  function renderPageList() {
+    const wrap = qs("#page-list"); wrap.innerHTML = "";
+    pages.forEach((p, i) => {
+      const item = document.createElement("div");
+      item.className = `page-item ${i === currentPage ? 'active' : ''}`;
+      item.draggable = true;
+      item.innerHTML = `<span>${i + 1}. ${p.title?.[activeLanguage] || 'Naamloos'}</span><span style="opacity:0.5; cursor:grab;">≡</span>`;
+      
+      item.onclick = () => { savePageSettings(); if(!pages[currentPage].isMap) pages[currentPage].modules = collect(); currentPage = i; renderPageList(); renderPage(); };
+      
+      item.ondragstart = (e) => { draggedPageIdx = i; item.style.opacity = 0.5; e.dataTransfer.effectAllowed = "move"; };
+      item.ondragend = () => { item.style.opacity = 1; qsa(".page-item").forEach(el => el.classList.remove("drag-over-top", "drag-over-bottom")); draggedPageIdx = null; };
+      item.ondragover = (e) => {
+        e.preventDefault();
+        const rect = item.getBoundingClientRect();
+        if (e.clientY < rect.top + rect.height / 2) { item.classList.add("drag-over-top"); item.classList.remove("drag-over-bottom"); } 
+        else { item.classList.add("drag-over-bottom"); item.classList.remove("drag-over-top"); }
+      };
+      item.ondragleave = () => { item.classList.remove("drag-over-top", "drag-over-bottom"); };
+      item.ondrop = (e) => {
+        e.preventDefault();
+        if (draggedPageIdx === null || draggedPageIdx === i) return;
+        const rect = item.getBoundingClientRect();
+        const targetIdx = e.clientY < rect.top + rect.height / 2 ? i : i + 1;
+        
+        savePageSettings(); if(!pages[currentPage].isMap) pages[currentPage].modules = collect();
+        const moved = pages.splice(draggedPageIdx, 1)[0];
+        pages.splice(targetIdx > draggedPageIdx ? targetIdx - 1 : targetIdx, 0, moved);
+        currentPage = pages.indexOf(moved);
+        renderPageList(); renderPage();
+      };
+      wrap.appendChild(item);
+    });
+  }
+
+  function setPageUI() {
+    const pg = pages[currentPage];
+    qs("#page-title-label").textContent = pg.title?.[activeLanguage] || "";
+    qs("#page-title-input").value = pg.title?.[activeLanguage] || "";
+    qs("#page-shownext").checked = !!pg.showNext;
+    qs("#page-ismap").checked = !!pg.isMap;
+    qs("#page-playsound-start").checked = !!pg.playSoundOnStart;
+    qs("#sound-file-section").style.display = pg.playSoundOnStart ? "block" : "none";
+    qs("#page-soundurl").value = pg.soundUrl || "";
+    
+    qs("#map-target-settings").style.display = pg.isMap ? "block" : "none";
+    qs("#page-target-lat").value = pg.targetLat ?? "";
+    qs("#page-target-lng").value = pg.targetLng ?? "";
+    qs("#page-target-radius").value = pg.targetRadius ?? 50;
+    qs("#page-showtarget").checked = !!pg.showTarget;
+    qs("#page-autonext").checked = !!pg.autoNext;
+  }
+
+  function savePageSettings() {
+    const pg = pages[currentPage];
+    if(!pg.title) pg.title = {};
+    pg.title[activeLanguage] = qs("#page-title-input").value;
+    pg.showNext = qs("#page-shownext").checked;
+    pg.isMap = qs("#page-ismap").checked;
+    pg.playSoundOnStart = qs("#page-playsound-start").checked;
+    pg.soundUrl = qs("#page-soundurl").value;
+    pg.targetLat = qs("#page-target-lat").value ? Number(qs("#page-target-lat").value) : null;
+    pg.targetLng = qs("#page-target-lng").value ? Number(qs("#page-target-lng").value) : null;
+    pg.targetRadius = qs("#page-target-radius").value ? Number(qs("#page-target-radius").value) : 50;
+    pg.showTarget = qs("#page-showtarget").checked;
+    pg.autoNext = qs("#page-autonext").checked;
+  }
+
+  // -- MODULES RENDERING (Volledige Data Injectie) --
+  window.addBlock = (type) => {
+    const moduleData = { type: type, data: {} };
+    const b = createBlockElement(moduleData);
+    phone.appendChild(b);
+    selectBlock(b);
+  };
+
+  function renderPage() {
+    phone.innerHTML = "";
+    setPageUI();
+    const pg = pages[currentPage];
+    if (pg.isMap) {
+      phone.innerHTML = `<div style="padding:40px 20px; text-align:center; border:2px dashed #0066cc; border-radius:24px; margin-top:20px; background:#f4f9ff;"><h3 style="color:#0066cc;">🗺️ GPS Kaart Actief</h3><p class="helper">Speler ziet hier de route op de kaart. Modules worden verborgen.</p></div>`;
+      qs("#panel-dynamic").innerHTML = `<div class="helper" style="padding:24px; text-align:center;">Kaartpagina geselecteerd. Stel de GPS doelen hierboven in.</div>`;
+      return;
+    }
+    (pg.modules || []).forEach(m => {
+      phone.appendChild(createBlockElement(m));
+    });
+    qs("#panel-dynamic").innerHTML = `<div class="helper" style="padding:24px; text-align:center;">Selecteer een module in de telefoon.</div>`;
+  }
+
+  function createBlockElement(m) {
+    const div = document.createElement("div");
+    div.className = "block"; div.draggable = true; div.dataset.type = m.type;
+    div._data = JSON.parse(JSON.stringify(m.data || {})); // Clone data
+    
+    let inner = `<button class="remove" onclick="this.parentElement.remove(); document.getElementById('panel-dynamic').innerHTML='';">✕</button>`;
+    inner += `<h4><span>${m.type}</span></h4>`;
+    
+    // Voeg visuele referentie in de telefoon toe
+    if(m.type === "title") inner += `<div style="font-size:24px; font-weight:700;">${div._data.title?.[activeLanguage] || "Titel"}</div>`;
+    else if(m.type === "text") inner += `<div style="font-size:14px;">${div._data.text?.[activeLanguage] || "Tekst"}</div>`;
+    else if(m.type === "image") inner += `<div style="height:100px; background:#e5e5ea; border-radius:8px; display:flex; align-items:center; justify-content:center;">🖼️ ${div._data.url ? 'Afbeelding geladen' : 'Geen URL'}</div>`;
+    else inner += `<div class="helper" style="margin:0;">Klik om in te stellen aan de rechterkant 👉</div>`;
+    
+    div.innerHTML = inner;
+
+    // Drag Logic voor blocks
+    div.ondragstart = (e) => { div.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; };
+    div.ondragend = () => { div.classList.remove("dragging"); };
+    div.onclick = () => selectBlock(div);
+
+    return div;
+  }
+
+  // De Phone als Dropzone voor blocks
+  phone.ondragover = (e) => {
+    e.preventDefault();
+    const dragging = qs(".block.dragging", phone);
+    if(!dragging) return;
+    const afterElement = getDragAfterElement(phone, e.clientY);
+    if(afterElement == null) phone.appendChild(dragging);
+    else phone.insertBefore(dragging, afterElement);
+  };
+
+  function getDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll('.block:not(.dragging)')];
+    return draggableElements.reduce((closest, child) => {
+      const box = child.getBoundingClientRect();
+      const offset = y - box.top - box.height / 2;
+      if (offset < 0 && offset > closest.offset) return { offset: offset, element: child };
+      else return closest;
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+  }
+
+  // -- SETTINGS PANEL & COLLECT (De Kern) --
+  function selectBlock(div) {
+    selectedBlock = div;
+    const type = div.dataset.type;
+    const d = div._data;
+    const panel = qs("#panel-dynamic");
+
+    let html = `<h3 style="margin-top:0; color:var(--primary);">${type.toUpperCase()} CONFIGURATIE</h3>`;
+
+    if (type === "title" || type === "text") {
+      html += `<label>Tekst (Taal: ${activeLanguage.toUpperCase()})</label>
+               <textarea id="b-txt" rows="4">${d[type]?.[activeLanguage] || ""}</textarea>`;
+    } else if (type === "image" || type === "audio") {
+      html += `<label>Bestand URL</label>
+               <input type="text" id="b-url" value="${d.url || ""}">`;
+    } else if (type === "question") {
+      html += `
+        <label>Vraagstelling</label><input type="text" id="b-q" value="${d.question?.[activeLanguage] || ""}">
+        <label>Vraag Type</label>
+        <select id="b-qtype"><option value="open" ${d.questionType==='open'?'selected':''}>Open</option><option value="mc" ${d.questionType==='mc'?'selected':''}>Meerkeuze</option></select>
+        <div id="b-open-wrap"><label>Juiste Antwoord</label><input type="text" id="b-ans" value="${d.answer?.[activeLanguage] || ""}"></div>
+        <label>Te verdienen punten</label><input type="number" id="b-pts" value="${d.maxPoints || 10}">
+      `;
+    } else if (type === "historychat") {
+      html += `<label>Naam NPC</label><input type="text" id="b-name" value="${d.characterName?.[activeLanguage] || ""}">
+               <label>Systeem Prompt (Karakter)</label><textarea id="b-prompt" rows="4">${d.systemPrompt?.[activeLanguage] || ""}</textarea>
+               <label>Max Berichten</label><input type="number" id="b-turns" value="${d.maxTurns || 3}">`;
+    } else if (type === "aiphoto") {
+      html += `<label>Instructie voor Speler</label><input type="text" id="b-inst" value="${d.instruction?.[activeLanguage] || ""}">
+               <label>Geheime AI Prompt</label><input type="text" id="b-prompt" value="${d.prompt?.[activeLanguage] || ""}">
+               <label>Punten</label><input type="number" id="b-pts" value="${d.points || 10}">`;
+    } else if (type === "feedback" || type === "team-name" || type === "photo") {
+      html += `<p class="helper">Geen extra instellingen nodig voor deze module.</p>`;
+    }
+
+    // Universele Hint Systeem Toevoegen (Fase 2/3)
+    if (["question", "historychat", "aiphoto", "photo"].includes(type)) {
+      html += `
+        <div style="background:#f4f9ff; border:1px solid #d0dceb; padding:16px; border-radius:12px; margin-top:24px;">
+          <h4 style="margin:0 0 12px; color:#0066cc; font-size:12px;">💡 AI HINT SYSTEEM</h4>
+          <label style="margin-top:0;">Hint Kosten (punten)</label><input type="number" id="b-hcost" value="${d.hintCost || 0}">
+          <label>Verborgen AI Context (Waar moet de AI de speler naartoe sturen?)</label>
+          <textarea id="b-aik" rows="3">${d.aiKnowledge || ""}</textarea>
+        </div>
+      `;
+    }
+
+    panel.innerHTML = html;
+
+    // Real-time binding
+    if(qs("#b-txt")) qs("#b-txt").oninput = (e) => { if(!d[type]) d[type]={}; d[type][activeLanguage] = e.target.value; div.querySelector('div').innerText = e.target.value; };
+    if(qs("#b-url")) qs("#b-url").oninput = (e) => d.url = e.target.value;
+    if(qs("#b-q")) qs("#b-q").oninput = (e) => { if(!d.question) d.question={}; d.question[activeLanguage] = e.target.value; };
+    if(qs("#b-qtype")) qs("#b-qtype").onchange = (e) => { d.questionType = e.target.value; qs("#b-open-wrap").style.display = e.target.value === 'open' ? 'block':'none'; };
+    if(qs("#b-ans")) qs("#b-ans").oninput = (e) => { if(!d.answer) d.answer={}; d.answer[activeLanguage] = e.target.value; };
+    if(qs("#b-pts")) qs("#b-pts").oninput = (e) => d.maxPoints = d.points = Number(e.target.value);
+    if(qs("#b-name")) qs("#b-name").oninput = (e) => { if(!d.characterName) d.characterName={}; d.characterName[activeLanguage] = e.target.value; };
+    if(qs("#b-prompt")) qs("#b-prompt").oninput = (e) => { if(!d.systemPrompt && !d.prompt){ d.systemPrompt={}; d.prompt={}; } if(type==="historychat") d.systemPrompt[activeLanguage] = e.target.value; else d.prompt[activeLanguage] = e.target.value; };
+    if(qs("#b-turns")) qs("#b-turns").oninput = (e) => d.maxTurns = Number(e.target.value);
+    if(qs("#b-inst")) qs("#b-inst").oninput = (e) => { if(!d.instruction) d.instruction={}; d.instruction[activeLanguage] = e.target.value; };
+    
+    if(qs("#b-hcost")) qs("#b-hcost").oninput = (e) => d.hintCost = Number(e.target.value);
+    if(qs("#b-aik")) qs("#b-aik").oninput = (e) => d.aiKnowledge = e.target.value;
+  }
+
+  function collect() {
+    return qsa(".block", phone).map(b => ({
+      type: b.dataset.type,
+      data: b._data
+    }));
+  }
+
+  // -- OPSLAAN (Geen Data Loss Meer) --
+  qs("#btn-save").onclick = async () => {
+    savePageSettings();
+    if(!pages[currentPage].isMap) pages[currentPage].modules = collect();
+    
+    const themePayload = {
+      preset: qs("#auto-theme-preset").value,
+      primaryColor: qs("#auto-theme-color").value
+    };
+
+    try {
+      const res = await fetch(`/admin-builder/${phone.dataset.id}/save-all`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          pages: pages, 
+          languages: availableLanguages, 
+          defaultLanguage: activeLanguage,
+          theme: themePayload 
+        })
+      });
+      if(res.ok) alert("✅ Opgeslagen in Database!"); else throw new Error();
+    } catch(e) { alert("❌ Fout bij opslaan."); }
+  };
+
+  window.addPage = () => { pages.push({ title: {[activeLanguage]: "Nieuwe Pagina"}, modules: [] }); renderPageList(); qs(".page-item:last-child").click(); };
+  qs("#delete-page-btn").onclick = () => { if(pages.length > 1) { pages.splice(currentPage, 1); currentPage = Math.max(0, currentPage - 1); renderPageList(); renderPage(); } else { qs("#page-warning").style.display="block"; setTimeout(()=>qs("#page-warning").style.display="none",2000); } };
+
+  // LIVE EVENT LISTENERS VOOR RECHTERPANEEL
+  ["page-title-input", "page-shownext", "page-ismap", "page-playsound-start", "page-soundurl", "page-target-lat", "page-target-lng", "page-target-radius", "page-showtarget", "page-autonext"].forEach(id => {
+    const el = qs(`#${id}`);
+    if(el) el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', () => { savePageSettings(); if(id==='page-title-input') renderPageList(); if(id==='page-ismap') renderPage(); });
+  });
+
+  // -- LIVE PREVIEW ENGINE THEMA'S --
+  function updateLivePreview() {
+    const preset = qs('#auto-theme-preset').value;
+    const color = qs('#auto-theme-color').value;
+    phone.style.setProperty('--primary', color);
+    
+    phone.style.background = '#fff'; phone.style.color = '#1d1d1f'; phone.style.fontFamily = 'inherit'; phone.style.backgroundImage = 'none';
+    if (preset === 'medieval') { phone.style.background = '#e2d1b3 url("https://www.transparenttextures.com/patterns/papyros.png")'; phone.style.fontFamily = 'Georgia, serif'; phone.style.color = '#3e2723'; } 
+    else if (preset === 'future') { phone.style.background = '#020617'; phone.style.color = '#38bdf8'; phone.style.fontFamily = 'Courier New, monospace'; } 
+    else if (preset === 'iceage') { phone.style.background = '#f0f9ff'; phone.style.color = '#0c4a6e'; }
+  }
+  qs('#auto-theme-preset').onchange = updateLivePreview;
+  qs('#auto-theme-color').oninput = updateLivePreview;
+
+  // INIT
+  renderPageList(); renderPage(); updateLivePreview();
+})();
+</script>
