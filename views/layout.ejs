@@ -9,6 +9,48 @@
   <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
+
+    /* Floating Score Animatie  */
+.score-float {
+  position: fixed;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 4rem;
+  font-weight: 900;
+  color: #10b981;
+  pointer-events: none;
+  z-index: 10000;
+  text-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+  animation: floatAndFade 1.8s ease-out forwards;
+}
+
+@keyframes floatAndFade {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+  20% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+  100% { opacity: 0; transform: translate(-50%, -150%) scale(1.5); }
+}
+
+/* Typing Indicator Styling [cite: 32] */
+.typing-indicator {
+  display: flex;
+  gap: 4px;
+  padding: 10px 15px;
+  background: #f3f4f6;
+  border-radius: 12px 12px 12px 0;
+  width: fit-content;
+  margin-bottom: 10px;
+}
+.typing-dot {
+  width: 6px;
+  height: 6px;
+  background: #9ca3af;
+  border-radius: 50%;
+  animation: typingBlink 1.4s infinite both;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingBlink { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
     :root{
       --primary: <%= theme?.primaryColor || '#2563eb' %>;
       --bg: <%= theme?.backgroundColor || '#ffffff' %>;
