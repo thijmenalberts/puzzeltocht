@@ -246,24 +246,24 @@ app.post("/check-code", checkCodeLimiter, async (req, res) => {
     if (!result.valid) return res.render("index", { error: result.error });
     if (result.admin) return res.redirect("/admin-login");
 
-    // AIRTABLE MAPPING LOGICA
-    // Zoek in onze MongoDB welke Puzzel ID hoort bij de naam uit Airtable (bijv. "Borger")
-    const mapping = await AirtableMap.findOne({ airtableString: result.airtablePuzzleName });
-    
-    if (!mapping) {
-      console.error("Geen mapping gevonden voor:", result.airtablePuzzleName);
-      return res.render("index", { error: "Deze puzzeltocht is nog niet geconfigureerd in het systeem." });
+    // Controleer of er een specifieke puzzel is gekoppeld in Airtable
+    if (result.airtablePuzzleName) {
+      const mapping = await AirtableMap.findOne({ airtableString: result.airtablePuzzleName });
+      
+      if (mapping) {
+        req.session.pendingPuzzleId = mapping.internalPuzzleId;
+        return res.redirect(`/puzzle/${mapping.internalPuzzleId}`);
+      }
     }
 
-    // Sla de gevonden puzzel ID op in de express-sessie voor de volgende stap
-    req.session.pendingPuzzleId = mapping.internalPuzzleId;
-    
-    // Stuur door naar de startpagina waar teamnaam & email gevraagd worden
-    return res.redirect(`/puzzle/${mapping.internalPuzzleId}`);
+    // FALLBACK: Als er geen naam is ingevuld in Airtable OF geen mapping bestaat:
+    // Stuur door naar het overzicht van alle puzzeltochten
+    return res.redirect("/next");
 
   } catch (err) {
     console.error("Check-code error:", err);
-    return res.render("index", { error: "Er ging iets mis bij het inloggen." });
+    // Gedetailleerdere foutmelding voor debugging
+    return res.render("index", { error: "Database verbindingsfout. Controleer je Airtable API sleutels." });
   }
 });
 
