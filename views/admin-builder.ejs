@@ -1,528 +1,594 @@
 <%
 const normalizePages = (puz) => {
   if (!puz || !Array.isArray(puz.pages) || !puz.pages.length) {
-    return [{ title: { nl: "Pagina 1" }, showNext: true, isMap: false, showTarget: true, autoNext: false, playSoundOnStart: false, soundUrl: "", modules: [] }];
+    return [{
+      title: { nl: "Pagina 1" },
+      showNext: true,
+      isMap: false,
+      showTarget: true,
+      autoNext: false,
+      playSoundOnStart: false,
+      soundUrl: "",
+      modules: []
+    }];
   }
+
   return puz.pages.map(pg => ({
     title: typeof pg.title === "string" ? { nl: pg.title } : (pg.title || {}),
-    showNext: !!pg.showNext, isMap: !!pg.isMap, showTarget: pg.showTarget !== false, autoNext: !!pg.autoNext, playSoundOnStart: !!pg.playSoundOnStart, soundUrl: pg.soundUrl || "",
-    targetLat: pg.targetLat ?? null, targetLng: pg.targetLng ?? null, targetRadius: pg.targetRadius ?? 50,
+    showNext: !!pg.showNext,
+    isMap: !!pg.isMap,
+    showTarget: pg.showTarget !== false,
+    autoNext: !!pg.autoNext,
+    playSoundOnStart: !!pg.playSoundOnStart,
+    soundUrl: pg.soundUrl || "",
+    targetLat: pg.targetLat ?? null,
+    targetLng: pg.targetLng ?? null,
+    targetRadius: pg.targetRadius ?? 50,
     modules: Array.isArray(pg.modules) ? JSON.parse(JSON.stringify(pg.modules)) : []
   }));
 };
+
 const pagesSafe = normalizePages(puzzle);
 %>
 
 <style> 
   :root {
-    --primary: #4f46e5; --primary-hover: #4338ca;
-    --bg: #f8fafc; --text: #0f172a; --border: #cbd5e1;
-    --panel-bg: #ffffff;
+    --primary: #4f46e5;
+    --bg: #f8fafc;
+    --text: #0f172a;
+    --border: #e2e8f0;
   }
 
-  body, html { margin: 0; padding: 0; height: 100vh; overflow: hidden; font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); }
-  * { box-sizing: border-box; }
+  body, html { margin: 0; padding: 0; height: 100vh; overflow: hidden; font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); box-sizing: border-box; }
+  * { box-sizing: inherit; }
 
-  /* 3-KOLOMS LAYOUT */
-  .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 0 24px; background: var(--panel-bg); border-bottom: 1px solid var(--border); height: 60px; z-index: 100; position: relative; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-  .builder-layout { display: grid; grid-template-columns: 280px 1fr 340px; height: calc(100vh - 60px); overflow: hidden; }
+  /* DE 3-KOLOMS ARCHITECTUUR */
+  .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: #fff; border-bottom: 1px solid var(--border); height: 60px; }
+/* FORCEER SCROLLEN IN DE KOLOMMEN */
+  .builder-layout { display: grid; grid-template-columns: 280px 1fr 350px; height: calc(100vh - 60px); overflow: hidden; }
+  .column-left { background: #fff; border-right: 1px solid var(--border); padding: 20px; overflow-y: auto; height: 100%; }
+  .column-main { background: #cbd5e1; display: flex; justify-content: center; align-items: flex-start; padding: 40px 20px; overflow-y: auto; height: 100%; }
+  .column-right { background: #fff; border-left: 1px solid var(--border); padding: 20px; overflow-y: auto; height: 100%; padding-bottom: 100px; /* Zorgt dat de onderste knop altijd zichtbaar is */ }
   
-  .column { background: var(--panel-bg); padding: 20px; overflow-y: auto; height: 100%; }
-  .column-left { border-right: 1px solid var(--border); }
-  .column-right { border-left: 1px solid var(--border); padding-bottom: 100px; }
-  .column-main { background: #e2e8f0; display: flex; justify-content: center; align-items: flex-start; padding: 40px 20px; overflow-y: auto; height: 100%; }
 
-  h1, h2, h3 { margin: 0 0 12px 0; font-weight: 700; color: #1e293b; }
-  h3 { font-size: 12px; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px; margin-top: 24px; }
-  hr.sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
-
-  /* BUTTONS & INPUTS */
-  .btn { padding: 10px 16px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
-  .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2); }
-  .btn-primary:hover { background: var(--primary-hover); }
-  .btn-secondary { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
-  .btn-secondary:hover { background: #e2e8f0; }
-  .btn-danger { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
-
-  .element-btn { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px; background: #fff; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 13px; text-align: left; transition: all 0.15s; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
-  .element-btn:hover { border-color: var(--primary); background: #f5f3ff; transform: translateX(2px); }
-
-  label { font-size: 12px; font-weight: 700; color: #334155; display: block; margin: 12px 0 4px; }
-  input[type="text"], input[type="number"], input[type="url"], select, textarea { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-family: inherit; font-size: 13px; background: #fff; transition: 0.2s; }
-  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
-  .helper { font-size: 11px; color: #64748b; line-height: 1.4; margin-bottom: 8px; }
+  /* UI ELEMENTEN */
+  h2, h3 { margin: 0 0 15px 0; color: #1e293b; }
+  .btn { padding: 10px 14px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; transition: 0.2s; font-size: 13px; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: #4338ca; }
+  .btn-danger { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
   
-  .check-row { display: flex; align-items: center; justify-content: space-between; font-weight: 600; font-size: 13px; margin: 8px 0; cursor: pointer; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid var(--border); }
-  .check-row input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary); margin: 0; }
+  .element-btn { width: 100%; display: flex; align-items: center; gap: 10px; padding: 12px; background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-weight: 600; text-align: left; transition: 0.15s; }
+  .element-btn:hover { background: #eef2ff; border-color: var(--primary); transform: translateX(4px); }
 
   /* TELEFOON SIMULATOR */
-  .phone { width: 375px; min-height: 700px; background: #fff; border: 12px solid #0f172a; border-radius: 36px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4); padding: 30px 16px 20px; position: relative; flex-shrink: 0; transition: background 0.3s; }
-  .phone::before { content:""; position:absolute; top:0; left:50%; transform:translateX(-50%); width:100px; height:20px; background:#0f172a; border-bottom-left-radius:12px; border-bottom-right-radius:12px; z-index: 100; }
-  .phone-header { font-size: 14px; font-weight: 700; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px dashed #cbd5e1; display: flex; justify-content: space-between; }
+  .phone { width: 375px; height: 750px; background: #fff; border: 12px solid #1e293b; border-radius: 40px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); padding: 20px 15px; overflow-y: auto; position: relative; flex-shrink: 0; }
+  .phone-header { position: sticky; top: -20px; background: rgba(255,255,255,0.95); backdrop-filter: blur(5px); z-index: 10; padding: 10px 0; border-bottom: 1px dashed #cbd5e1; display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 15px; }
 
-  /* BLOKKEN & ON-PHONE EDITING */
-  .block { padding: 16px; background: #fff; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 16px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); cursor: grab; position: relative; }
-  .block.dragging { opacity: 0.5; box-shadow: 0 10px 20px rgba(0,0,0,0.1); z-index: 50; }
-  .block h4 { margin: 0 0 12px; font-size: 12px; display: flex; justify-content: space-between; align-items: center; color: #475569; text-transform: uppercase; font-weight: 800; }
-  .remove { position: absolute; top: 12px; right: 12px; background: #fee2e2; color: #b91c1c; width: 24px; height: 24px; border: none; border-radius: 6px; cursor: pointer; font-weight: 900; display: flex; align-items: center; justify-content: center; }
+  /* BLOKKEN IN TELEFOON */
+  .block { padding: 15px; background: #fff; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); cursor: grab; position: relative; }
+  .block.dragging { opacity: 0.5; }
+  .block h4 { margin: 0 0 10px; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+  .kind { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 2px 6px; border-radius: 6px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .remove { position: absolute; top: 12px; right: 12px; background: #ef4444; color: #fff; width: 24px; height: 24px; border: none; border-radius: 6px; cursor: pointer; font-weight: 900; display: flex; align-items: center; justify-content: center; }
+
+  /* FORMS & INPUTS */
+  label { font-size: 12px; font-weight: 700; color: #475569; display: block; margin-top: 12px; margin-bottom: 4px; }
+  input[type="text"], input[type="number"], input[type="url"], select, textarea { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: inherit; font-size: 13px; background: #f8fafc; transition: 0.2s; }
+  input:focus, textarea:focus, select:focus { outline: none; border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+  .helper { font-size: 11px; color: #64748b; line-height: 1.4; margin-bottom: 8px; }
   
-  [contenteditable="true"] { padding: 8px; border-radius: 6px; border: 1px dashed transparent; transition: 0.2s; outline: none; min-height: 24px; }
+  [contenteditable="true"] { padding: 8px; border-radius: 6px; border: 1px dashed transparent; transition: 0.2s; }
   [contenteditable="true"]:hover { border-color: #cbd5e1; }
-  [contenteditable="true"]:focus { background: #f8fafc; border-color: var(--primary); }
+  [contenteditable="true"]:focus { background: #eef2ff; border-color: var(--primary); outline: none; }
 
-  /* PAGINA LIJST & SNAPPING */
-  .page-item { padding: 12px; background: #fff; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; cursor: grab; font-size: 13px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
+  /* RIGHT PANEL MODULES */
+  .page-item { padding: 10px 12px; background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; cursor: pointer; font-size: 13px; font-weight: 600; display: flex; justify-content: space-between; }
   .page-item.active { background: var(--primary); border-color: var(--primary); color: #fff; }
-  .page-item.drag-over-top { border-top: 3px solid var(--primary); padding-top: 10px; }
-  .page-item.drag-over-bottom { border-bottom: 3px solid var(--primary); padding-bottom: 10px; }
+  hr.sep { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+  .check-row { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13px; margin-top: 8px; flex-direction: row-reverse; justify-content: flex-end; cursor: pointer; }
+  .check-row input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
 </style>
 
 <div class="top-bar">
-  <div style="display:flex; gap:20px; align-items:center;">
-    <h1 style="margin:0; font-size:18px; color:var(--primary);">Puzzel Builder</h1>
-    <div style="width:1px; height:20px; background:var(--border);"></div>
-    <div style="display:flex; align-items:center; gap:8px;">
-      <span style="font-size:12px; font-weight:700;">Taal:</span>
-      <select id="language-select" style="width:auto; padding:6px 10px; border:none; background:transparent; font-weight:700;"></select>
-      <button id="add-language-btn" class="btn btn-secondary" style="padding:4px 8px; font-size:11px;">+ Extra Taal</button>
-    </div>
+  <div style="display:flex; gap:15px; align-items:center;">
+    <h1 style="margin:0; font-size:18px; font-weight:900; color:var(--primary);">Builder</h1>
+    <div style="width:1px; height:24px; background:#cbd5e1;"></div>
+    <strong style="font-size:13px;">Taal:</strong>
+    <select id="language-select" style="width:auto; padding:6px 10px;"></select>
+    <button id="add-language-btn" class="btn" style="background:#e2e8f0;">+ Taal</button>
   </div>
-  <div style="display:flex; gap:12px;">
-    <button id="btn-reset" class="btn btn-secondary">↻ Herladen</button>
+  <div style="display:flex; gap:10px;">
+    <button id="btn-reset" class="btn" style="background:#f1f5f9; border:1px solid #cbd5e1;">↻ Herladen</button>
     <button id="btn-save" class="btn btn-primary">💾 Puzzeltocht Opslaan</button>
   </div>
 </div>
 
 <div class="builder-layout">
-  <aside class="column column-left">
-    <h3 style="margin-top:0;">Standaard Inhoud</h3>
-    <button class="element-btn" data-type="title">🏷️ Titel</button>
-    <button class="element-btn" data-type="text">📝 Tekst (Paragraaf)</button>
-    <button class="element-btn" data-type="image">🖼️ Afbeelding</button>
-    <button class="element-btn" data-type="audio">🔊 Audio Fragment</button>
-    
-    <h3>Interactie</h3>
-    <button class="element-btn" data-type="question">❓ Vraag / Quiz</button>
-    <button class="element-btn" data-type="photo">📸 Foto Laten Maken</button>
-    <button class="element-btn" data-type="team-name">⏱️ Teamnaam & Start Klok</button>
-    
-    <h3>Intelligentie (AI)</h3>
-    <button class="element-btn" data-type="aiphoto" style="border-color:#c7d2fe; background:#eef2ff; color:#4338ca;">🤖 AI Foto Jury</button> 
-    <button class="element-btn" data-type="historychat" style="border-color:#fecaca; background:#fff5f5; color:#b91c1c;">🎭 NPC Chat</button>
-    <button class="element-btn" data-type="feedback" style="border-color:#a5f3fc; background:#ecfeff; color:#0e7490;">⭐ Finale & Verslag</button>
+
+  <aside class="column-left">
+    <h3 class="text-xs font-black uppercase text-gray-400 tracking-widest mb-2" style="font-size:11px;">Inhoud Toevoegen</h3>
+    <button class="element-btn" type="button" data-type="title">🏷️ Titel</button>
+    <button class="element-btn" type="button" data-type="text">📝 Tekst</button>
+    <button class="element-btn" type="button" data-type="image">🖼️ Afbeelding</button>
+    <button class="element-btn" type="button" data-type="audio">🔊 Geluidsfragment</button>
+    <button class="element-btn" type="button" data-type="question">❓ Vraag / Quiz</button>
+    <button class="element-btn" type="button" data-type="photo">📸 Foto laten maken</button>
+    <button class="element-btn" type="button" data-type="team-name">🏷️ Teamnaam (Start Klok)</button>
+    <button class="element-btn" type="button" data-type="aiphoto" style="border-color:#c7d2fe; background:#eef2ff; color:#4338ca;">🤖 AI Foto Controle</button> 
+    <button class="element-btn" type="button" data-type="historychat" style="border-color:#fecaca; background:#fef2f2; color:#b91c1c;">🎭 Historisch Figuur (Chat)</button>
+    <button class="element-btn" type="button" data-type="feedback" style="border-color:#a5f3fc; background:#ecfeff; color:#0e7490;">⭐ Feedback & AI Verslag</button>
   </aside>
 
   <main class="column-main">
     <div class="phone" id="phone" data-id="<%= puzzle._id %>">
       <div class="phone-header">
-        <span id="app-title" style="color:var(--primary);"><%= puzzle.name %></span>
-        <span id="page-title-label" style="color:#64748b;"></span>
+        <strong id="app-title" style="color:var(--primary);"><%= puzzle.name %></strong>
+        <span id="page-title-label" style="color:#64748b; font-weight:600;"></span>
       </div>
-      <div id="phone-content"></div>
-    </div>
+      </div>
   </main>
 
-  <aside class="column column-right">
+  <aside class="column-right" id="right-panel">
     
-    <div style="background: #f1f5f9; padding: 16px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 24px;">
-      <h3 style="margin-top:0; color:#1e293b;">🎨 Puzzel Thema</h3>
+    <div style="background: #f8fafc; border: 1px solid #cbd5e1; padding: 15px; border-radius: 12px; margin-bottom: 24px;">
+      <h3 style="font-size: 11px; font-weight: 900; color: #475569; text-transform: uppercase; letter-spacing: 1px; margin-top: 0;">🎨 Visueel Thema</h3>
       <label>Sfeer Preset</label>
       <select id="auto-theme-preset">
-        <option value="standard" <%= puzzle.theme?.preset === 'standard' ? 'selected' : '' %>>Standaard Modern</option>
+        <option value="standard" <%= puzzle.theme?.preset === 'standard' ? 'selected' : '' %>>Standaard (Modern)</option>
         <option value="medieval" <%= puzzle.theme?.preset === 'medieval' ? 'selected' : '' %>>🏰 Middeleeuwen (Perkament)</option>
-        <option value="future" <%= puzzle.theme?.preset === 'future' ? 'selected' : '' %>>🚀 Toekomst (Cyberpunk)</option>
-        <option value="iceage" <%= puzzle.theme?.preset === 'iceage' ? 'selected' : '' %>>🥶 Ijstijd (Sneeuw)</option>
+        <option value="future" <%= puzzle.theme?.preset === 'future' ? 'selected' : '' %>>🚀 De Toekomst (Cyberpunk)</option>
+        <option value="iceage" <%= puzzle.theme?.preset === 'iceage' ? 'selected' : '' %>>🥶 De Ijstijd (Bevroren)</option>
       </select>
-      <label>Accentkleur (Wordt direct getoond)</label>
-      <input type="color" id="auto-theme-color" value="<%= puzzle.theme?.primaryColor || '#4f46e5' %>" style="width: 100%; height: 35px; border: none; padding: 0; cursor: pointer; border-radius: 6px;">
+      <label>Accent Kleur</label>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <input type="color" id="auto-theme-color" value="<%= puzzle.theme?.primaryColor || '#4f46e5' %>" style="width: 45px; height: 35px; border: none; padding: 0; border-radius: 6px; cursor: pointer;">
+        <span style="font-family:monospace; font-size:12px; color:#64748b;">(Wordt toegepast in App)</span>
+      </div>
     </div>
 
-    <h3>Pagina Navigatie</h3>
-    <div id="page-list"></div>
-    <button id="add-page-btn" class="btn btn-secondary" style="width:100%; margin-top:8px; border-style:dashed;">+ Nieuwe Pagina</button>
+    <h3>Pagina's</h3>
+    <div id="page-list" style="display:flex; flex-direction:column; gap:6px;"></div>
+    <button id="add-page-btn" class="btn" style="width:100%; margin-top:10px; border:1px dashed #cbd5e1;">+ Nieuwe Pagina</button>
 
     <hr class="sep">
 
-    <h3>Huidige Pagina</h3>
-    <label>Naam in menu</label>
-    <input id="page-title-input" type="text" placeholder="Bijv: Opdracht 1" />
+    <h3 style="font-size: 14px;">Huidige Pagina</h3>
+    <label>Paginatitel</label>
+    <input id="page-title-input" type="text" placeholder="Naam van pagina" />
 
-    <label class="check-row"><span>Toon "Volgende" knop</span><input type="checkbox" id="page-shownext"></label>
-    <label class="check-row" style="border-color:#93c5fd; background:#eff6ff;"><span>Maak dit een GPS Kaart</span><input id="page-ismap" type="checkbox" /></label>
+    <label class="check-row">
+      <input type="checkbox" id="page-shownext">
+      <span>Toon “Volgende” knop</span>
+    </label>
+    <label class="check-row">
+      <input id="page-ismap" type="checkbox" />
+      <span>Maak dit een GPS Kaartpagina</span>
+    </label>
 
-    <div style="background:#f8fafc; padding:12px; border-radius:8px; margin-top:12px; border:1px solid var(--border);">
-      <label class="check-row" style="margin:0; border:none; background:transparent; padding:0;">
-        <span>Speel audio bij openen</span><input id="page-playsound-start" type="checkbox" />
+    <div style="background:#f1f5f9; padding:12px; border-radius:8px; margin-top:15px;">
+      <label class="check-row" style="margin-top:0;">
+        <input id="page-playsound-start" type="checkbox" />
+        <span>Speel audio bij openen</span>
       </label>
       <div id="sound-file-section" style="display:none; margin-top:10px;">
-        <input id="page-soundurl" type="text" placeholder="Audio URL (.mp3)">
+        <label>Geluidsbestand URL</label>
+        <input id="page-soundurl" type="text" placeholder="/uploads/audio.mp3">
       </div>
     </div>
 
-    <div id="map-target-settings" style="display:none; background:#fff1f2; border:1px solid #fecdd3; padding:12px; border-radius:8px; margin-top:12px;">
-      <h4 style="margin:0 0 8px; color:#be123c;">📍 GPS Doel Check</h4>
+    <div id="map-target-settings" style="display:none; background:#eef2ff; border:1px solid #c7d2fe; padding:12px; border-radius:8px; margin-top:15px;">
+      <label style="margin-top:0; color:#4338ca;">📍 Doellocatie (GPS Check)</label>
       <div class="helper">Speler kan pas verder als ze in de cirkel staan.</div>
       <div style="display:flex; gap:10px;">
-        <div style="flex:1;"><label style="margin-top:0;">Lat</label><input id="page-target-lat" type="number" step="0.000001"></div>
-        <div style="flex:1;"><label style="margin-top:0;">Lng</label><input id="page-target-lng" type="number" step="0.000001"></div>
+        <div style="flex:1;"><label>Lat</label><input id="page-target-lat" type="number" step="0.000001"></div>
+        <div style="flex:1;"><label>Lng</label><input id="page-target-lng" type="number" step="0.000001"></div>
       </div>
-      <label>Radius (meters)</label><input id="page-target-radius" type="number" step="1" value="50">
-      <label class="check-row" style="margin-top:12px; background:#fff;"><input id="page-showtarget" type="checkbox" /><span>Toon doel op kaart</span></label>
-      <label class="check-row" style="background:#fff;"><input id="page-autonext" type="checkbox" /><span>Automatisch doorgaan</span></label>
+      <label>Radius (meters)</label>
+      <input id="page-target-radius" type="number" step="1" value="50">
+      <div id="map-extra-options" style="margin-top:10px;">
+        <label class="check-row"><input id="page-showtarget" type="checkbox" /><span>Toon de cirkel op de kaart</span></label>
+        <label class="check-row"><input id="page-autonext" type="checkbox" /><span>Ga autmatisch door bij bereiken doel</span></label>
+      </div>
     </div>
 
-    <button id="delete-page-btn" class="btn btn-danger" style="width:100%; margin-top:16px;">Pagina Verwijderen</button>
-    <div id="page-warning" style="display:none; background:#fee2e2; color:#b91c1c; padding:10px; border-radius:8px; margin-top:10px; font-size:12px; font-weight:700;">Je kunt de laatste pagina niet verwijderen.</div>
-    
+    <button id="delete-page-btn" class="btn btn-danger" style="width:100%; margin-top:15px;">Pagina Verwijderen</button>
+    <div id="page-warning" style="display:none; background:#fee2e2; color:#991b1b; padding:10px; border-radius:8px; margin-top:10px; font-size:12px; font-weight:bold;">
+      Je kunt de laatste pagina niet verwijderen.
+    </div>
+
     <hr class="sep">
 
-    <h3>Blok Configuratie</h3>
-    <div id="panel-dynamic">
-      <div class="helper" style="padding:20px; text-align:center; background:#f8fafc; border-radius:8px; border: 1px dashed var(--border);">Selecteer een module in de telefoon om geavanceerde instellingen of hints toe te voegen.</div>
+    <h3 style="font-size: 14px;">Blok Instellingen</h3>
+    <div id="panel-empty" class="helper" style="padding:20px; background:#f8fafc; border:1px dashed #cbd5e1; text-align:center; border-radius:8px;">
+      Klik op een blok in de telefoon om instellingen te bewerken.
     </div>
+    <div id="panel-fields" style="display:none;">
+      <label>Type Module</label>
+      <input id="panel-type" disabled style="background:#e2e8f0; color:#475569; font-weight:bold;" />
+      <div id="panel-dynamic" style="margin-top:15px;"></div>
+    </div>
+
   </aside>
 </div>
 
 <script>
-(function(){
+(function(){  
   const puzzleMeta = <%- JSON.stringify({ languages: puzzle.languages || ["nl"], defaultLanguage: puzzle.defaultLanguage || "nl", _id: puzzle._id }) %>;
-  const phone = document.getElementById("phone-content");
-  const qs = (s, p=document) => p.querySelector(s);
-  const qsa = (s, p=document) => Array.from(p.querySelectorAll(s));
+  const phone = document.getElementById("phone");
+  const qs  = (s,p=document)=>p.querySelector(s);
+  const qsa = (s,p=document)=>Array.from(p.querySelectorAll(s));
 
-  let availableLanguages = [...puzzleMeta.languages];
+  let availableLanguages = [...(puzzleMeta.languages.length ? puzzleMeta.languages : ["nl"])];
   let activeLanguage = puzzleMeta.defaultLanguage || "nl";
   let pages = <%- JSON.stringify(pagesSafe) %>;
   let currentPage = 0;
-  let selectedBlock = null;
-  let draggedBlock = null;
-  let draggedPageIdx = null;
+  let selected = null;
+  let dragged = null;
 
-  // -- UITILITY: TOAST MELDING --
-  function toast(msg, error=false){
-    const t = document.createElement("div"); t.textContent = msg;
-    Object.assign(t.style, { position: 'fixed', right: '24px', bottom: '24px', background: error?'#ef4444':'#10b981', color: '#fff', padding: '12px 20px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 9999, fontWeight: 600, transition: 'opacity 0.3s' });
-    document.body.appendChild(t); setTimeout(()=> t.style.opacity = '0', 2500); setTimeout(()=> t.remove(), 2800);
-  }
+  // Language Setup
+  qs("#add-language-btn").addEventListener("click", () => {
+    const lang = prompt("Voer taalcode in (bijv. en, de, fr):");
+    if (!lang || availableLanguages.includes(lang)) return;
+    availableLanguages.push(lang); updateLanguageSelect();
+    activeLanguage = lang; renderPage(currentPage);
+  });
 
-  // -- TAAL BEHEER --
-  function updateLangUI() {
+  function updateLanguageSelect() {
     const sel = qs("#language-select"); sel.innerHTML = "";
     availableLanguages.forEach(l => { sel.innerHTML += `<option value="${l}">${l.toUpperCase()}</option>`; });
     sel.value = activeLanguage;
   }
-  qs("#add-language-btn").onclick = () => {
-    const l = prompt("Voer taalcode in (bijv. en, de, fr):");
-    if(l && !availableLanguages.includes(l)) { availableLanguages.push(l); activeLanguage = l; updateLangUI(); renderPage(); }
-  };
-  qs("#language-select").onchange = (e) => { savePageSettings(); if(!pages[currentPage].isMap) pages[currentPage].modules = collect(); activeLanguage = e.target.value; renderPage(); };
-  updateLangUI();
+  qs("#language-select").addEventListener("change", (e) => {
+    savePageSettings(); pages[currentPage].modules = collect();
+    activeLanguage = e.target.value; renderPage(currentPage);
+  });
+  updateLanguageSelect();
 
-  // -- PAGINA LOGICA --
-  function renderPageList() {
+  // Pages Logic
+  function setPageTitleUI(){
+    const pg = pages[currentPage];
+    const t = typeof pg.title === "string" ? pg.title : pg.title?.[activeLanguage] || "Pagina " + (currentPage + 1);
+    qs("#page-title-label").textContent = t;
+    qs("#page-title-input").value = typeof pg.title === "string" ? pg.title : pg.title?.[activeLanguage] || "";
+    qs("#page-shownext").checked = !!pg.showNext;
+    qs("#page-ismap").checked = !!pg.isMap;
+    qs("#page-playsound-start").checked = !!pg.playSoundOnStart;
+    qs("#page-showtarget").checked = !!pg.showTarget;
+    qs("#page-autonext").checked = !!pg.autoNext;
+    qs("#page-soundurl").value = pg.soundUrl || "";
+    qs("#sound-file-section").style.display = pg.playSoundOnStart ? "block" : "none";
+    qs("#page-target-lat").value = pg.targetLat ?? "";
+    qs("#page-target-lng").value = pg.targetLng ?? "";
+    qs("#page-target-radius").value = pg.targetRadius ?? 50;
+    qs("#map-target-settings").style.display = pg.isMap ? "block" : "none";
+  }
+
+let draggedPageIndex = null;
+
+  function renderPageList(){
     const wrap = qs("#page-list"); wrap.innerHTML = "";
-    pages.forEach((p, i) => {
+    pages.forEach((p,i)=>{
       const item = document.createElement("div");
-      item.className = `page-item ${i === currentPage ? 'active' : ''}`;
-      item.draggable = true;
-      item.innerHTML = `<span>${i + 1}. ${p.title?.[activeLanguage] || 'Naamloos'}</span><span style="opacity:0.4; cursor:grab; font-size:16px;">≡</span>`;
+      item.className = "page-item" + (i===currentPage ? " active" : "");
+      item.draggable = true; // Dragging geactiveerd
+      item.dataset.index = i;
       
-      item.onclick = () => { savePageSettings(); if(!pages[currentPage].isMap) pages[currentPage].modules = collect(); currentPage = i; renderPageList(); renderPage(); };
+      const title = typeof p.title === "string" ? p.title : p.title?.[activeLanguage] || `Pagina ${i+1}`;
+      // Toegevoegd: Een klein sleep-icoontje (≡) zodat het duidelijk is dat je kunt slepen
+      item.innerHTML = `<span>${i+1}. ${title}</span><span style="color:#94a3b8; cursor:grab; font-size:16px;">≡</span>`;
       
-      // Snapping Drag/Drop
-      item.ondragstart = (e) => { draggedPageIdx = i; item.style.opacity = 0.5; e.dataTransfer.effectAllowed = "move"; };
-      item.ondragend = () => { item.style.opacity = 1; qsa(".page-item").forEach(el => el.classList.remove("drag-over-top", "drag-over-bottom")); draggedPageIdx = null; };
-      item.ondragover = (e) => {
-        e.preventDefault(); const rect = item.getBoundingClientRect();
-        if (e.clientY < rect.top + rect.height / 2) { item.classList.add("drag-over-top"); item.classList.remove("drag-over-bottom"); } 
-        else { item.classList.add("drag-over-bottom"); item.classList.remove("drag-over-top"); }
-      };
-      item.ondragleave = () => { item.classList.remove("drag-over-top", "drag-over-bottom"); };
+      item.onclick = () => { savePageSettings(); pages[currentPage].modules = collect(); currentPage = i; renderPageList(); renderPage(i); };
+      
+      // DRAG & DROP EVENTS
+      item.ondragstart = (e) => { draggedPageIndex = i; item.style.opacity = 0.5; e.dataTransfer.effectAllowed = "move"; };
+      item.ondragend = () => { item.style.opacity = 1; draggedPageIndex = null; };
+      item.ondragover = (e) => e.preventDefault();
       item.ondrop = (e) => {
-        e.preventDefault(); if (draggedPageIdx === null || draggedPageIdx === i) return;
-        const rect = item.getBoundingClientRect(); const targetIdx = e.clientY < rect.top + rect.height / 2 ? i : i + 1;
-        savePageSettings(); if(!pages[currentPage].isMap) pages[currentPage].modules = collect();
-        const moved = pages.splice(draggedPageIdx, 1)[0];
-        pages.splice(targetIdx > draggedPageIdx ? targetIdx - 1 : targetIdx, 0, moved);
-        currentPage = pages.indexOf(moved);
-        renderPageList(); renderPage();
+        e.preventDefault();
+        const targetIndex = Number(item.dataset.index);
+        if (draggedPageIndex === null || draggedPageIndex === targetIndex) return;
+        movePage(draggedPageIndex, targetIndex);
       };
+
       wrap.appendChild(item);
     });
   }
 
-  function setPageUI() {
-    const pg = pages[currentPage];
-    qs("#page-title-label").textContent = pg.title?.[activeLanguage] || "";
-    qs("#page-title-input").value = pg.title?.[activeLanguage] || "";
-    qs("#page-shownext").checked = !!pg.showNext;
-    qs("#page-ismap").checked = !!pg.isMap;
-    qs("#page-playsound-start").checked = !!pg.playSoundOnStart;
-    qs("#sound-file-section").style.display = pg.playSoundOnStart ? "block" : "none";
-    qs("#page-soundurl").value = pg.soundUrl || "";
-    
-    qs("#map-target-settings").style.display = pg.isMap ? "block" : "none";
-    qs("#page-target-lat").value = pg.targetLat ?? "";
-    qs("#page-target-lng").value = pg.targetLng ?? "";
-    qs("#page-target-radius").value = pg.targetRadius ?? 50;
-    qs("#page-showtarget").checked = !!pg.showTarget;
-    qs("#page-autonext").checked = !!pg.autoNext;
+  function movePage(fromIndex, toIndex){
+    savePageSettings(); pages[currentPage].modules = collect();
+    const moved = pages.splice(fromIndex, 1)[0];
+    pages.splice(toIndex, 0, moved);
+    if (currentPage === fromIndex) currentPage = toIndex;
+    else if (currentPage > fromIndex && currentPage <= toIndex) currentPage--;
+    else if (currentPage < fromIndex && currentPage >= toIndex) currentPage++;
+    renderPageList(); renderPage(currentPage);
   }
 
-  function savePageSettings() {
-    const pg = pages[currentPage];
-    if(!pg.title) pg.title = {};
+  // Blocks Logic
+  function createBlock(type){
+    const div = document.createElement("div");
+    div.className = "block"; div.draggable = true; div.dataset.type = type;
+    div.innerHTML = `<button class="remove" type="button">×</button><h4><span>${type.toUpperCase()}</span><span class="kind">${type}</span></h4><div class="content"></div>`;
+    const content = qs(".content", div);
+
+    if (type === "title") content.innerHTML = `<div contenteditable="true" data-field="title" style="font-size:20px; font-weight:800;">Nieuwe titel</div>`;
+    if (type === "text") content.innerHTML = `<div contenteditable="true" data-field="text">Typ hier je tekst...</div>`;
+    if (type === "image") content.innerHTML = `<input type="url" data-field="url" placeholder="Afbeeldings-URL">`;
+    if (type === "audio") content.innerHTML = `<input type="url" data-field="url" placeholder="Audio-URL">`;
+    if (type === "team-name") content.innerHTML = `<div class="helper">Speler vult hier teamnaam in. Start de Klok.</div>`;
+    if (type === "photo") content.innerHTML = `<div class="helper">Speler moet hier een foto maken met de camera.</div><input type="hidden" data-field="url">`;
+    
+    if (type === "feedback") {
+      content.innerHTML = `<div style="background:#ecfeff; padding:12px; border-radius:8px; border:1px solid #a5f3fc;"><strong style="color:#0891b2;">⭐ Finale Feedback & AI Score</strong></div>`;
+    }
+
+    if (type === "aiphoto") {
+      content.innerHTML = `
+        <input data-field="ai-instruction" placeholder="Speler instructie (bijv: Fotografeer een kat)" style="margin-bottom:8px;">
+        <input data-field="ai-prompt" placeholder="Geheime AI-prompt (bijv: Een kat of poes)" style="margin-bottom:8px;">
+        <div style="display:flex; align-items:center; gap:8px;"><label>Punten:</label><input type="number" data-field="ai-points" value="10" style="width:80px;"></div>
+      `;
+    }
+
+    if (type === "historychat") {
+      content.innerHTML = `
+        <input data-field="chat-name" placeholder="Naam NPC (bijv. Visboer Jos)" style="margin-bottom:8px;">
+        <textarea data-field="chat-prompt" rows="2" placeholder="AI Karakter omschrijving..." style="margin-bottom:8px;"></textarea>
+        <div style="display:flex; align-items:center; gap:8px;"><label>Max Berichten:</label><input type="number" data-field="chat-max-turns" value="3" style="width:60px;"></div>
+      `;
+    }
+
+    if (type === "question") {
+      content.innerHTML = `
+        <input data-field="question" placeholder="Stel hier de vraag...">
+        <select data-field="questionType" style="margin-top:8px;"><option value="open">Open vraag</option><option value="mc">Meerkeuze</option></select>
+        <div data-open style="margin-top:8px;"><input data-field="answer" placeholder="Juiste antwoord"></div>
+        <div data-mc style="display:none; margin-top:8px; background:#f8fafc; padding:10px; border-radius:8px;"><div data-options></div><button type="button" data-add-option class="btn" style="width:100%; margin-top:8px;">+ Optie</button></div>
+        <input type="hidden" data-field="goodPage"><input type="hidden" data-field="badPage"><input type="hidden" data-field="pts" value="10"><input type="hidden" data-field="istimed" value="false"><input type="hidden" data-field="tlimit" value="60"><input type="hidden" data-field="ppen" value="1"><input type="hidden" data-field="psec" value="10">
+      `;
+      const qt = content.querySelector('[data-field="questionType"]');
+      qt.onchange = () => { content.querySelector('[data-open]').style.display = qt.value === 'open' ? 'block' : 'none'; content.querySelector('[data-mc]').style.display = qt.value === 'mc' ? 'block' : 'none'; };
+      
+      div.createOption = (text="", isCorrect=false) => {
+        const optWrap = content.querySelector('[data-options]'); const opt = document.createElement("div"); opt.className="mc-option"; opt.style.display="flex"; opt.style.gap="8px"; opt.style.marginBottom="8px";
+        opt.innerHTML = `<input type="text" data-text value="${text}"><label style="display:flex;align-items:center;gap:4px;margin:0;"><input type="checkbox" data-correct ${isCorrect?'checked':''}>Juist</label><button type="button" data-remove class="btn btn-danger" style="padding:8px;">X</button>`;
+        opt.querySelector('[data-remove]').onclick = () => { if(optWrap.children.length>1) opt.remove(); }; optWrap.appendChild(opt);
+      };
+      div.createOption(); div.createOption();
+      content.querySelector('[data-add-option]').onclick = () => div.createOption();
+    }
+
+    // Verborgen Hint velden
+    const h = document.createElement("div");
+    h.innerHTML = `<input type="hidden" data-field="aiknowledge"><input type="hidden" data-field="hinttype" value="ai"><input type="hidden" data-field="statichint"><input type="hidden" data-field="hintcost" value="0">`;
+    div.appendChild(h);
+
+    wireBlock(div); return div;
+  }
+
+  function wireBlock(b){
+    b.onclick = () => setSelected(b);
+    b.ondragstart = (e) => { dragged = b; b.classList.add("dragging"); };
+    b.ondragend = () => { b.classList.remove("dragging"); dragged = null; };
+  }
+
+  qsa(".element-btn").forEach(btn => btn.onclick = () => { const b = createBlock(btn.dataset.type); phone.appendChild(b); setSelected(b); });
+  phone.onclick = (e) => { if(e.target.classList.contains("remove")){ const b = e.target.closest(".block"); if(b){ if(selected===b) clearPanel(); b.remove(); } } };
+
+  phone.ondragover = (e) => {
+    if(!dragged) return; e.preventDefault();
+    const after = qsa(".block:not(.dragging)", phone).reduce((acc, child) => { const box = child.getBoundingClientRect(); const offset = e.clientY - (box.top + box.height/2); return offset < 0 && offset > acc.offset ? {offset, el:child} : acc; }, {offset: -Infinity, el: null}).el;
+    after ? phone.insertBefore(dragged, after) : phone.appendChild(dragged);
+  };
+
+  // Right Panel Block Settings
+  const pEmpty = qs("#panel-empty"); const pFields = qs("#panel-fields"); const pDyn = qs("#panel-dynamic");
+  
+  function setSelected(block){
+    selected = block; pEmpty.style.display = "none"; pFields.style.display = "block"; pDyn.innerHTML = "";
+    const type = block.dataset.type; qs("#panel-type").value = type.toUpperCase();
+
+    if (type === "title" || type === "text") {
+      const src = qs(`[data-field="${type}"]`, block);
+      pDyn.innerHTML = `<label>${type}</label><textarea id="p-content" rows="4">${src.innerHTML}</textarea>`;
+      qs("#p-content").oninput = () => src.innerHTML = qs("#p-content").value;
+    }
+
+    if (type === "question") {
+      pDyn.innerHTML = `<div style="background:#fef3c7; padding:12px; border-radius:8px; border:1px solid #fde68a;"><label>Max Punten</label><input type="number" id="p-pts" value="${qs('[data-field="pts"]', block).value}"></div>`;
+      qs("#p-pts").oninput = () => qs('[data-field="pts"]', block).value = qs("#p-pts").value;
+    }
+
+    // Universele hints
+    const sAiK = qs('[data-field="aiknowledge"]', block);
+    if(sAiK){
+      pDyn.innerHTML += `
+        <hr class="sep"><label style="color:var(--primary);">💡 Hint Systeem</label>
+        <select id="p-hint-type"><option value="ai">🤖 AI-Gestuurd</option><option value="static">📝 Statische Tekst</option></select>
+        <div id="w-ai"><label>Verborgen AI Context</label><textarea id="p-aik" rows="3">${qs('[data-field="aiknowledge"]',block).value}</textarea></div>
+        <div id="w-st"><label>Hint Tekst</label><textarea id="p-sh" rows="3">${qs('[data-field="statichint"]',block).value}</textarea></div>
+        <label>Hint Kosten (0 is gratis)</label><input type="number" id="p-hcost" value="${qs('[data-field="hintcost"]',block).value}">
+      `;
+      const sHt = qs('[data-field="hinttype"]', block);
+      qs("#p-hint-type").value = sHt.value;
+      const upd = () => { qs("#w-ai").style.display = qs("#p-hint-type").value === 'ai' ? 'block':'none'; qs("#w-st").style.display = qs("#p-hint-type").value === 'static' ? 'block':'none'; };
+      upd(); qs("#p-hint-type").onchange = () => { sHt.value = qs("#p-hint-type").value; upd(); };
+      qs("#p-aik").oninput = () => qs('[data-field="aiknowledge"]',block).value = qs("#p-aik").value;
+      qs("#p-sh").oninput = () => qs('[data-field="statichint"]',block).value = qs("#p-sh").value;
+      qs("#p-hcost").oninput = () => qs('[data-field="hintcost"]',block).value = qs("#p-hcost").value;
+    }
+  }
+
+  function clearPanel(){ selected=null; pEmpty.style.display="block"; pFields.style.display="none"; pDyn.innerHTML=""; }
+
+  function renderPage(idx){
+    qsa(".block", phone).forEach(b=>b.remove()); const pg = pages[idx];
+    if(pg.isMap){
+      phone.innerHTML += `<div class="block" style="border:2px dashed var(--primary); text-align:center; padding:30px;"><h4>🗺️ GPS Kaart Actief</h4><p class="helper">Speler ziet hier de route.</p></div>`;
+      setPageTitleUI(); clearPanel(); return;
+    }
+    (pg.modules||[]).forEach(m => {
+      const b = createBlock(m.type); phone.appendChild(b);
+      // Vul data in (versimpeld voor overzicht, exact zelfde parsing logic)
+      if(m.type==="title") qs('[data-field="title"]',b).innerHTML = typeof m.data.title==="string"?m.data.title:m.data.title?.[activeLanguage]||"";
+      if(m.type==="text") qs('[data-field="text"]',b).innerHTML = typeof m.data.text==="string"?m.data.text:m.data.text?.[activeLanguage]||"";
+      if(m.type==="image"||m.type==="audio") qs('[data-field="url"]',b).value = m.data.url||"";
+      if(m.type==="question") {
+         qs('[data-field="question"]',b).value = typeof m.data.question==="string"?m.data.question:m.data.question?.[activeLanguage]||"";
+         qs('[data-field="questionType"]',b).value = m.data.questionType||"open";
+         qs('[data-field="questionType"]',b).dispatchEvent(new Event('change'));
+         if(m.data.questionType==="open") qs('[data-field="answer"]',b).value = typeof m.data.answer==="string"?m.data.answer:m.data.answer?.[activeLanguage]||"";
+         else { qs('[data-options]',b).innerHTML=""; (m.data.options||[]).forEach(o=> b.createOption(typeof o.text==="string"?o.text:o.text?.[activeLanguage]||"", o.correct)); }
+      }
+      if(m.type==="historychat"){
+         qs('[data-field="chat-name"]',b).value = typeof m.data.characterName==="string"?m.data.characterName:m.data.characterName?.[activeLanguage]||"";
+         qs('[data-field="chat-prompt"]',b).value = typeof m.data.systemPrompt==="string"?m.data.systemPrompt:m.data.systemPrompt?.[activeLanguage]||"";
+      }
+      if(m.type==="aiphoto"){
+         qs('[data-field="ai-instruction"]',b).value = typeof m.data.instruction==="string"?m.data.instruction:m.data.instruction?.[activeLanguage]||"";
+         qs('[data-field="ai-prompt"]',b).value = typeof m.data.prompt==="string"?m.data.prompt:m.data.prompt?.[activeLanguage]||"";
+      }
+      // Hints
+      if(qs('[data-field="aiknowledge"]',b)) qs('[data-field="aiknowledge"]',b).value = m.data.aiKnowledge||"";
+      if(qs('[data-field="hinttype"]',b)) qs('[data-field="hinttype"]',b).value = m.data.hintType||"ai";
+      if(qs('[data-field="statichint"]',b)) qs('[data-field="statichint"]',b).value = m.data.staticHintText||"";
+      if(qs('[data-field="hintcost"]',b)) qs('[data-field="hintcost"]',b).value = m.data.hintCost||0;
+    });
+    setPageTitleUI(); clearPanel();
+  }
+
+  function collect(){
+    return qsa(".block:not([style*='dashed'])", phone).map(b => {
+      const type = b.dataset.type; let data = {};
+      if(type==="title"||type==="text") data[type] = {[activeLanguage]: qs(`[data-field="${type}"]`,b).innerHTML};
+      if(type==="image"||type==="audio"||type==="photo") data.url = qs('[data-field="url"]',b)?.value||"";
+      if(type==="question"){
+        data.question = {[activeLanguage]: qs('[data-field="question"]',b).value};
+        data.questionType = qs('[data-field="questionType"]',b).value;
+        if(data.questionType==="open") data.answer = {[activeLanguage]: qs('[data-field="answer"]',b).value};
+        else data.options = qsa('.mc-option',b).map(o=>({ text: {[activeLanguage]: o.querySelector('[data-text]').value}, correct: !!o.querySelector('[data-correct]').checked }));
+        data.maxPoints = Number(qs('[data-field="pts"]',b).value)||10;
+      }
+      if(type==="historychat"){
+        data.characterName = {[activeLanguage]: qs('[data-field="chat-name"]',b).value};
+        data.systemPrompt = {[activeLanguage]: qs('[data-field="chat-prompt"]',b).value};
+      }
+      if(type==="aiphoto"){
+        data.instruction = {[activeLanguage]: qs('[data-field="ai-instruction"]',b).value};
+        data.prompt = {[activeLanguage]: qs('[data-field="ai-prompt"]',b).value};
+        data.points = Number(qs('[data-field="ai-points"]',b).value)||10;
+      }
+      
+      data.aiKnowledge = qs('[data-field="aiknowledge"]',b)?.value||"";
+      data.hintType = qs('[data-field="hinttype"]',b)?.value||"ai";
+      data.staticHintText = qs('[data-field="statichint"]',b)?.value||"";
+      data.hintCost = Number(qs('[data-field="hintcost"]',b)?.value)||0;
+      return { type, data };
+    });
+  }
+
+  function savePageSettings(){
+    const pg = pages[currentPage]; if(!pg.title) pg.title={};
     pg.title[activeLanguage] = qs("#page-title-input").value;
     pg.showNext = qs("#page-shownext").checked;
     pg.isMap = qs("#page-ismap").checked;
+    pg.showTarget = qs("#page-showtarget").checked;
+    pg.autoNext = qs("#page-autonext").checked;
     pg.playSoundOnStart = qs("#page-playsound-start").checked;
     pg.soundUrl = qs("#page-soundurl").value;
     pg.targetLat = qs("#page-target-lat").value ? Number(qs("#page-target-lat").value) : null;
     pg.targetLng = qs("#page-target-lng").value ? Number(qs("#page-target-lng").value) : null;
     pg.targetRadius = qs("#page-target-radius").value ? Number(qs("#page-target-radius").value) : 50;
-    pg.showTarget = qs("#page-showtarget").checked;
-    pg.autoNext = qs("#page-autonext").checked;
   }
 
-  // -- MODULES AANMAKEN & INTERACTIE (On-Phone) --
-  function createBlockElement(m) {
-    const div = document.createElement("div");
-    div.className = "block"; div.draggable = true; div.dataset.type = m.type;
-    div._data = JSON.parse(JSON.stringify(m.data || {})); 
-    
-    let inner = `<button class="remove" onclick="this.parentElement.remove(); document.getElementById('panel-dynamic').innerHTML='<div class=\\'helper\\' style=\\'padding:20px; text-align:center;\\'>Selecteer een module.</div>';">✕</button>`;
-    inner += `<h4><span>${m.type}</span></h4>`;
-    
-    // Specifieke On-Phone HTML per type
-    if(m.type === "title") {
-      inner += `<div contenteditable="true" data-field="title" style="font-size:22px; font-weight:800;">${div._data.title?.[activeLanguage] || "Nieuwe Titel"}</div>`;
-    } else if(m.type === "text") {
-      inner += `<div contenteditable="true" data-field="text" style="font-size:14px; line-height:1.5;">${div._data.text?.[activeLanguage] || "Typ hier je tekst..."}</div>`;
-    } else if(m.type === "image" || m.type === "audio") {
-      inner += `<div style="display:flex; gap:8px;">
-                  <input type="url" data-field="url" placeholder="${m.type} URL" value="${div._data.url || ""}" style="flex:1;">
-                  <button type="button" class="btn btn-secondary btn-upload">Upload</button>
-                  <input type="file" class="file-hidden" style="display:none;" accept="${m.type}/*">
-                </div>`;
-    } else if(m.type === "photo") {
-      inner += `<div style="display:flex; gap:8px;"><button type="button" class="btn btn-secondary btn-camera" style="width:100%;">📸 Upload Foto Voorbeeld</button><input type="file" accept="image/*" class="file-hidden" style="display:none;"></div><input type="hidden" data-field="url" value="${div._data.url || ""}">`;
-    } else if(m.type === "question") {
-      const qType = div._data.questionType || "open";
-      inner += `
-        <input data-field="question" placeholder="Stel hier de vraag..." value="${div._data.question?.[activeLanguage] || ""}" style="margin-bottom:8px; font-weight:bold;">
-        <select data-field="questionType" style="margin-bottom:8px;">
-          <option value="open" ${qType==='open'?'selected':''}>Open Vraag</option>
-          <option value="mc" ${qType==='mc'?'selected':''}>Meerkeuze</option>
-        </select>
-        <div data-open style="display:${qType==='open'?'block':'none'};"><input data-field="answer" placeholder="Juiste antwoord" value="${div._data.answer?.[activeLanguage] || ""}"></div>
-        <div data-mc style="display:${qType==='mc'?'block':'none'}; background:#f1f5f9; padding:10px; border-radius:8px;">
-          <div data-options></div>
-          <button type="button" data-add-option class="btn btn-secondary" style="width:100%; margin-top:8px; font-size:11px;">+ Optie Toevoegen</button>
-        </div>
-      `;
-    } else if(m.type === "historychat") {
-      inner += `<input data-field="chat-name" placeholder="Naam NPC" value="${div._data.characterName?.[activeLanguage] || ""}" style="margin-bottom:8px; font-weight:bold;">
-                <textarea data-field="chat-prompt" rows="2" placeholder="Systeem Prompt (Karakter omschrijving...)" style="font-size:12px;">${div._data.systemPrompt?.[activeLanguage] || ""}</textarea>`;
-    } else if(m.type === "aiphoto") {
-      inner += `<input data-field="ai-instruction" placeholder="Instructie speler (Fotografeer een...)" value="${div._data.instruction?.[activeLanguage] || ""}" style="margin-bottom:8px; font-weight:bold;">
-                <input data-field="ai-prompt" placeholder="Geheime AI Prompt" value="${div._data.prompt?.[activeLanguage] || ""}">`;
-    } else if(m.type === "feedback" || m.type === "team-name") {
-      inner += `<div class="helper" style="margin:0; text-align:center; padding:10px; background:#f8fafc; border-radius:8px;">Actieblok: Geen configuratie op scherm nodig.</div>`;
-    }
+  qs("#add-page-btn").onclick = () => { pages.push({ title:{[activeLanguage]:"Nieuwe Pagina"}, showNext:true, isMap:false, modules:[]}); currentPage=pages.length-1; renderPageList(); renderPage(currentPage); };
+  qs("#delete-page-btn").onclick = () => { if(pages.length>1){ pages.splice(currentPage,1); currentPage=Math.max(0, currentPage-1); renderPageList(); renderPage(currentPage); } else { qs("#page-warning").style.display="block"; setTimeout(()=>qs("#page-warning").style.display="none", 2000); } };
+  
+  // LIVE LISTENERS PAGE UI
+  qs("#page-title-input").oninput = (e) => { pages[currentPage].title[activeLanguage] = e.target.value; qs("#page-title-label").textContent = e.target.value; renderPageList(); };
+  qs("#page-ismap").onchange = (e) => { pages[currentPage].isMap = e.target.checked; qs("#map-target-settings").style.display = e.target.checked ? "block" : "none"; renderPage(currentPage); };
 
-    div.innerHTML = inner;
-
-    // Voeg verborgen data toe voor hints (Universeel)
-    div.innerHTML += `<input type="hidden" data-field="hinttype" value="${div._data.hintType || 'ai'}">
-                      <input type="hidden" data-field="aiknowledge" value="${div._data.aiKnowledge || ''}">
-                      <input type="hidden" data-field="statichint" value="${div._data.staticHintText || ''}">
-                      <input type="hidden" data-field="hintcost" value="${div._data.hintCost || 0}">`;
-
-    wireBlock(div);
-    return div;
-  }
-
-  function wireBlock(div) {
-    const type = div.dataset.type;
-    
-    // Drag Events
-    div.ondragstart = (e) => { draggedBlock = div; div.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; };
-    div.ondragend = () => { div.classList.remove("dragging"); draggedBlock = null; };
-    div.onclick = (e) => { if(!e.target.classList.contains('remove') && !e.target.classList.contains('btn-upload') && !e.target.classList.contains('btn-camera')) selectBlock(div); };
-
-    // ContentEditable live updates
-    qsa('[contenteditable="true"]', div).forEach(el => {
-      el.oninput = () => { if(!div._data[el.dataset.field]) div._data[el.dataset.field] = {}; div._data[el.dataset.field][activeLanguage] = el.innerHTML; };
-    });
-
-    // Vraag Type Switcher
-    if(type === "question") {
-      const select = qs('[data-field="questionType"]', div);
-      const wOpen = qs('[data-open]', div); const wMc = qs('[data-mc]', div);
-      select.onchange = (e) => { wOpen.style.display = e.target.value==='open'?'block':'none'; wMc.style.display = e.target.value==='mc'?'block':'none'; };
-      
-      const optWrap = qs('[data-options]', div);
-      div.createOption = (text="", correct=false) => {
-        const o = document.createElement('div'); o.className = "mc-option"; o.style.display="flex"; o.style.gap="4px"; o.style.marginBottom="4px";
-        o.innerHTML = `<input type="text" data-text value="${text}" style="padding:6px; font-size:12px;"><label style="display:flex; align-items:center; margin:0;"><input type="checkbox" data-correct ${correct?'checked':''} style="margin:0; width:16px; height:16px;"></label><button class="btn btn-danger remove-opt" style="padding:4px 8px;">✕</button>`;
-        o.querySelector('.remove-opt').onclick = () => { if(optWrap.children.length>1) o.remove(); };
-        optWrap.appendChild(o);
-      };
-      if(div._data.options && div._data.options.length) div._data.options.forEach(opt => div.createOption(opt.text?.[activeLanguage]||"", opt.correct));
-      else { div.createOption(); div.createOption(); }
-      qs('[data-add-option]', div).onclick = () => div.createOption();
-    }
-
-    // Media Upload Logica (/admin-upload-media)
-    const upBtn = qs('.btn-upload', div) || qs('.btn-camera', div);
-    const fInput = qs('.file-hidden', div);
-    const uInput = qs('[data-field="url"]', div);
-    if(upBtn && fInput && uInput) {
-      upBtn.onclick = () => fInput.click();
-      fInput.onchange = async () => {
-        const file = fInput.files[0]; if(!file) return;
-        const fd = new FormData(); fd.append("file", file);
-        try {
-          upBtn.textContent = "⏳...";
-          const res = await fetch("/admin-upload-media", { method: "POST", body: fd });
-          if(!res.ok) throw new Error();
-          const json = await res.json();
-          uInput.value = json.url; uInput.dispatchEvent(new Event("input")); // trigger preview
-          div._data.url = json.url;
-          toast("Upload gelukt! ✅");
-        } catch(e) { toast("Upload mislukt ❌", true); }
-        finally { upBtn.textContent = type==="photo"?"📸 Foto Maken":"Upload"; fInput.value = ""; }
-      };
-    }
-  }
-
-  // De Phone als Dropzone
-  phone.ondragover = (e) => {
-    e.preventDefault(); if(!draggedBlock) return;
-    const after = [...phone.querySelectorAll('.block:not(.dragging)')].reduce((acc, child) => {
-      const box = child.getBoundingClientRect(); const offset = e.clientY - box.top - box.height/2;
-      return offset < 0 && offset > acc.offset ? {offset, el:child} : acc;
-    }, {offset: -Infinity, el: null}).el;
-    after ? phone.insertBefore(draggedBlock, after) : phone.appendChild(draggedBlock);
-  };
-
-  qsa(".element-btn").forEach(btn => btn.onclick = () => {
-    const b = createBlockElement({ type: btn.dataset.type, data: {} });
-    phone.appendChild(b); selectBlock(b);
-  });
-
-  // -- RECHTER PANEEL: ADVANCED SETTINGS & HINTS --
-  function selectBlock(div) {
-    selectedBlock = div;
-    qsa(".block", phone).forEach(b => b.style.borderColor = "var(--border)");
-    div.style.borderColor = "var(--primary)";
-
-    const type = div.dataset.type; const d = div._data;
-    const panel = qs("#panel-dynamic");
-
-    let html = `<h4 style="color:var(--primary); margin-top:0;">${type.toUpperCase()} OPTIES</h4>`;
-
-    // Specifieke opties
-    if(type === "question" || type === "aiphoto") {
-      html += `<label>Te verdienen punten</label><input type="number" id="p-pts" value="${d.maxPoints || d.points || 10}">`;
-    }
-    if(type === "historychat") {
-      html += `<label>Max interacties (Turns)</label><input type="number" id="p-turns" value="${d.maxTurns || 3}">`;
-    }
-
-    // ⭐ HET UNIVERSELE HINT SYSTEEM ⭐
-    if(["question", "historychat", "aiphoto", "photo"].includes(type)) {
-      html += `
-        <div style="background:#eef2ff; border:1px solid #c7d2fe; padding:16px; border-radius:12px; margin-top:20px;">
-          <h4 style="margin:0 0 12px; color:#4338ca; display:flex; align-items:center; justify-content:space-between;">
-            💡 Hint Systeem
-            <select id="p-hinttype" style="width:auto; padding:4px 8px; border-radius:6px; border:1px solid #a5b4fc; color:#4338ca; font-weight:bold;">
-              <option value="ai">🤖 AI Gestuurd</option>
-              <option value="static">📝 Statische Tekst</option>
-            </select>
-          </h4>
-          <div id="w-ai"><label style="margin-top:0;">Verborgen AI Context (Wat mag de AI zeggen?)</label><textarea id="p-aik" rows="3" placeholder="Bijv: Vertel de speler dat ze achter de boom moeten kijken...">${d.aiKnowledge || ""}</textarea></div>
-          <div id="w-st"><label style="margin-top:0;">Hint Tekst (Direct tonen)</label><textarea id="p-sh" rows="3" placeholder="Bijv: Kijk achter de boom.">${d.staticHintText || ""}</textarea></div>
-          <label>Hint Kosten (punten - 0 is gratis)</label><input type="number" id="p-hcost" value="${d.hintCost || 0}">
-        </div>
-      `;
-    }
-
-    panel.innerHTML = html;
-
-    // Real-time koppelen aan de datastructuur
-    if(qs("#p-pts")) qs("#p-pts").oninput = (e) => { d.maxPoints = d.points = Number(e.target.value); };
-    if(qs("#p-turns")) qs("#p-turns").oninput = (e) => { d.maxTurns = Number(e.target.value); };
-
-    // Koppelen Hint Systeem
-    if(qs("#p-hinttype")) {
-      const typeSel = qs("#p-hinttype"); const wAi = qs("#w-ai"); const wSt = qs("#w-st");
-      typeSel.value = qs('input[data-field="hinttype"]', div).value;
-      const upd = () => { wAi.style.display = typeSel.value==='ai'?'block':'none'; wSt.style.display = typeSel.value==='static'?'block':'none'; };
-      upd(); typeSel.onchange = (e) => { qs('input[data-field="hinttype"]', div).value = e.target.value; d.hintType = e.target.value; upd(); };
-      qs("#p-aik").oninput = (e) => { qs('input[data-field="aiknowledge"]', div).value = e.target.value; d.aiKnowledge = e.target.value; };
-      qs("#p-sh").oninput = (e) => { qs('input[data-field="statichint"]', div).value = e.target.value; d.staticHintText = e.target.value; };
-      qs("#p-hcost").oninput = (e) => { qs('input[data-field="hintcost"]', div).value = e.target.value; d.hintCost = Number(e.target.value); };
-    }
-  }
-
-  // -- COLLECT (De 100% Veilige Data Extractie) --
-  function collect() {
-    return qsa(".block", phone).map(b => {
-      const type = b.dataset.type; const d = b._data;
-      if(type==="title" || type==="text") d[type] = {[activeLanguage]: qs(`[contenteditable]`, b).innerHTML};
-      if(type==="image" || type==="audio" || type==="photo") d.url = qs('[data-field="url"]', b).value || d.url;
-      if(type==="question") {
-        d.question = {[activeLanguage]: qs('[data-field="question"]', b).value};
-        d.questionType = qs('[data-field="questionType"]', b).value;
-        if(d.questionType==="open") d.answer = {[activeLanguage]: qs('[data-field="answer"]', b).value};
-        else d.options = qsa('.mc-option', b).map(o=>({ text: {[activeLanguage]: o.querySelector('[data-text]').value}, correct: !!o.querySelector('[data-correct]').checked }));
-      }
-      if(type==="aiphoto") { d.instruction = {[activeLanguage]: qs('[data-field="ai-instruction"]', b).value}; d.prompt = {[activeLanguage]: qs('[data-field="ai-prompt"]', b).value}; }
-      if(type==="historychat") { d.characterName = {[activeLanguage]: qs('[data-field="chat-name"]', b).value}; d.systemPrompt = {[activeLanguage]: qs('[data-field="chat-prompt"]', b).value}; }
-      
-      d.hintType = qs('input[data-field="hinttype"]', b)?.value || 'ai';
-      d.aiKnowledge = qs('input[data-field="aiknowledge"]', b)?.value || '';
-      d.staticHintText = qs('input[data-field="statichint"]', b)?.value || '';
-      d.hintCost = Number(qs('input[data-field="hintcost"]', b)?.value) || 0;
-
-      return { type, data: d };
-    });
-  }
-
-  // -- OPSLAAN --
   qs("#btn-save").onclick = async () => {
-    savePageSettings(); if(!pages[currentPage].isMap) pages[currentPage].modules = collect();
-    const theme = { preset: qs("#auto-theme-preset").value, primaryColor: qs("#auto-theme-color").value };
-
-    try {
+    savePageSettings(); pages[currentPage].modules = collect();
+    try{
       const res = await fetch(`/admin-builder/${phone.dataset.id}/save-all`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pages: pages, languages: availableLanguages, defaultLanguage: activeLanguage, theme: theme })
+        method:"POST", headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ pages, languages: availableLanguages, defaultLanguage: activeLanguage })
       });
-      if(res.ok) toast("✅ Opgeslagen in iCloud Database!"); else throw new Error();
-    } catch(e) { toast("❌ Opslaan mislukt (Check index.js route).", true); }
+      if(!res.ok) throw new Error(); alert("✅ Puzzeltocht succesvol opgeslagen!");
+    } catch { alert("❌ Fout bij opslaan."); }
   };
+  qs("#btn-reset").onclick = () => location.reload();
 
-  qs("#add-page-btn").onclick = () => { pages.push({ title: {[activeLanguage]: "Nieuwe Pagina"}, modules: [] }); renderPageList(); qs(".page-item:last-child").click(); };
-  qs("#delete-page-btn").onclick = () => { if(pages.length > 1) { pages.splice(currentPage, 1); currentPage = Math.max(0, currentPage - 1); renderPageList(); renderPage(); } else { qs("#page-warning").style.display="block"; setTimeout(()=>qs("#page-warning").style.display="none",2000); } };
-
-  ["page-title-input", "page-shownext", "page-ismap", "page-playsound-start", "page-soundurl", "page-target-lat", "page-target-lng", "page-target-radius", "page-showtarget", "page-autonext"].forEach(id => {
-    const el = qs(`#${id}`); if(el) el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', () => { savePageSettings(); if(id==='page-title-input') renderPageList(); if(id==='page-ismap') renderPage(); });
-  });
-
-  // -- THEMA PREVIEW ENGINE --
-  function updateLivePreview() {
-    const preset = qs('#auto-theme-preset').value; const color = qs('#auto-theme-color').value;
-    phone.style.setProperty('--primary', color);
-    phone.style.background = '#fff'; phone.style.color = '#1e293b'; phone.style.fontFamily = 'inherit'; phone.style.backgroundImage = 'none';
-    if (preset === 'medieval') { phone.style.background = '#e2d1b3 url("https://www.transparenttextures.com/patterns/papyros.png")'; phone.style.fontFamily = 'Georgia, serif'; phone.style.color = '#3e2723'; } 
-    else if (preset === 'future') { phone.style.background = '#020617'; phone.style.color = '#38bdf8'; phone.style.fontFamily = 'Courier New, monospace'; } 
-    else if (preset === 'iceage') { phone.style.background = '#f0f9ff'; phone.style.color = '#0c4a6e'; }
-  }
-  qs('#auto-theme-preset').onchange = updateLivePreview; qs('#auto-theme-color').oninput = updateLivePreview;
-
-  // INITIALISATIE
-  renderPageList(); renderPage(); updateLivePreview();
+  renderPageList(); renderPage(currentPage);
 })();
+</script>
+
+<script>
+(function() {
+  const originalFetch = window.fetch;
+  window.fetch = async function(...args) {
+    const url = args[0] || "";
+    const options = args[1] || {};
+
+    if (options.method && options.method.toUpperCase() === 'POST' && typeof options.body === 'string') {
+      if (url.includes('/edit') || url.includes('/save') || url.includes('/admin-builder')) {
+        try {
+          let payload = JSON.parse(options.body);
+          
+          // Haal de thema waarden live uit de UI vlak voor verzenden
+          const preset = document.getElementById('auto-theme-preset')?.value || 'standard';
+          const color = document.getElementById('auto-theme-color')?.value || '#4f46e5';
+          
+          // Injecteer veilig in de payload
+          payload.theme = { preset: preset, primaryColor: color };
+          options.body = JSON.stringify(payload);
+          console.log("🎨 Thema geïnjecteerd:", payload.theme);
+        } catch(e) { console.warn("Theme injection ignored.", e); }
+      }
+    }
+    return originalFetch.apply(this, args);
+  };
+})();
+// Voeg dit toe vlak voor de sluitende </script> tag onderaan admin-builder.ejs
+const themePreset = document.getElementById('auto-theme-preset');
+const themeColor = document.getElementById('auto-theme-color');
+const phonePreview = document.getElementById('phone');
+
+function updateLivePreview() {
+  if(!themePreset || !phonePreview) return;
+  const preset = themePreset.value;
+  const color = themeColor.value;
+  
+  // Update de kleur variabele
+  phonePreview.style.setProperty('--primary', color);
+  
+  // Standaard styling reset
+  phonePreview.style.background = '#f8fafc';
+  phonePreview.style.color = '#0f172a';
+  phonePreview.style.fontFamily = 'Inter, sans-serif';
+  phonePreview.style.backgroundImage = 'none';
+
+  // Sfeer toepassing in de builder
+  if (preset === 'medieval') {
+    phonePreview.style.background = '#e2d1b3 url("https://www.transparenttextures.com/patterns/papyros.png")';
+    phonePreview.style.fontFamily = 'Georgia, serif';
+    phonePreview.style.color = '#3e2723';
+  } else if (preset === 'future') {
+    phonePreview.style.background = '#020617';
+    phonePreview.style.color = '#38bdf8';
+    phonePreview.style.fontFamily = 'Courier New, monospace';
+  } else if (preset === 'iceage') {
+    phonePreview.style.background = '#f0f9ff';
+    phonePreview.style.color = '#0c4a6e';
+  }
+}
+
+// Luister naar veranderingen
+if(themePreset) themePreset.addEventListener('change', updateLivePreview);
+if(themeColor) themeColor.addEventListener('input', updateLivePreview);
+
+// Roep hem 1x aan bij het opstarten
+setTimeout(updateLivePreview, 500);
 </script>
