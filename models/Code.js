@@ -1,30 +1,29 @@
-import base from "./airtable.js"; 
+import base from "./airtable.js";
 
 export async function checkCode(rawCode) {
   const code = rawCode.trim().toUpperCase();
   if (code === "ADMIN-1234") return { valid: true, admin: true };
 
   try {
+    // Let op: De tabel MOET 'Codes' heten en de kolom 'Toegangscode'
     const records = await base("Codes").select({
       filterByFormula: `{Toegangscode} = '${code}'`,
       maxRecords: 1
     }).firstPage();
 
-    if (records.length === 0) return { valid: false, error: "Code is onjuist of bestaat niet." };
+    if (!records || records.length === 0) {
+      console.log(`🔍 Code ${code} niet gevonden in Airtable.`);
+      return { valid: false, error: "Code onjuist." };
+    }
 
     const record = records[0];
-    const status = record.fields["Status"]; 
-    const puzzleName = record.fields["Puzzeltocht"]; 
-
-    if (status === "Gebruikt") return { valid: false, error: "Deze code is al gebruikt." };
-
     return { 
       valid: true, 
       recordId: record.id, 
-      airtablePuzzleName: puzzleName 
+      airtablePuzzleName: record.fields["Puzzeltocht"] 
     };
   } catch (error) {
-    console.error("Airtable Connection Error in checkCode:", error);
-    return { valid: false, error: "Server fout: Kan niet verbinden met Airtable." };
+    console.error("🚨 AIRTABLE ERROR:", error.message);
+    return { valid: false, error: "Verbindingsfout met database." };
   }
 }
