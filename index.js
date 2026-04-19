@@ -246,24 +246,22 @@ app.post("/check-code", checkCodeLimiter, async (req, res) => {
     if (!result.valid) return res.render("index", { error: result.error });
     if (result.admin) return res.redirect("/admin-login");
 
-    // Controleer of er een specifieke puzzel is gekoppeld in Airtable
+    // 1. Zoek naar een specifieke mapping uit Airtable
     if (result.airtablePuzzleName) {
       const mapping = await AirtableMap.findOne({ airtableString: result.airtablePuzzleName });
-      
       if (mapping) {
         req.session.pendingPuzzleId = mapping.internalPuzzleId;
         return res.redirect(`/puzzle/${mapping.internalPuzzleId}`);
       }
     }
 
-    // FALLBACK: Als er geen naam is ingevuld in Airtable OF geen mapping bestaat:
-    // Stuur door naar het overzicht van alle puzzeltochten
-    return res.redirect("/next");
+    // 2. FALLBACK: Als er geen mapping is, maar de code is wel geldig:
+    // Toon alle beschikbare puzzeltochten
+    res.redirect("/next");
 
   } catch (err) {
     console.error("Check-code error:", err);
-    // Gedetailleerdere foutmelding voor debugging
-    return res.render("index", { error: "Database verbindingsfout. Controleer je Airtable API sleutels." });
+    res.render("index", { error: "Database verbindingsfout. Controleer Railway Variables." });
   }
 });
 
