@@ -10,13 +10,13 @@ export async function checkCode(rawCode) {
       maxRecords: 1
     }).firstPage();
 
-    if (records.length === 0) return { valid: false, error: "Code bestaat niet." };
+    if (records.length === 0) return { valid: false, error: "Code is onjuist of bestaat niet." };
 
     const record = records[0];
     const status = record.fields["Status"]; 
     const puzzleName = record.fields["Puzzeltocht"]; 
 
-    if (status === "Gebruikt") return { valid: false, error: "Deze code is al verbruikt." };
+    if (status === "Gebruikt") return { valid: false, error: "Deze code is al gebruikt." };
 
     return { 
       valid: true, 
@@ -24,7 +24,7 @@ export async function checkCode(rawCode) {
       airtablePuzzleName: puzzleName 
     };
   } catch (error) {
-    console.error("Airtable API Error:", error);
-    return { valid: false, error: "Verbindingsfout met Airtable. Controleer API Keys." };
+    console.error("Airtable Connection Error in checkCode:", error);
+    return { valid: false, error: "Server fout: Kan niet verbinden met Airtable." };
   }
 }
