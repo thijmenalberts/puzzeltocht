@@ -442,22 +442,28 @@ app.get("/admin-builder/:id", requireAdmin, async (req, res) => {
 app.post("/admin-builder/:id/save-all", requireAdmin, async (req, res) => {
   try {
     const puzzle = await Puzzle.findById(req.params.id);
-    if (!puzzle) return res.status(404).send("Not found");
+    if (!puzzle) return res.status(404).send("Puzzel niet gevonden");
 
-    puzzle.pages = req.body.pages || [];
+    // VEILIGHEIDSCHECK: Als de pages array volledig ontbreekt, breek de save af.
+    if (!req.body.pages || !Array.isArray(req.body.pages)) {
+      return res.status(400).json({ error: "Ongeldige data: geen pagina's gevonden." });
+    }
+
+    puzzle.pages = req.body.pages;
     puzzle.languages = req.body.languages || ["nl"];
     puzzle.defaultLanguage = req.body.defaultLanguage || "nl";
     
-    // 🔥 DIT ONTBRACK: Sla het thema op als het wordt meegestuurd!
+    // Sla thema op
     if (req.body.theme) {
       puzzle.theme = req.body.theme;
     }
 
     await puzzle.save();
+    console.log(`✅ Puzzel ${puzzle._id} succesvol opgeslagen.`);
     res.json({ success: true });
   } catch (err) {
-    console.error("Fout bij opslaan puzzel:", err);
-    res.status(500).json({ error: "Opslaan mislukt" });
+    console.error("❌ Opslag Error:", err);
+    res.status(500).json({ error: "Server fout bij opslaan" });
   }
 });
 
