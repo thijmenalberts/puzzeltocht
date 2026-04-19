@@ -154,6 +154,19 @@ const pagesSafe = normalizePages(puzzle);
       <button class="element-btn" type="button" data-type="feedback" style="border-color:#06b6d4; background:#ecfeff; color:#0891b2;">⭐ Feedback & Finale</button>
     </div>
 
+<div class="panel-section" style="border-top: 1px solid #e5e7eb; padding-top: 15px; margin-top: 15px;">
+  <h3 style="font-size: 14px; font-weight: 800; color: #374151; margin-bottom: 10px;">🎨 Puzzel Thema</h3>
+  <label style="font-size: 12px; font-weight: 700;">Stijl Preset:</label>
+  <select id="theme-preset-select" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
+    <option value="standard">Standaard (Modern)</option>
+    <option value="iceage">🥶 De Ijstijd</option>
+    <option value="medieval">🏰 Middeleeuwen</option>
+    <option value="future">🚀 De Toekomst</option>
+  </select>
+  
+  <label style="font-size: 12px; font-weight: 700; margin-top: 10px; display: block;">Hoofdkleur:</label>
+  <input type="color" id="theme-color-input" value="<%= puzzle.theme?.primaryColor || '#4f46e5' %>" style="width: 100%; height: 35px; border: none; padding: 0; cursor: pointer;">
+</div>
     <div class="sidebar-actions">
       <button class="btn" type="button" id="btn-reset">Reset</button>
       <button class="btn btn-primary" type="button" id="btn-save">Opslaan</button>
