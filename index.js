@@ -22,7 +22,7 @@ import Team from "./models/Team.js";
 import GlobalTeam from "./models/GlobalTeam.js";
 import GameSession from "./models/GameSession.js";
 import AirtableMap from "./models/AirtableMap.js";
-import "./models/cron.js";
+import base from "./models/airtable.js";
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
