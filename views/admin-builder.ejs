@@ -209,6 +209,19 @@ const pagesSafe = normalizePages(puzzle);
         <label>Paginatitel</label>
         <input id="page-title-input" type="text" placeholder="Paginatitel" />
 
+<div style="background: #f8fafc; border: 1px solid #cbd5e1; padding: 15px; border-radius: 8px; margin: 20px 0;">
+  <h3 style="font-size: 13px; font-weight: bold; color: #0f172a; margin-top:0;">🎨 Puzzel Thema Settings</h3>
+  <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
+    <select id="auto-theme-preset" style="padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; flex: 1;">
+      <option value="standard" <%= puzzle.theme?.preset === 'standard' ? 'selected' : '' %>>Standaard (Modern)</option>
+      <option value="medieval" <%= puzzle.theme?.preset === 'medieval' ? 'selected' : '' %>>🏰 Middeleeuwen (Perkament)</option>
+      <option value="future" <%= puzzle.theme?.preset === 'future' ? 'selected' : '' %>>🚀 Toekomst (Cyberpunk)</option>
+      <option value="iceage" <%= puzzle.theme?.preset === 'iceage' ? 'selected' : '' %>>🥶 Ijstijd (Bevroren)</option>
+    </select>
+    <input type="color" id="auto-theme-color" value="<%= puzzle.theme?.primaryColor || '#4f46e5' %>" style="height: 40px; width: 60px; cursor: pointer; border: none;">
+  </div>
+</div>
+
         <label class="check-row">
           <input type="checkbox" id="page-shownext">
           <span>Toon “Volgende pagina”-knop</span>
