@@ -283,11 +283,41 @@ app.post("/admin-login", async (req, res) => {
   res.redirect("/admin-dashboard");
 });
 app.get("/admin-logout", (req, res) => req.session.destroy(() => res.redirect("/admin-login")));
-app.get("/admin-dashboard", requireAdmin, (req, res) => res.render("admin-dashboard"));
+// Vernieuwde Dashboard Route (haalt puzzels op voor de dropdown)
+app.get("/admin-dashboard", requireAdmin, async (req, res) => {
+  try {
+    const puzzles = await Puzzle.find().sort({ name: 1 }).lean();
+    const mappings = await AirtableMap.find().populate("internalPuzzleId").lean();
+    res.render("admin-dashboard", { puzzles, mappings });
+  } catch (err) {
+    res.status(500).send("Fout bij laden dashboard.");
+  }
+});
 
-app.get("/admin-theme", requireAdmin, async (req, res) => {
-  const theme = await Theme.findOne() || { primaryColor: "#2563eb", backgroundColor: "#ffffff", textColor: "#111827", borderRadius: "0.75rem", fontFamily: "Inter, sans-serif" };
-  res.render("admin-theme", { theme, saved: false });
+// Nieuwe Route voor Airtable mapping (Dropdown verwerking)
+app.post("/admin/map-airtable", requireAdmin, async (req, res) => {
+  const { airtableString, internalId } = req.body;
+  try {
+    await AirtableMap.findOneAndUpdate(
+      { airtableString },
+      { internalPuzzleId: internalId },
+      { upsert: true }
+    );
+    res.redirect("/admin-dashboard");
+  } catch (err) {
+    res.status(500).send("Fout bij opslaan mapping.");
+  }
+});
+
+// FASE 3: Feedback Overzichtspagina
+app.get("/admin/feedback", requireAdmin, async (req, res) => {
+  try {
+    // Haal alle teams op die feedback hebben gegeven
+    const teams = await GlobalTeam.find({ "feedbackHistory.0": { $exists: true } }).lean();
+    res.render("admin-feedback", { teams });
+  } catch (err) {
+    res.status(500).send("Fout bij laden feedback.");
+  }
 });
 
 app.post("/admin-theme", requireAdmin, async (req, res) => {
