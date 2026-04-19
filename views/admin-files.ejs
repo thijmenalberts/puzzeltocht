@@ -1,180 +1,96 @@
-<section class="space-y-6">
+<style>
+  .file-card:hover .delete-btn { opacity: 1; }
+  .preview-img { object-fit: cover; height: 120px; width: 100%; }
+</style>
 
-  <h1 class="text-2xl font-bold">Bestanden</h1>
-  <p class="text-sm text-gray-600">
-    Overzicht van alle geüploade bestanden. Je kunt links kopiëren voor gebruik in puzzels.
-  </p>
+<section class="max-w-6xl mx-auto p-6">
+  <div class="flex justify-between items-center mb-8">
+    <h1 class="text-3xl font-black text-gray-900">📂 Mediabeheer</h1>
+    <a href="/admin-dashboard" class="bg-gray-100 hover:bg-gray-200 text-gray-600 px-4 py-2 rounded-lg font-bold transition-colors">
+      ← Dashboard
+    </a>
+  </div>
 
-  <!-- ========= ROOT UPLOADS ========= -->
-  <% if (rootFiles && rootFiles.length) { %>
-    <div class="card p-4 border rounded space-y-3">
-      <h2 class="font-semibold text-lg">📂 uploads/ (root)</h2>
-
-      <ul class="space-y-2">
-        <% rootFiles.forEach(file => { 
-          const filePath = `/uploads/${file.name}`;
-        %>
-          <li class="flex items-center justify-between text-sm bg-gray-50 p-2 rounded">
-
-            <div>
-              📄 <strong><%= file.name %></strong>
-              <span class="text-gray-500">
-                (<%= Math.round(file.size / 1024) %> KB)
-              </span>
+  <% (folders || []).forEach(folder => { %>
+    <div class="mb-12">
+      <h2 class="text-sm font-black text-indigo-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+        <span class="bg-indigo-100 p-1 rounded">📁</span> <%= folder.name %>
+      </h2>
+      
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        <% folder.files.forEach(file => { %>
+          <div class="file-card relative bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden group hover:border-indigo-300 transition-all">
+            
+            <div class="bg-gray-100 border-b border-gray-100">
+              <% if (file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) { %>
+                <img src="/uploads/<%= folder.name %>/<%= file.name %>" class="preview-img">
+              <% } else if (file.name.match(/\.(mp3|wav|ogg)$/i)) { %>
+                <div class="h-[120px] flex flex-col items-center justify-center p-2 bg-amber-50">
+                  <span class="text-2xl mb-1">🎵</span>
+                  <audio controls class="w-full scale-75 opacity-80">
+                    <source src="/uploads/<%= folder.name %>/<%= file.name %>">
+                  </audio>
+                </div>
+              <% } else { %>
+                <div class="h-[120px] flex items-center justify-center text-4xl bg-gray-50">
+                  📄
+                </div>
+              <% } %>
             </div>
 
-            <div class="space-x-3">
-              <a
-                href="<%= filePath %>"
-                target="_blank"
-                class="text-blue-600 underline"
-              >
-                Bekijk
-              </a>
-
-              <button
-                class="text-gray-700 underline"
-                onclick="copyToClipboard('<%= filePath %>')"
-              >
-                Kopieer link
-              </button>
-
-              <button
-                class="text-red-600 underline"
-                onclick="deleteFile('', '<%= file.name %>')"
-              >
-                Verwijder
-              </button>
+            <div class="p-3">
+              <p class="text-[10px] font-bold text-gray-800 truncate" title="<%= file.name %>">
+                <%= file.name %>
+              </p>
+              <p class="text-[9px] text-gray-400 font-medium">
+                <%= (file.size / 1024).toFixed(1) %> KB
+              </p>
             </div>
 
-          </li>
+            <button onclick="deleteFile('<%= folder.name %>', '<%= file.name %>')" 
+                    class="delete-btn absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-lg opacity-0 hover:bg-red-600 shadow-lg transition-all">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         <% }) %>
-      </ul>
+      </div>
+    </div>
+  <% }) %>
+
+  <% if (rootFiles && rootFiles.length > 0) { %>
+    <div>
+      <h2 class="text-sm font-black text-gray-400 uppercase tracking-widest mb-4">Overige bestanden</h2>
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        <% rootFiles.forEach(file => { %>
+          <div class="file-card relative bg-white rounded-xl border border-gray-200 shadow-sm p-3 flex items-center gap-3">
+            <span class="text-xl">📄</span>
+            <div class="overflow-hidden">
+              <p class="text-[10px] font-bold text-gray-800 truncate"><%= file.name %></p>
+              <button onclick="deleteFile('', '<%= file.name %>')" class="text-red-500 text-[9px] font-bold hover:underline">Verwijderen</button>
+            </div>
+          </div>
+        <% }) %>
+      </div>
     </div>
   <% } %>
-
-  <!-- ========= SUBFOLDERS ========= -->
-  <% if (folders && folders.length) { %>
-    <% folders.forEach(folder => { %>
-      <div class="card p-4 border rounded space-y-3">
-
-        <h2 class="font-semibold text-lg">
-          📁 <%= folder.name %>
-        </h2>
-
-        <% if (!folder.files || folder.files.length === 0) { %>
-          <p class="text-sm text-gray-500">
-            Deze map is leeg.
-          </p>
-        <% } else { %>
-          <ul class="space-y-2">
-            <% folder.files.forEach(file => { 
-              const filePath = `/uploads/${folder.name}/${file.name}`;
-            %>
-              <li class="flex items-center justify-between text-sm bg-gray-50 p-2 rounded">
-
-                <div>
-                  📄 <strong><%= file.name %></strong>
-                  <span class="text-gray-500">
-                    (<%= Math.round(file.size / 1024) %> KB)
-                  </span>
-                </div>
-
-                <div class="space-x-3">
-                  <a
-                    href="<%= filePath %>"
-                    target="_blank"
-                    class="text-blue-600 underline"
-                  >
-                    Bekijk
-                  </a>
-
-                  <button
-                    class="text-gray-700 underline"
-                    onclick="copyToClipboard('<%= filePath %>')"
-                  >
-                    Kopieer link
-                  </button>
-
-                  <button
-                    class="text-red-600 underline"
-                    onclick="deleteFile('<%= folder.name %>', '<%= file.name %>')"
-                  >
-                    Verwijder
-                  </button>
-                </div>
-
-              </li>
-            <% }) %>
-          </ul>
-        <% } %>
-
-      </div>
-    <% }) %>
-  <% } %>
-
-  <% if (
-    (!rootFiles || rootFiles.length === 0) &&
-    (!folders || folders.length === 0)
-  ) { %>
-    <p class="text-gray-500">
-      Er zijn nog geen bestanden geüpload.
-    </p>
-  <% } %>
-
 </section>
 
 <script>
-/* ✅ LINK KOPIËREN */
-async function copyToClipboard(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-    toast(`Link gekopieerd: ${text}`);
-  } catch (err) {
-    alert("Kopiëren mislukt");
-    console.error(err);
-  }
-}
-
-/* ✅ VERWIJDEREN */
 async function deleteFile(folder, file) {
-  if (!confirm(`Bestand "${file}" verwijderen?`)) return;
-
+  if (!confirm('Weet je zeker dat je dit bestand wilt verwijderen?')) return;
+  
   try {
-    const res = await fetch("/admin-files/delete", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const res = await fetch('/admin-files/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ folder, file })
     });
-
-    if (!res.ok) throw new Error();
-    location.reload();
+    if (res.ok) location.reload();
+    else alert('Verwijderen mislukt');
+  } catch (e) {
+    alert('Netwerkfout');
   }
-  catch (err) {
-    alert("Verwijderen mislukt");
-    console.error(err);
-  }
-}
-
-/* ✅ SIMPLE TOAST */
-function toast(msg) {
-  const t = document.createElement("div");
-  t.textContent = msg;
-
-  Object.assign(t.style, {
-    position: "fixed",
-    right: "20px",
-    bottom: "20px",
-    background: "#2563eb",
-    color: "#fff",
-    padding: "10px 14px",
-    borderRadius: "12px",
-    boxShadow: "0 8px 24px rgba(0,0,0,.2)",
-    zIndex: 9999,
-    fontSize: "14px"
-  });
-
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), 1800);
 }
 </script>
