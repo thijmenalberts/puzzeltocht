@@ -1,125 +1,58 @@
 <section class="space-y-6">
+  <h1 class="text-2xl font-bold">Admin Dashboard</h1>
 
-<h1 class="text-2xl font-bold">Admin Dashboard</h1>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <a class="block p-4 border rounded card hover:ring-2 ring-blue-200 bg-white" href="/admin-puzzles">
+      <h2 class="font-semibold mb-1">Puzzeltochten</h2>
+      <p class="text-sm text-gray-600">Maak en beheer puzzeltochten.</p>
+    </a>
 
-<!-- Puzzeltochten -->
+    <a class="block p-4 border rounded card hover:ring-2 ring-yellow-200 bg-yellow-50" href="/admin/feedback">
+      <h2 class="font-semibold mb-1 text-yellow-800">⭐ Bekijk Feedback</h2>
+      <p class="text-sm text-yellow-600">Lees wat teams van de tochten vonden.</p>
+    </a>
+  </div>
 
-<div class="card p-4 border bg-blue-50">
-  <h2 class="font-semibold mb-3 text-blue-800">📍 Airtable Koppeling</h2>
-  <p class="text-xs text-blue-600 mb-4">Koppel een Airtable naam aan een puzzeltocht.</p>
-  
-  <form action="/admin/map-airtable" method="POST" class="space-y-3">
-    <div>
-      <label class="text-xs font-bold text-gray-500 uppercase">Naam in Airtable:</label>
-      <input type="text" name="airtableString" placeholder="Bijv: Borger" required class="border p-2 rounded w-full"/>
-    </div>
-    
-    <div>
-      <label class="text-xs font-bold text-gray-500 uppercase">Koppel aan Puzzeltocht:</label>
-      <select name="internalId" required class="border p-2 rounded w-full bg-white">
-        <option value="">-- Selecteer een puzzel --</option>
-        <% puzzles.forEach(puz => { %>
-          <option value="<%= puz._id %>"><%= puz.name %></option>
-        <% }) %>
-      </select>
-    </div>
-    
-    <button class="bg-blue-600 text-white px-4 py-2 rounded w-full font-bold">Koppeling Opslaan</button>
-  </form>
+  <div class="card p-6 border bg-blue-50 rounded-xl">
+    <h2 class="font-bold mb-3 text-blue-800 flex items-center gap-2">📍 Airtable Koppeling</h2>
+    <form action="/admin/map-airtable" method="POST" class="space-y-4">
+      <div>
+        <label class="text-xs font-bold text-gray-500 uppercase block mb-1">Naam in Airtable (kolom 'Puzzeltocht'):</label>
+        <input type="text" name="airtableString" placeholder="Bijv: Borger" required class="border p-2 rounded w-full"/>
+      </div>
+      <div>
+        <label class="text-xs font-bold text-gray-500 uppercase block mb-1">Koppel aan interne Puzzel:</label>
+        <select name="internalId" required class="border p-2 rounded w-full bg-white">
+          <option value="">-- Selecteer een puzzel --</option>
+          <% puzzles.forEach(puz => { %>
+            <option value="<%= puz._id %>"><%= puz.name %></option>
+          <% }) %>
+        </select>
+      </div>
+      <button class="bg-blue-600 text-white px-4 py-2 rounded w-full font-bold hover:bg-blue-700">Koppeling Opslaan</button>
+    </form>
 
-  <% if (mappings && mappings.length > 0) { %>
-    <div class="mt-4 pt-4 border-t border-blue-200">
-      <h3 class="text-xs font-bold text-blue-800 mb-2 uppercase">Actieve Koppelingen:</h3>
-      <% mappings.forEach(m => { %>
-        <div class="flex justify-between text-sm py-1 border-b border-blue-100 italic text-gray-600">
-          <span><%= m.airtableString %></span>
-          <span>➜ <%= m.internalPuzzleId ? m.internalPuzzleId.name : 'Puzzel verwijderd' %></span>
+    <% if (mappings && mappings.length > 0) { %>
+      <div class="mt-6 pt-4 border-t border-blue-200">
+        <h3 class="text-xs font-bold text-blue-800 mb-2 uppercase">Huidige Koppelingen:</h3>
+        <div class="space-y-2">
+          <% mappings.forEach(m => { %>
+            <div class="flex justify-between text-sm p-2 bg-white rounded border border-blue-100 shadow-sm">
+              <span class="font-medium"><%= m.airtableString %></span>
+              <span class="text-blue-600">➜ <%= m.internalPuzzleId ? m.internalPuzzleId.name : 'Puzzel verwijderd' %></span>
+            </div>
+          <% }) %>
         </div>
-      <% }) %>
-    </div>
-  <% } %>
-</div>
+      </div>
+    <% } %>
+  </div>
 
-
-<!-- Theme -->
-
-<a class="block p-4 border rounded card hover:ring-2 ring-blue-200" href="/admin-theme">
-<h2 class="font-semibold mb-1">Thema aanpassen</h2>
-<p class="text-sm text-gray-600">Pas kleuren en design aan.</p>
-</a>
-
-<a
-  class="block p-4 border rounded card hover:ring-2 ring-blue-200"
-  href="/admin-files"
->
-  <h2 class="font-semibold mb-1">Bestanden</h2>
-  <p class="text-sm text-gray-600">
-    Bekijk alle geüploade bestanden per map.
-<a class="block p-4 border rounded card hover:ring-2 ring-yellow-200 bg-yellow-50" href="/admin/feedback">
-  <h2 class="font-semibold mb-1 text-yellow-800">⭐ Bekijk Feedback</h2>
-  <p class="text-sm text-yellow-600">Lees wat teams van de tochten vonden en zie hun scores.</p>
-</a>
-  </p>
-</a>
-
-<!-- Code toevoegen -->
-
-<div class="card p-4 border">
-
-<h2 class="font-semibold mb-3">Code toevoegen</h2>
-
-<form action="/admin-add-code" method="POST" class="space-x-2">
-
-<input
-type="text"
-name="code"
-placeholder="Code"
-required
-class="border p-2 rounded"
-/>
-
-<select name="type" class="border p-2 rounded">
-<option value="user">User</option>
-<option value="admin">Admin</option>
-</select>
-
-<button class="bg-blue-600 text-white px-4 py-2 rounded">
-Toevoegen
-</button>
-
-</form>
-
-</div>
-
-
-
-<!-- CSV upload -->
-
-<div class="card p-4 border">
-
-<h2 class="font-semibold mb-3">CSV upload (meerdere codes)</h2>
-
-<form action="/admin-upload-csv" method="POST" enctype="multipart/form-data">
-
-<input type="file" name="csvfile" accept=".csv" required>
-
-<button class="bg-green-600 text-white px-4 py-2 rounded ml-2">
-Upload CSV
-</button>
-
-</form>
-
-<p class="text-sm text-gray-600 mt-3">
-CSV formaat:
-</p>
-
-<pre class="bg-gray-100 p-3 rounded text-sm">
-code,type
-TEST123,user
-ADMIN999,admin
-CODE456,user
-</pre>
-
-</div>
-
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <a class="block p-4 border rounded card hover:ring-2 ring-gray-200 bg-white" href="/admin-theme">
+      <h2 class="font-semibold mb-1">Thema aanpassen</h2>
+    </a>
+    <a class="block p-4 border rounded card hover:ring-2 ring-gray-200 bg-white" href="/admin-files">
+      <h2 class="font-semibold mb-1">Bestanden</h2>
+    </a>
+  </div>
 </section>
