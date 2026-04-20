@@ -329,32 +329,6 @@ app.get("/admin/feedback", requireAdmin, async (req, res) => {
   }
 });
 
-// Nieuwe Route voor Airtable mapping (Dropdown verwerking)
-app.post("/admin/map-airtable", requireAdmin, async (req, res) => {
-  const { airtableString, internalId } = req.body;
-  try {
-    await AirtableMap.findOneAndUpdate(
-      { airtableString },
-      { internalPuzzleId: internalId },
-      { upsert: true }
-    );
-    res.redirect("/admin-dashboard");
-  } catch (err) {
-    res.status(500).send("Fout bij opslaan mapping.");
-  }
-});
-
-// FASE 3: Feedback Overzichtspagina
-app.get("/admin/feedback", requireAdmin, async (req, res) => {
-  try {
-    // Haal alle teams op die feedback hebben gegeven
-    const teams = await GlobalTeam.find({ "feedbackHistory.0": { $exists: true } }).lean();
-    res.render("admin-feedback", { teams });
-  } catch (err) {
-    res.status(500).send("Fout bij laden feedback.");
-  }
-});
-
 app.post("/admin-theme", requireAdmin, async (req, res) => {
   const { primaryColor, backgroundColor, textColor, borderRadius, fontFamily } = req.body;
   await Theme.findOneAndUpdate({}, { primaryColor, backgroundColor, textColor, borderRadius, fontFamily }, { upsert: true });
@@ -448,6 +422,10 @@ app.post("/admin-builder/:id/save-all", requireAdmin, express.json(), async (req
     puzzle.pages = req.body.pages;
     puzzle.languages = req.body.languages;
     puzzle.defaultLanguage = req.body.defaultLanguage;
+
+    if (req.body.finalPrompt !== undefined) {
+      puzzle.finalPrompt = req.body.finalPrompt;
+    }
 
     // Verbeterde thema toewijzing
     if (req.body.theme) {

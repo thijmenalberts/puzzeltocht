@@ -27,6 +27,7 @@ const puzzleSchema = new mongoose.Schema({
   languages: { type: [String], default: ["nl"] },
   defaultLanguage: { type: String, default: "nl" },
   pages: [pageSchema], // Nu weet hij wél wat pageSchema is!
+  finalPrompt: { type: String, default: "" },
   
   // 🔥 Het Themasysteem:
   theme: {
