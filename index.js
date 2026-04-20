@@ -731,11 +731,20 @@ app.post("/api/generate-finale-report", express.json(), async (req, res) => {
       req.session.hasFinished = true; 
     }
 
-    // 2. FASE 5: GEMINI AI REISVERSLAG met duure AI
+    // --- NIEUW: Haal de puzzel op uit de database om de custom prompt te lezen ---
+    const puzzle = await Puzzle.findById(puzzleId);
+    
+    // Als jij niks invult, gebruiken we dit als standaard:
+    const defaultPrompt = "Je bent een geestige, professionele ceremoniemeester die een puzzeltocht afsluit. Geef een hilarische maar waarderende samenvatting (een 'roast') van de prestaties van het team.";
+    
+    // Kies jouw prompt, of de standaard:
+    const customInstruction = puzzle?.finalPrompt || defaultPrompt;
+
+    // 2. FASE 5: GEMINI AI REISVERSLAG met de nieuwe instructie!
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ 
       model: "gemini-2.5-flash",
-      systemInstruction: `Je bent een geestige, professionele ceremoniemeester die een puzzeltocht afsluit. Geef een hilarische maar waarderende samenvatting (een 'roast') van de prestaties van het team.`
+      systemInstruction: customInstruction
     });
 
     const aiPrompt = `
