@@ -569,6 +569,52 @@ app.post("/api/timer/stop", express.json(), (req, res) => {
 });
 
 // ==========================================
+// GAME ENGINE: DE AI DUNGEON MASTER (PROACTIEF)
+// ==========================================
+app.post("/api/director/pulse", express.json(), async (req, res) => {
+  const { lat, lng, currentSceneId, timeInSceneMs } = req.body;
+  
+  if (!req.session.teamName) return res.status(401).json({ error: "Unauthorized" });
+  
+  // Houd de speler status bij in de sessie
+  if (!req.session.telemetry) req.session.telemetry = { history: [], lastIntervention: Date.now() };
+  
+  // Sla positie op voor analyse
+  req.session.telemetry.history.push({ lat, lng, time: Date.now() });
+  if (req.session.telemetry.history.length > 20) req.session.telemetry.history.shift(); // Houd laatste 20 punten
+
+  const timeSinceIntervention = Date.now() - req.session.telemetry.lastIntervention;
+  
+  // Regel: Grijp in als ze langer dan 7 minuten in een scene zitten en al 3 minuten niet hebben stilgestaan (paniek zoeken)
+  if (timeInSceneMs > 7 * 60 * 1000 && timeSinceIntervention > 5 * 60 * 1000) {
+    try {
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-2.5-flash-lite",
+        systemInstruction: "Je bent The Director, een mysterieuze gids. Het team zit vast in het huidige level. Geef een zeer korte, cryptische maar nuttige hint in 1 zin. Niet groeten. Spreek ze direct aan."
+      });
+      
+      const prompt = `Team: ${req.session.teamName}. Ze zijn al ${Math.floor(timeInSceneMs/1000/60)} minuten op zoek naar hun doel.`;
+      const result = await model.generateContent(prompt);
+      
+      req.session.telemetry.lastIntervention = Date.now();
+      
+      // Log dit in het eindverslag!
+      req.session.logbook.push(`[${new Date().toLocaleTimeString('nl-NL')}] ⚡ The Director greep ongevraagd in: "${result.response.text()}"`);
+
+      return res.json({ 
+        action: "intervene", 
+        message: result.response.text(),
+        hapticPattern: [500, 100, 500, 100, 1000] // SOS Trilling
+      });
+    } catch (e) {
+      console.error("Director Error:", e);
+    }
+  }
+  res.json({ action: "monitor", status: "ok" });
+});
+
+// ==========================================
 // GAME ENGINE: FASE 3 (HYBRIDE HINT ENGINE)
 // ==========================================
 app.post("/api/get-hint", express.json(), async (req, res) => {

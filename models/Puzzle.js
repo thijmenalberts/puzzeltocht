@@ -6,12 +6,24 @@ const moduleSchema = new mongoose.Schema({
   data: { type: mongoose.Schema.Types.Mixed, default: {} }
 });
 
+// NIEUW: Sensor en Omgings Triggers voor de Scene
+const triggerSchema = new mongoose.Schema({
+  type: { type: String, enum: ["gps_proximity", "orientation", "speech_match", "ambient_darkness", "camera_vision"], required: true },
+  targetValue: { type: mongoose.Schema.Types.Mixed, required: true }, // Bijv: bearing in graden, of een gesproken woord
+  tolerance: { type: Number, default: 10 },
+  unlocksNext: { type: Boolean, default: true }
+});
+
 // 2. Blauwdruk voor een Pagina
+// HERNOEMD: Dit zijn nu 'Scenes' in plaats van 'Paginas' in de Artifact Engine
 const pageSchema = new mongoose.Schema({
   title: { type: mongoose.Schema.Types.Mixed, default: {} },
-  showNext: { type: Boolean, default: true },
+  showNext: { type: Boolean, default: false }, // Knoppen zijn uit den boze in het nieuwe design
   isMap: { type: Boolean, default: false },
   showTarget: { type: Boolean, default: true },
+  
+  // De magische triggers die de scene voltooien zonder knoppen
+  triggers: [triggerSchema],
   autoNext: { type: Boolean, default: false },
   playSoundOnStart: { type: Boolean, default: false },
   soundUrl: { type: String, default: "" },
