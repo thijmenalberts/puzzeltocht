@@ -598,7 +598,8 @@ qs("#btn-save").onclick = async () => {
           pages: pages, 
           languages: availableLanguages, 
           defaultLanguage: activeLanguage,
-          theme: themeData
+          theme: themeData,
+          finalPrompt: document.getElementById('final-report-prompt').value
         })
       });
       
