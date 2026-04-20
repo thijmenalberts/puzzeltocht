@@ -440,7 +440,7 @@ app.get("/admin-builder/:id", requireAdmin, async (req, res) => {
   res.render("admin-builder", { puzzle, builderPage: true });
 });
   
-app.post("/admin-builder/:id/save-all", requireAdmin, async (req, res) => {
+app.post("/admin-builder/:id/save-all", requireAdmin, express.json(), async (req, res) => {
   try {
     const puzzle = await Puzzle.findById(req.params.id);
     if (!puzzle) return res.status(404).json({ error: "Niet gevonden" });
