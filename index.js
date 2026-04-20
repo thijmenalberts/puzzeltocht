@@ -443,27 +443,27 @@ app.get("/admin-builder/:id", requireAdmin, async (req, res) => {
 app.post("/admin-builder/:id/save-all", requireAdmin, async (req, res) => {
   try {
     const puzzle = await Puzzle.findById(req.params.id);
-    if (!puzzle) return res.status(404).json({ error: "Puzzeltocht niet gevonden" });
+    if (!puzzle) return res.status(404).json({ error: "Niet gevonden" });
 
-    // Veiligheidscheck: Nooit de database overschrijven met lege 'undefined' data
-    if (req.body.pages && Array.isArray(req.body.pages)) {
-      puzzle.pages = req.body.pages;
-    }
+    puzzle.pages = req.body.pages;
+    puzzle.languages = req.body.languages;
+    puzzle.defaultLanguage = req.body.defaultLanguage;
 
-    if (req.body.languages) puzzle.languages = req.body.languages;
-    if (req.body.defaultLanguage) puzzle.defaultLanguage = req.body.defaultLanguage;
-    
-    // Thema Opslaan
+    // Verbeterde thema toewijzing
     if (req.body.theme) {
-      puzzle.theme = req.body.theme;
+      puzzle.theme = {
+        preset: req.body.theme.preset || "standard",
+        primaryColor: req.body.theme.primaryColor || "#4f46e5"
+      };
+      // Markeer expliciet als gewijzigd voor Mongoose
+      puzzle.markModified('theme');
     }
 
     await puzzle.save();
-    console.log(`✅ Puzzel '${puzzle.name}' succesvol opgeslagen.`);
     res.json({ success: true });
   } catch (err) {
-    console.error("❌ Fout bij opslaan puzzel:", err);
-    res.status(500).json({ error: "Interne serverfout bij opslaan." });
+    console.error(err);
+    res.status(500).json({ error: "Fout bij opslaan" });
   }
 });
 
