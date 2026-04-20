@@ -284,29 +284,40 @@ const pagesSafe = normalizePages(puzzle);
 
 let draggedPageIndex = null;
 
-  function renderPageList(){
+function renderPageList(){
     const wrap = qs("#page-list"); wrap.innerHTML = "";
     pages.forEach((p,i)=>{
       const item = document.createElement("div");
       item.className = "page-item" + (i===currentPage ? " active" : "");
-      item.draggable = true; // Dragging geactiveerd
+      item.draggable = true; 
       item.dataset.index = i;
       
       const title = typeof p.title === "string" ? p.title : p.title?.[activeLanguage] || `Pagina ${i+1}`;
-      // Toegevoegd: Een klein sleep-icoontje (≡) zodat het duidelijk is dat je kunt slepen
-      item.innerHTML = `<span>${i+1}. ${title}</span><span style="color:#94a3b8; cursor:grab; font-size:16px;">≡</span>`;
+      item.innerHTML = `<span>${i+1}. ${title}</span><span style="opacity:0.4; cursor:grab;">≡</span>`;
       
       item.onclick = () => { savePageSettings(); pages[currentPage].modules = collect(); currentPage = i; renderPageList(); renderPage(i); };
       
-      // DRAG & DROP EVENTS
+      // DRAG & DROP MET SNAPPING
       item.ondragstart = (e) => { draggedPageIndex = i; item.style.opacity = 0.5; e.dataTransfer.effectAllowed = "move"; };
-      item.ondragend = () => { item.style.opacity = 1; draggedPageIndex = null; };
-      item.ondragover = (e) => e.preventDefault();
+      item.ondragend = () => { item.style.opacity = 1; draggedPageIndex = null; qsa(".page-item").forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom')); };
+      item.ondragover = (e) => {
+        e.preventDefault();
+        const rect = item.getBoundingClientRect();
+        const mid = rect.top + rect.height / 2;
+        if (e.clientY < mid) { item.classList.add('drag-over-top'); item.classList.remove('drag-over-bottom'); } 
+        else { item.classList.add('drag-over-bottom'); item.classList.remove('drag-over-top'); }
+      };
+      item.ondragleave = () => { item.classList.remove('drag-over-top', 'drag-over-bottom'); };
       item.ondrop = (e) => {
         e.preventDefault();
         const targetIndex = Number(item.dataset.index);
         if (draggedPageIndex === null || draggedPageIndex === targetIndex) return;
-        movePage(draggedPageIndex, targetIndex);
+        
+        // Bepaal of hij er boven of onder valt
+        const rect = item.getBoundingClientRect();
+        const dropIndex = (e.clientY < rect.top + rect.height / 2) ? targetIndex : targetIndex + 1;
+        
+        movePage(draggedPageIndex, dropIndex);
       };
 
       wrap.appendChild(item);
