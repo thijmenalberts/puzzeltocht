@@ -1,5 +1,21 @@
-// models/Puzzle.js
+
 import mongoose from "mongoose";
+
+const puzzleSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  pages: [pageSchema],
+  languages: { type: [String], default: ["nl"] },
+  defaultLanguage: { type: String, default: "nl" },
+  
+  // 🔥 VOEG DIT BLOK TOE:
+  theme: {
+    preset: { type: String, default: "standard" },
+    primaryColor: { type: String, default: "#4f46e5" }
+  },
+  
+  createdAt: { type: Date, default: Date.now }
+});
+
 
 /*
 |--------------------------------------------------------------------------
