@@ -479,6 +479,8 @@ app.post("/team/name", express.json(), async (req, res) => {
     req.session.totalScore = 0;
     req.session.logbook = [];
     req.session.timers = {}; 
+    req.session.maxPage = {}; 
+    req.session.hasFinished = false; 
     req.session.gameStartTime = Date.now(); 
     
     res.json({ ok: true, isReturningUser: !!team });
