@@ -572,32 +572,6 @@ qs("#btn-save").onclick = async () => {
 </script>
 
 <script>
-(function() {
-  const originalFetch = window.fetch;
-  window.fetch = async function(...args) {
-    const url = args[0] || "";
-    const options = args[1] || {};
-
-    if (options.method && options.method.toUpperCase() === 'POST' && typeof options.body === 'string') {
-      if (url.includes('/edit') || url.includes('/save') || url.includes('/admin-builder')) {
-        try {
-          let payload = JSON.parse(options.body);
-          
-          // Haal de thema waarden live uit de UI vlak voor verzenden
-          const preset = document.getElementById('auto-theme-preset')?.value || 'standard';
-          const color = document.getElementById('auto-theme-color')?.value || '#4f46e5';
-          
-          // Injecteer veilig in de payload
-          payload.theme = { preset: preset, primaryColor: color };
-          options.body = JSON.stringify(payload);
-          console.log("🎨 Thema geïnjecteerd:", payload.theme);
-        } catch(e) { console.warn("Theme injection ignored.", e); }
-      }
-    }
-    return originalFetch.apply(this, args);
-  };
-})();
-// Voeg dit toe vlak voor de sluitende </script> tag onderaan admin-builder.ejs
 const themePreset = document.getElementById('auto-theme-preset');
 const themeColor = document.getElementById('auto-theme-color');
 const phonePreview = document.getElementById('phone');
