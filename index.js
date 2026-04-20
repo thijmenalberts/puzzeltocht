@@ -404,6 +404,20 @@ app.post("/admin-puzzles/import", requireAdmin, uploadJSON.single("file"), async
   }
 });
 
+// --- NIEUW: Puzzel in zijn geheel verwijderen ---
+app.post("/admin-puzzles/delete/:id", requireAdmin, async (req, res) => {
+  try {
+    const puzzleId = req.params.id;
+    await Puzzle.findByIdAndDelete(puzzleId);
+    await GameSession.deleteMany({ puzzleId }).catch(() => null);
+    await Leaderboard.deleteMany({ puzzleId }).catch(() => null);
+    res.redirect("/admin-dashboard");
+  } catch (err) {
+    console.error("Delete error:", err);
+    res.status(500).send("Fout bij het verwijderen van de puzzel.");
+  }
+});
+
 app.get("/admin-puzzles/new", requireAdmin, (req, res) => res.render("admin-new-puzzle"));
 app.post("/admin-puzzles/new", requireAdmin, async (req, res) => {
   const puzzle = await Puzzle.create({ name: req.body.name, pages: [{ title: "Pagina 1", showNext: true, isMap: false, modules: [] }] });

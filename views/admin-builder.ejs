@@ -117,6 +117,7 @@ const pagesSafe = normalizePages(puzzle);
     <button id="add-language-btn" class="btn" style="background:#e2e8f0;">+ Taal</button>
   </div>
   <div style="display:flex; gap:10px;">
+    <button id="btn-delete-puzzle" class="btn btn-danger" style="margin-right: 20px;">🗑️ Puzzel Verwijderen</button>
     <button id="btn-reset" class="btn" style="background:#f1f5f9; border:1px solid #cbd5e1;">↻ Herladen</button>
     <button id="btn-save" class="btn btn-primary">💾 Puzzeltocht Opslaan</button>
   </div>
@@ -581,6 +582,21 @@ if (type === "historychat") {
   // LIVE LISTENERS PAGE UI
   qs("#page-title-input").oninput = (e) => { pages[currentPage].title[activeLanguage] = e.target.value; qs("#page-title-label").textContent = e.target.value; renderPageList(); };
   qs("#page-ismap").onchange = (e) => { pages[currentPage].isMap = e.target.checked; qs("#map-target-settings").style.display = e.target.checked ? "block" : "none"; renderPage(currentPage); };
+
+  qs("#btn-delete-puzzle").onclick = async () => {
+    if (confirm("🚨 WEET JE DIT HEEL ZEKER? Deze puzzeltocht (inclusief alle sessies en leaderboards) wordt definitief verwijderd!")) {
+      try {
+        const res = await fetch(`/admin-puzzles/delete/${phone.dataset.id}`, { method: "POST" });
+        if (res.ok || res.redirected) {
+          window.location.href = "/admin-dashboard";
+        } else {
+          alert("Fout bij verwijderen.");
+        }
+      } catch (err) {
+        alert("Netwerkfout bij verwijderen.");
+      }
+    }
+  };
 
 qs("#btn-save").onclick = async () => {
     const saveBtn = qs("#btn-save");
