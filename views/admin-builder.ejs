@@ -13,602 +13,2153 @@ const normalizePages = (puz) => {
     }];
   }
 
+  // ✅ bestaande data NIET herschrijven
   return puz.pages.map(pg => ({
-    title: typeof pg.title === "string" ? { nl: pg.title } : (pg.title || {}),
+    title:
+      typeof pg.title === "string"
+        ? { nl: pg.title }
+        : (pg.title || {}),
+  
     showNext: !!pg.showNext,
     isMap: !!pg.isMap,
     showTarget: pg.showTarget !== false,
     autoNext: !!pg.autoNext,
     playSoundOnStart: !!pg.playSoundOnStart,
     soundUrl: pg.soundUrl || "",
+  
     targetLat: pg.targetLat ?? null,
     targetLng: pg.targetLng ?? null,
     targetRadius: pg.targetRadius ?? 50,
-    modules: Array.isArray(pg.modules) ? JSON.parse(JSON.stringify(pg.modules)) : []
+  
+    modules: Array.isArray(pg.modules)
+      ? JSON.parse(JSON.stringify(pg.modules))
+      : []
   }));
 };
 
 const pagesSafe = normalizePages(puzzle);
 %>
 
-<style> 
-  :root {
-    --primary: #4f46e5;
-    --bg: #f8fafc;
-    --text: #0f172a;
-    --border: #e2e8f0;
+<style>
+  :root{
+    --primary:#6366f1;
+    --bg:#f5f7fa;
+    --text:#111827;
+  }
+  main{
+    max-width:100% !important;
+    padding:0 !important;
+    margin:0 !important;
+  }
+  *{ box-sizing:border-box; }
+
+  .builder-wrap{
+    display:grid;
+    grid-template-columns: 280px 1fr 330px;
+    gap:0;
+    height:calc(100vh - 56px);
+    background:var(--bg);
+    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue";
+    color:var(--text);
   }
 
-  body, html { margin: 0; padding: 0; height: 100vh; overflow: hidden; font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); box-sizing: border-box; }
-  * { box-sizing: inherit; }
-
-  /* DE 3-KOLOMS ARCHITECTUUR */
-  .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: #fff; border-bottom: 1px solid var(--border); height: 60px; }
-/* FORCEER SCROLLEN IN DE KOLOMMEN */
-  .builder-layout { display: grid; grid-template-columns: 280px 1fr 350px; height: calc(100vh - 60px); overflow: hidden; }
-  .column-left { background: #fff; border-right: 1px solid var(--border); padding: 20px; overflow-y: auto; height: 100%; }
-  .column-main { background: #cbd5e1; display: flex; justify-content: center; align-items: flex-start; padding: 40px 20px; overflow-y: auto; height: 100%; }
-  .column-right { background: #fff; border-left: 1px solid var(--border); padding: 20px; overflow-y: auto; height: 100%; padding-bottom: 100px; /* Zorgt dat de onderste knop altijd zichtbaar is */ }
-  
-
-  /* UI ELEMENTEN */
-  h2, h3 { margin: 0 0 15px 0; color: #1e293b; }
-  .btn { padding: 10px 14px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; transition: 0.2s; font-size: 13px; }
-  .btn-primary { background: var(--primary); color: #fff; }
-  .btn-primary:hover { background: #4338ca; }
-  .btn-danger { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
-  
-  /* MOOIERE MODULE KNOPPEN */
-  .element-btn { 
-    width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 16px; 
-    background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; 
-    cursor: pointer; font-weight: 700; font-size: 13px; color: #475569;
-    transition: all 0.2s ease; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  /* SIDEBAR */
+  .sidebar{
+    background:#fff;
+    border-right:1px solid #e5e7eb;
+    padding:22px;
+    display:flex;
+    flex-direction:column;
+    gap:20px;
   }
-  .element-btn:hover { 
-    background: #eef2ff; border-color: var(--primary); color: var(--primary);
-    transform: translateY(-2px); box-shadow: 0 4px 10px rgba(79, 70, 229, 0.15); 
+  .sidebar h2{
+    font-size:20px;
+    font-weight:800;
+    margin:0;
   }
-  /* TELEFOON SIMULATOR */
-  .phone { width: 375px; height: 750px; background: #fff; border: 12px solid #1e293b; border-radius: 40px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); padding: 20px 15px; overflow-y: auto; position: relative; flex-shrink: 0; }
-  .phone-header { position: sticky; top: -20px; background: rgba(255,255,255,0.95); backdrop-filter: blur(5px); z-index: 10; padding: 10px 0; border-bottom: 1px dashed #cbd5e1; display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 15px; }
-
-  /* BLOKKEN IN TELEFOON */
-  .block { padding: 15px; background: #fff; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); cursor: grab; position: relative; }
-  .block.dragging { opacity: 0.5; }
-  .block h4 { margin: 0 0 10px; font-size: 14px; display: flex; align-items: center; gap: 8px; }
-  .kind { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 2px 6px; border-radius: 6px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .remove { position: absolute; top: 12px; right: 12px; background: #ef4444; color: #fff; width: 24px; height: 24px; border: none; border-radius: 6px; cursor: pointer; font-weight: 900; display: flex; align-items: center; justify-content: center; }
-
-  /* FORMS & INPUTS */
-  label { font-size: 12px; font-weight: 700; color: #475569; display: block; margin-top: 12px; margin-bottom: 4px; }
-  input[type="text"], input[type="number"], input[type="url"], select, textarea { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: inherit; font-size: 13px; background: #f8fafc; transition: 0.2s; }
-  input:focus, textarea:focus, select:focus { outline: none; border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
-  .helper { font-size: 11px; color: #64748b; line-height: 1.4; margin-bottom: 8px; }
-  
-  [contenteditable="true"] { padding: 8px; border-radius: 6px; border: 1px dashed transparent; transition: 0.2s; }
-  [contenteditable="true"]:hover { border-color: #cbd5e1; }
-  [contenteditable="true"]:focus { background: #eef2ff; border-color: var(--primary); outline: none; }
-
-/* RIGHT PANEL MODULES & SNAPPING */
-  .page-item { 
-    padding: 12px; background: #f8fafc; border: 1px solid var(--border); 
-    border-radius: 8px; margin-bottom: 8px; cursor: grab; font-size: 13px; 
-    font-weight: 600; display: flex; justify-content: space-between; align-items: center;
-    transition: 0.2s background; position: relative;
+  .element-btn{
+    width:100%;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:12px;
+    background:#f9fafb;
+    border:1px solid #e5e7eb;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:600;
+    transition:.15s ease;
   }
-  .page-item.active { background: var(--primary); border-color: var(--primary); color: #fff; }
-  
-  /* De blauwe snap-lijnen bij het slepen */
-  .page-item.drag-over-top { border-top: 4px solid var(--primary); padding-top: 8px; }
-  .page-item.drag-over-bottom { border-bottom: 4px solid var(--primary); padding-bottom: 8px; }
+  .element-btn:hover{
+    background:#eef2ff;
+    border-color:var(--primary);
+  }
 
-  hr.sep { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
-  .check-row { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13px; margin-top: 8px; flex-direction: row-reverse; justify-content: flex-end; cursor: pointer; }
-  .check-row input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
+  .sidebar-actions{
+    margin-top:auto;
+    display:flex;
+    gap:12px;
+  }
+
+  .btn{
+    flex:1;
+    padding:10px;
+    border-radius:10px;
+    border:1px solid #ddd;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .btn-primary{
+    background:var(--primary);
+    color:#fff;
+    border:none;
+  }
+
+  /* MID CANVAS */
+  .canvas{
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    padding:30px;
+  }
+  .phone{
+    width:380px;
+    height:740px;
+    background:#fff;
+    border-radius:35px;
+    border:4px solid #111;
+    overflow-y:auto;
+    box-shadow:0 20px 50px rgba(0,0,0,0.18);
+    padding:18px 18px 22px;
+  }
+  .phone-header{
+    position:sticky;
+    top:0;
+    background:#fff;
+    z-index:5;
+    padding:8px 0 10px;
+    margin-bottom:10px;
+    border-bottom:1px dashed #ddd;
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    align-items:center;
+  }
+
+  .block{
+    padding:18px;
+    background:#fff;
+    border:1px solid #e5e7eb;
+    border-radius:14px;
+    margin-bottom:14px;
+    box-shadow:0 4px 10px rgba(0,0,0,0.05);
+    cursor:grab;
+    position:relative;
+  }
+
+  .block.dragging{ opacity:.45; }
+
+  .block h4{
+    margin:0 0 8px;
+    font-weight:700;
+    font-size:15px;
+    display:flex;
+    gap:6px;
+    align-items:center;
+  }
+  .kind{
+    background:#f3f4f6;
+    border:1px solid #ddd;
+    padding:2px 6px;
+    border-radius:8px;
+    font-size:11px;
+  }
+  .remove{
+    position:absolute;
+    top:10px;
+    right:10px;
+    background:#ef4444;
+    color:#fff;
+    width:24px;
+    height:24px;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+    font-weight:900;
+  }
+
+  [contenteditable="true"]{
+    padding:6px;
+    border-radius:8px;
+    transition:.15s;
+    outline:2px dashed transparent;
+  }
+  [contenteditable="true"]:focus{
+    background:#f0f4ff;
+    outline-color:#aab4ff;
+  }
+
+  .block input, .block textarea{
+    width:100%;
+    padding:10px;
+    border-radius:10px;
+    border:1px solid #ddd;
+    margin-bottom:8px;
+    font-size:14px;
+  }
+
+  .form-row{
+    display:flex;
+    gap:10px;
+  }
+
+  .helper{
+    font-size:12px;
+    color:#6b7280;
+  }
+
+  /* RIGHT PANEL */
+  .right-panel{
+    background:#fff;
+    border-left:1px solid #e5e7eb;
+    padding:18px;
+    overflow-y:auto;
+  }
+  .right-panel h3{
+    margin:0 0 10px;
+    font-size:16px;
+    font-weight:800;
+  }
+
+  .page-list{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+
+  .page-item{
+    padding:8px 10px;
+    background:#f3f4f6;
+    border:1px solid #e5e7eb;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:14px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .page-item.active{
+    background:var(--primary);
+    border-color:var(--primary);
+    color:#fff;
+  }
+  
+  .panel-section{ margin-top:16px; }
+
+  .right-panel label{
+    font-size:13px;
+    margin-top:10px;
+    display:block;
+  }
+
+  .right-panel input:not([type="checkbox"]),
+  .right-panel textarea,
+  .right-panel select{
+    width:100%;
+    padding:10px;
+    margin-top:4px;
+    border-radius:8px;
+    border:1px solid #ccc;
+    background:#fff;
+  }
+
+  hr.sep{
+    border:none;
+    border-top:1px solid #eee;
+    margin:16px 0;
+  }
+
+  .mc-option {
+    cursor: grab;
+  }
+  .mc-option.dragging {
+    opacity: 0.5;
+  }
+  .mc-option .drag-handle {
+    cursor: grab;
+    user-select: none;
+  }
+
+  .page-item.dragging {
+    opacity: 0.5;
+  }
+  
+  .page-item {
+    cursor: grab;
+  }
+  
+  .page-item:active {
+    cursor: grabbing;
+  }
+
+  .right-panel input[type="checkbox"] {
+    width: auto;
+    padding: 0;
+    margin: 0;
+    border-radius: 3px;
+  }
+
+  /* Net uitgelijnde checkbox-rijen */
+  .right-panel label.check-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    font-size: 13px;
+  }
+  
+  .right-panel label.check-row input[type="checkbox"] {
+    margin: 0;
+    flex-shrink: 0;
+  }
 </style>
 
-<div class="top-bar">
-  <div style="display:flex; gap:15px; align-items:center;">
-    <h1 style="margin:0; font-size:18px; font-weight:900; color:var(--primary);">Builder</h1>
-    <div style="width:1px; height:24px; background:#cbd5e1;"></div>
-    <strong style="font-size:13px;">Taal:</strong>
-    <select id="language-select" style="width:auto; padding:6px 10px;"></select>
-    <button id="add-language-btn" class="btn" style="background:#e2e8f0;">+ Taal</button>
-  </div>
-  <div style="display:flex; gap:10px;">
-    <button id="btn-reset" class="btn" style="background:#f1f5f9; border:1px solid #cbd5e1;">↻ Herladen</button>
-    <button id="btn-save" class="btn btn-primary">💾 Puzzeltocht Opslaan</button>
-  </div>
+<!-- 🌍 TAAL SELECTIE -->
+<div style="display:flex; gap:10px; align-items:center; padding:12px 16px;">
+  <strong>Taal:</strong>
+
+  <select id="language-select">
+    <% (puzzle.languages || ["nl"]).forEach(l => { %>
+      <option value="<%= l %>"><%= l.toUpperCase() %></option>
+    <% }) %>
+  </select>
+
+  <button id="add-language-btn" class="btn">
+    + Taal toevoegen
+  </button>
 </div>
 
-<div class="builder-layout">
+<div class="builder-wrap">
 
-  <aside class="column-left">
-    <h3 class="text-xs font-black uppercase text-gray-400 tracking-widest mb-2" style="font-size:11px;">Inhoud Toevoegen</h3>
-    <button class="element-btn" type="button" data-type="title">🏷️ Titel</button>
-    <button class="element-btn" type="button" data-type="text">📝 Tekst</button>
-    <button class="element-btn" type="button" data-type="image">🖼️ Afbeelding</button>
-    <button class="element-btn" type="button" data-type="audio">🔊 Geluidsfragment</button>
-    <button class="element-btn" type="button" data-type="question">❓ Vraag / Quiz</button>
-    <button class="element-btn" type="button" data-type="photo">📸 Foto laten maken</button>
-    <button class="element-btn" type="button" data-type="team-name">🏷️ Teamnaam (Start Klok)</button>
-    <button class="element-btn" type="button" data-type="aiphoto" style="border-color:#c7d2fe; background:#eef2ff; color:#4338ca;">🤖 AI Foto Controle</button> 
-    <button class="element-btn" type="button" data-type="historychat" style="border-color:#fecaca; background:#fef2f2; color:#b91c1c;">🎭 Historisch Figuur (Chat)</button>
-    <button class="element-btn" type="button" data-type="feedback" style="border-color:#a5f3fc; background:#ecfeff; color:#0e7490;">⭐ Feedback & AI Verslag</button>
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <h2>Builder</h2>
+
+    <div>
+      <button class="element-btn" type="button" data-type="title">🏷️ Titel</button>
+      <button class="element-btn" type="button" data-type="text">📝 Tekst</button>
+      <button class="element-btn" type="button" data-type="image">🖼️ Afbeelding</button>
+      <button class="element-btn" data-type="audio">🔊 Geluidsfragment</button>
+      <button class="element-btn" type="button" data-type="question">❓ Vraag</button>
+      <button class="element-btn" type="button" data-type="photo">📸 Foto maken</button>
+      <button class="element-btn" data-type="team-name">🏷️ Teamnaam</button>
+      <button class="element-btn" data-type="aiphoto">🤖 AI Foto Controle</button> 
+      <button class="element-btn" data-type="historychat">🎭 Historisch Figuur</button>
+    </div>
+
+    <div class="sidebar-actions">
+      <button class="btn" type="button" id="btn-reset">Reset</button>
+      <button class="btn btn-primary" type="button" id="btn-save">Opslaan</button>
+    </div>
   </aside>
 
-  <main class="column-main">
+  <!-- MIDDEN / TELEFOON CANVAS -->
+  <section class="canvas">
     <div class="phone" id="phone" data-id="<%= puzzle._id %>">
       <div class="phone-header">
-        <strong id="app-title" style="color:var(--primary);"><%= puzzle.name %></strong>
-        <span id="page-title-label" style="color:#64748b; font-weight:600;"></span>
-      </div>
-      </div>
-  </main>
-
-  <aside class="column-right" id="right-panel">
-    
-    <div style="background: #f8fafc; border: 1px solid #cbd5e1; padding: 15px; border-radius: 12px; margin-bottom: 24px;">
-      <h3 style="font-size: 11px; font-weight: 900; color: #475569; text-transform: uppercase; letter-spacing: 1px; margin-top: 0;">🎨 Visueel Thema</h3>
-      <label>Sfeer Preset</label>
-      <select id="auto-theme-preset">
-        <option value="standard" <%= puzzle.theme?.preset === 'standard' ? 'selected' : '' %>>Standaard (Modern)</option>
-        <option value="medieval" <%= puzzle.theme?.preset === 'medieval' ? 'selected' : '' %>>🏰 Middeleeuwen (Perkament)</option>
-        <option value="future" <%= puzzle.theme?.preset === 'future' ? 'selected' : '' %>>🚀 De Toekomst (Cyberpunk)</option>
-        <option value="iceage" <%= puzzle.theme?.preset === 'iceage' ? 'selected' : '' %>>🥶 De Ijstijd (Bevroren)</option>
-      </select>
-      <label>Accent Kleur</label>
-      <div style="display:flex; gap:10px; align-items:center;">
-        <input type="color" id="auto-theme-color" value="<%= puzzle.theme?.primaryColor || '#4f46e5' %>" style="width: 45px; height: 35px; border: none; padding: 0; border-radius: 6px; cursor: pointer;">
-        <span style="font-family:monospace; font-size:12px; color:#64748b;">(Wordt toegepast in App)</span>
+        <strong id="app-title"><%= puzzle.name %></strong>
+        <span id="page-title-label"></span>
       </div>
     </div>
+  </section>
 
-    <h3>Pagina's</h3>
-    <div id="page-list" style="display:flex; flex-direction:column; gap:6px;"></div>
-    <button id="add-page-btn" class="btn" style="width:100%; margin-top:10px; border:1px dashed #cbd5e1;">+ Nieuwe Pagina</button>
+  <!-- RECHTERPANEEL -->
+  <aside class="right-panel" id="right-panel">
+
+    <div>
+      <h3>Paginas</h3>
+      <div id="page-list" class="page-list"></div>
+
+      <button id="add-page-btn" class="btn" type="button" style="margin-top:10px;">
+        + Nieuwe pagina
+      </button>
+
+      <div class="panel-section">
+
+        <!-- PAGINA TITEL -->
+        <label>Paginatitel</label>
+        <input id="page-title-input" type="text" placeholder="Paginatitel" />
+
+        <!-- SHOW NEXT PAGE -->
+        <label class="check-row">
+          <input type="checkbox" id="page-shownext">
+          <span>Toon “Volgende pagina”-knop</span>
+        </label>
+
+        <!-- IS MAP -->
+        <label class="check-row">
+          <input id="page-ismap" type="checkbox" />
+          <span>Kaartpagina (toon alleen kaart met je locatie)</span>
+        </label>
+
+        <!-- ⭐ ALTIJD ZICHTBARE GELUIDSOPTIES ⭐ -->
+        <div id="page-sound-settings"
+             style="background:#f9fafb; border:1px solid #e5e7eb;
+                    padding:12px; border-radius:10px; margin-top:10px;">
+        
+            <!-- Speel geluid bij openen pagina -->
+            <label class="check-row">
+              <input id="page-playsound-start" type="checkbox" />
+              <span>Speel geluid bij openen pagina</span>
+            </label>
+            <!-- Geluidsbestand -->
+            <div id="sound-file-section" style="margin-top:10px; display:none;">
+            
+              <label>Geluidsbestand</label>
+            
+              <div style="display:flex; gap:8px; margin-bottom:8px;">
+                <input id="page-soundurl" type="text" placeholder="/uploads/sound.mp3" style="flex:1;">
+            
+                <button type="button" id="btn-sound-upload" class="btn-upload" style="white-space:nowrap;">
+                  Uploaden
+                </button>
+            
+                <input type="file" id="file-sound-upload" accept="audio/*" style="display:none;">
+              </div>
+            </div>
+        </div>
+
+        <!-- TARGET SETTINGS -->
+        <div id="map-target-settings"
+          style="display:none; background:#f9fafb; border:1px solid #e5e7eb; padding:12px; border-radius:10px; margin-top:10px;">
+
+          <label style="margin-top:0;"><strong>Doellocatie (optioneel)</strong></label>
+          <div class="helper" style="margin-bottom:8px;">
+            Als je dit invult, gaat de app automatisch naar de volgende pagina zodra de speler binnen de radius is.
+          </div>
+
+          <div class="form-row">
+            <div>
+              <label>Lat</label>
+              <input id="page-target-lat" type="number" step="0.000001" placeholder="bijv. 52.123">
+            </div>
+            <div>
+              <label>Lng</label>
+              <input id="page-target-lng" type="number" step="0.000001" placeholder="bijv. 5.123">
+            </div>
+          </div>
+
+          <label>Radius (meters)</label>
+          <input id="page-target-radius" type="number" step="1" value="50">
+        </div>
+
+        <div id="map-extra-options" style="display:none; margin-top:10px;">
+
+          <label class="check-row">
+            <input id="page-showtarget" type="checkbox" />
+            <span>Toon doellocatie aan speler</span>
+          </label>
+
+          <label class="check-row">
+            <input id="page-autonext" type="checkbox" />
+            <span>Ga automatisch naar volgende pagina bij binnen radius</span>
+          </label>
+        </div>
+
+        <!-- DELETE PAGE -->
+        <div style="display:flex; gap:8px; margin-top:12px;">
+          <button id="delete-page-btn" class="btn" type="button"
+            style="background:#fee2e2; color:#991b1b; border-color:#fecaca;">
+            Pagina verwijderen
+          </button>
+        </div>
+
+        <div id="page-warning"
+          style="display:none; background:#fee2e2; color:#991b1b; border:1px solid #fecaca;
+                 border-radius:10px; padding:10px; margin-top:10px;">
+          Je kunt de laatste pagina niet verwijderen.
+        </div>
+
+      </div>
+    </div>
 
     <hr class="sep">
 
-    <h3 style="font-size: 14px;">Huidige Pagina</h3>
-    <label>Paginatitel</label>
-    <input id="page-title-input" type="text" placeholder="Naam van pagina" />
+    <!-- BLOKINSTELLINGEN -->
+    <div class="panel-section">
+      <h3>Blok‑instellingen</h3>
+      <small id="panel-empty">Selecteer een blok om te bewerken.</small>
 
-    <label class="check-row">
-      <input type="checkbox" id="page-shownext">
-      <span>Toon “Volgende” knop</span>
-    </label>
-    <label class="check-row">
-      <input id="page-ismap" type="checkbox" />
-      <span>Maak dit een GPS Kaartpagina</span>
-    </label>
+      <div id="panel-fields" style="display:none;">
+        <label>Type</label>
+        <input id="panel-type" disabled />
 
-    <div style="background:#f1f5f9; padding:12px; border-radius:8px; margin-top:15px;">
-      <label class="check-row" style="margin-top:0;">
-        <input id="page-playsound-start" type="checkbox" />
-        <span>Speel audio bij openen</span>
-      </label>
-      <div id="sound-file-section" style="display:none; margin-top:10px;">
-        <label>Geluidsbestand URL</label>
-        <input id="page-soundurl" type="text" placeholder="/uploads/audio.mp3">
+        <div id="panel-dynamic" style="margin-top:8px;"></div>
       </div>
-    </div>
-
-    <div id="map-target-settings" style="display:none; background:#eef2ff; border:1px solid #c7d2fe; padding:12px; border-radius:8px; margin-top:15px;">
-      <label style="margin-top:0; color:#4338ca;">📍 Doellocatie (GPS Check)</label>
-      <div class="helper">Speler kan pas verder als ze in de cirkel staan.</div>
-      <div style="display:flex; gap:10px;">
-        <div style="flex:1;"><label>Lat</label><input id="page-target-lat" type="number" step="0.000001"></div>
-        <div style="flex:1;"><label>Lng</label><input id="page-target-lng" type="number" step="0.000001"></div>
-      </div>
-      <label>Radius (meters)</label>
-      <input id="page-target-radius" type="number" step="1" value="50">
-      <div id="map-extra-options" style="margin-top:10px;">
-        <label class="check-row"><input id="page-showtarget" type="checkbox" /><span>Toon de cirkel op de kaart</span></label>
-        <label class="check-row"><input id="page-autonext" type="checkbox" /><span>Ga autmatisch door bij bereiken doel</span></label>
-      </div>
-    </div>
-
-    <button id="delete-page-btn" class="btn btn-danger" style="width:100%; margin-top:15px;">Pagina Verwijderen</button>
-    <div id="page-warning" style="display:none; background:#fee2e2; color:#991b1b; padding:10px; border-radius:8px; margin-top:10px; font-size:12px; font-weight:bold;">
-      Je kunt de laatste pagina niet verwijderen.
-    </div>
-
-    <hr class="sep">
-
-    <h3 style="font-size: 14px;">Blok Instellingen</h3>
-    <div id="panel-empty" class="helper" style="padding:20px; background:#f8fafc; border:1px dashed #cbd5e1; text-align:center; border-radius:8px;">
-      Klik op een blok in de telefoon om instellingen te bewerken.
-    </div>
-    <div id="panel-fields" style="display:none;">
-      <label>Type Module</label>
-      <input id="panel-type" disabled style="background:#e2e8f0; color:#475569; font-weight:bold;" />
-      <div id="panel-dynamic" style="margin-top:15px;"></div>
     </div>
 
   </aside>
-</div>
+</div> <!-- einde .builder-wrap -->
 
 <script>
 (function(){  
-  const puzzleMeta = <%- JSON.stringify({ languages: puzzle.languages || ["nl"], defaultLanguage: puzzle.defaultLanguage || "nl", _id: puzzle._id }) %>;
+  // ✅ PUZZLE OBJECT BESCHIKBAAR MAKEN IN JS
+  const puzzleMeta = <%- JSON.stringify({
+    languages: puzzle.languages || ["nl"],
+    defaultLanguage: puzzle.defaultLanguage || "nl",
+    _id: puzzle._id
+  }) %>;
+
   const phone = document.getElementById("phone");
+  if(!phone) return;
+
   const qs  = (s,p=document)=>p.querySelector(s);
   const qsa = (s,p=document)=>Array.from(p.querySelectorAll(s));
 
-  let availableLanguages = [...(puzzleMeta.languages.length ? puzzleMeta.languages : ["nl"])];
+  // ✅ MEERTALIGHEID BASIS
+  let availableLanguages =
+    Array.isArray(puzzleMeta.languages) && puzzleMeta.languages.length
+      ? [...puzzleMeta.languages]
+      : ["nl"];
   let activeLanguage = puzzleMeta.defaultLanguage || "nl";
+
+  // ➕ NIEUWE TAAL TOEVOEGEN
+  qs("#add-language-btn").addEventListener("click", () => {
+    const lang = prompt(
+      "Voer taalcode in (bijv. en, de, fr):"
+    );
+  
+    if (!lang) return;
+    if (availableLanguages.includes(lang)) {
+      alert("Deze taal bestaat al.");
+      return;
+    }
+  
+    addLanguage(lang);
+  });
+
   let pages = <%- JSON.stringify(pagesSafe) %>;
+  if(!Array.isArray(pages) || !pages.length){
+    pages = [{
+      title:"Pagina 1",
+      showNext:true,
+      isMap:false,
+      showTarget:true,
+      autoNext:false,
+      playSound:false,
+      soundUrl:"",
+      modules:[]
+    }];
+  }
+
+  // 🌍 TAAL WISSELEN
+  const langSelect = qs("#language-select");
+  
+  if (langSelect) {
+    langSelect.value = activeLanguage;
+  
+    langSelect.addEventListener("change", () => {
+      // huidige taal opslaan
+      savePageSettings();
+      pages[currentPage].modules = collect();
+  
+      activeLanguage = langSelect.value;
+      renderPage(currentPage);
+    });
+  }
+
   let currentPage = 0;
   let selected = null;
   let dragged = null;
+  let draggedPageIndex = null;
 
-  // Language Setup
-  qs("#add-language-btn").addEventListener("click", () => {
-    const lang = prompt("Voer taalcode in (bijv. en, de, fr):");
-    if (!lang || availableLanguages.includes(lang)) return;
-    availableLanguages.push(lang); updateLanguageSelect();
-    activeLanguage = lang; renderPage(currentPage);
-  });
-
-  function updateLanguageSelect() {
-    const sel = qs("#language-select"); sel.innerHTML = "";
-    availableLanguages.forEach(l => { sel.innerHTML += `<option value="${l}">${l.toUpperCase()}</option>`; });
-    sel.value = activeLanguage;
+  function mapGoogleDriveUrl(url){
+    try{
+      const u = new URL(url);
+      if (u.hostname.includes("drive.google.com")) {
+        const m = u.pathname.match(/\/file\/d\/([^/]+)/);
+        if (m && m[1]) return `https://drive.google.com/uc?export=view&id=${m[1]}`;
+        const id = u.searchParams.get("id");
+        if (id) return `https://drive.google.com/uc?export=view&id=${id}`;
+      }
+    } catch {}
+    return url;
   }
-  qs("#language-select").addEventListener("change", (e) => {
-    savePageSettings(); pages[currentPage].modules = collect();
-    activeLanguage = e.target.value; renderPage(currentPage);
-  });
-  updateLanguageSelect();
 
-  // Pages Logic
   function setPageTitleUI(){
-    const pg = pages[currentPage];
-    const t = typeof pg.title === "string" ? pg.title : pg.title?.[activeLanguage] || "Pagina " + (currentPage + 1);
-    qs("#page-title-label").textContent = t;
-    qs("#page-title-input").value = typeof pg.title === "string" ? pg.title : pg.title?.[activeLanguage] || "";
-    qs("#page-shownext").checked = !!pg.showNext;
-    qs("#page-ismap").checked = !!pg.isMap;
-    qs("#page-playsound-start").checked = !!pg.playSoundOnStart;
-    qs("#page-showtarget").checked = !!pg.showTarget;
-    qs("#page-autonext").checked = !!pg.autoNext;
-    qs("#page-soundurl").value = pg.soundUrl || "";
-    qs("#sound-file-section").style.display = pg.playSoundOnStart ? "block" : "none";
-    qs("#page-target-lat").value = pg.targetLat ?? "";
-    qs("#page-target-lng").value = pg.targetLng ?? "";
-    qs("#page-target-radius").value = pg.targetRadius ?? 50;
-    qs("#map-target-settings").style.display = pg.isMap ? "block" : "none";
+    const page = pages[currentPage];
+
+    const title =
+      typeof page.title === "string"
+        ? page.title
+        : page.title?.[activeLanguage]
+          || page.title?.[puzzleMeta.defaultLanguage]
+          || ("Pagina " + (currentPage + 1));
+
+    const isMap = !!page?.isMap;
+
+    qs("#page-title-label").textContent = title;
+    qs("#page-title-input").value =
+      typeof page.title === "string"
+        ? page.title
+        : page.title?.[activeLanguage] || "";
+
+    qs("#page-shownext").checked = !!page.showNext;
+    qs("#page-ismap").checked = !!page.isMap;
+    qs("#page-playsound-start").checked = !!page.playSoundOnStart;
+    qs("#map-extra-options").style.display = page.isMap ? "block" : "none";
+
+    // --- NIEUWE VELDEN ---
+    qs("#page-showtarget").checked = !!page.showTarget;
+    qs("#page-autonext").checked = !!page.autoNext;
+    qs("#page-soundurl").value   = page.soundUrl || "";
+    qs("#sound-file-section").style.display =
+      page.playSoundOnStart ? "block" : "none";
+
+    // Bestaande targetvelden
+    qs("#page-target-lat").value = page?.targetLat ?? "";
+    qs("#page-target-lng").value = page?.targetLng ?? "";
+    qs("#page-target-radius").value = page?.targetRadius ?? 50;
+
+    // Toon/verberg target-instellingen als 'isMap' aan staat
+    qs("#map-target-settings").style.display = isMap ? "block" : "none";
   }
 
-let draggedPageIndex = null;
+  function renderPageList(){
+    const wrap = qs("#page-list");
+    wrap.innerHTML = "";
 
-function renderPageList(){
-    const wrap = qs("#page-list"); wrap.innerHTML = "";
     pages.forEach((p,i)=>{
       const item = document.createElement("div");
       item.className = "page-item" + (i===currentPage ? " active" : "");
-      item.draggable = true; 
+      item.draggable = true;
       item.dataset.index = i;
+      item.dataset.page = i;
+      const title =
+        typeof p.title === "string"
+          ? p.title
+          : p.title?.[activeLanguage]
+            || p.title?.[puzzleMeta.defaultLanguage]
+            || `Pagina ${i+1}`;
       
-      const title = typeof p.title === "string" ? p.title : p.title?.[activeLanguage] || `Pagina ${i+1}`;
-      item.innerHTML = `<span>${i+1}. ${title}</span><span style="opacity:0.4; cursor:grab;">≡</span>`;
+      item.innerHTML = `<span>${title}</span>`;
+      item.addEventListener("click", ()=> switchPage(i));
+      item.addEventListener("dragstart", (e) => {
+        draggedPageIndex = i;
+        item.classList.add("dragging");
+        e.dataTransfer.effectAllowed = "move";
+      });
       
-      item.onclick = () => { savePageSettings(); pages[currentPage].modules = collect(); currentPage = i; renderPageList(); renderPage(i); };
+      item.addEventListener("dragend", () => {
+        item.classList.remove("dragging");
+        draggedPageIndex = null;
+      });
       
-      // DRAG & DROP MET SNAPPING
-      item.ondragstart = (e) => { draggedPageIndex = i; item.style.opacity = 0.5; e.dataTransfer.effectAllowed = "move"; };
-      item.ondragend = () => { item.style.opacity = 1; draggedPageIndex = null; qsa(".page-item").forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom')); };
-      item.ondragover = (e) => {
+      item.addEventListener("dragover", (e) => {
         e.preventDefault();
-        const rect = item.getBoundingClientRect();
-        const mid = rect.top + rect.height / 2;
-        if (e.clientY < mid) { item.classList.add('drag-over-top'); item.classList.remove('drag-over-bottom'); } 
-        else { item.classList.add('drag-over-bottom'); item.classList.remove('drag-over-top'); }
-      };
-      item.ondragleave = () => { item.classList.remove('drag-over-top', 'drag-over-bottom'); };
-      item.ondrop = (e) => {
+      });
+      
+      item.addEventListener("drop", (e) => {
         e.preventDefault();
+      
         const targetIndex = Number(item.dataset.index);
-        if (draggedPageIndex === null || draggedPageIndex === targetIndex) return;
-        
-        // Bepaal of hij er boven of onder valt
-        const rect = item.getBoundingClientRect();
-        const dropIndex = (e.clientY < rect.top + rect.height / 2) ? targetIndex : targetIndex + 1;
-        
-        movePage(draggedPageIndex, dropIndex);
-      };
-
+        if (
+          draggedPageIndex === null ||
+          draggedPageIndex === targetIndex
+        ) return;
+      
+        movePage(draggedPageIndex, targetIndex);
+      });
       wrap.appendChild(item);
     });
   }
 
-  function movePage(fromIndex, toIndex){
-    savePageSettings(); pages[currentPage].modules = collect();
-    const moved = pages.splice(fromIndex, 1)[0];
-    pages.splice(toIndex, 0, moved);
-    if (currentPage === fromIndex) currentPage = toIndex;
-    else if (currentPage > fromIndex && currentPage <= toIndex) currentPage--;
-    else if (currentPage < fromIndex && currentPage >= toIndex) currentPage++;
-    renderPageList(); renderPage(currentPage);
+  function clearBlocks(){
+    qsa(".block", phone).forEach(b => b.remove());
   }
-
-  // Blocks Logic
-  function createBlock(type){
-    const div = document.createElement("div");
-    div.className = "block"; div.draggable = true; div.dataset.type = type;
-    div.innerHTML = `<button class="remove" type="button">×</button><h4><span>${type.toUpperCase()}</span><span class="kind">${type}</span></h4><div class="content"></div>`;
-    const content = qs(".content", div);
-
-    if (type === "title") content.innerHTML = `<div contenteditable="true" data-field="title" style="font-size:20px; font-weight:800;">Nieuwe titel</div>`;
-    if (type === "text") content.innerHTML = `<div contenteditable="true" data-field="text">Typ hier je tekst...</div>`;
-    if (type === "image") content.innerHTML = `<input type="url" data-field="url" placeholder="Afbeeldings-URL">`;
-    if (type === "audio") content.innerHTML = `<input type="url" data-field="url" placeholder="Audio-URL">`;
-    if (type === "team-name") content.innerHTML = `<div class="helper">Speler vult hier teamnaam in. Start de Klok.</div>`;
-    if (type === "photo") content.innerHTML = `<div class="helper">Speler moet hier een foto maken met de camera.</div><input type="hidden" data-field="url">`;
-    
-    if (type === "feedback") {
-      content.innerHTML = `<div style="background:#ecfeff; padding:12px; border-radius:8px; border:1px solid #a5f3fc;"><strong style="color:#0891b2;">⭐ Finale Feedback & AI Score</strong></div>`;
-    }
-
-    if (type === "aiphoto") {
-      content.innerHTML = `
-        <input data-field="ai-instruction" placeholder="Speler instructie (bijv: Fotografeer een kat)" style="margin-bottom:8px;">
-        <input data-field="ai-prompt" placeholder="Geheime AI-prompt (bijv: Een kat of poes)" style="margin-bottom:8px;">
-        <div style="display:flex; align-items:center; gap:8px;"><label>Punten:</label><input type="number" data-field="ai-points" value="10" style="width:80px;"></div>
-      `;
-    }
-
-    if (type === "historychat") {
-      content.innerHTML = `
-        <input data-field="chat-name" placeholder="Naam NPC (bijv. Visboer Jos)" style="margin-bottom:8px;">
-        <textarea data-field="chat-prompt" rows="2" placeholder="AI Karakter omschrijving..." style="margin-bottom:8px;"></textarea>
-        <div style="display:flex; align-items:center; gap:8px;"><label>Max Berichten:</label><input type="number" data-field="chat-max-turns" value="3" style="width:60px;"></div>
-      `;
-    }
-
-    if (type === "question") {
-      content.innerHTML = `
-        <input data-field="question" placeholder="Stel hier de vraag...">
-        <select data-field="questionType" style="margin-top:8px;"><option value="open">Open vraag</option><option value="mc">Meerkeuze</option></select>
-        <div data-open style="margin-top:8px;"><input data-field="answer" placeholder="Juiste antwoord"></div>
-        <div data-mc style="display:none; margin-top:8px; background:#f8fafc; padding:10px; border-radius:8px;"><div data-options></div><button type="button" data-add-option class="btn" style="width:100%; margin-top:8px;">+ Optie</button></div>
-        <input type="hidden" data-field="goodPage"><input type="hidden" data-field="badPage"><input type="hidden" data-field="pts" value="10"><input type="hidden" data-field="istimed" value="false"><input type="hidden" data-field="tlimit" value="60"><input type="hidden" data-field="ppen" value="1"><input type="hidden" data-field="psec" value="10">
-      `;
-      const qt = content.querySelector('[data-field="questionType"]');
-      qt.onchange = () => { content.querySelector('[data-open]').style.display = qt.value === 'open' ? 'block' : 'none'; content.querySelector('[data-mc]').style.display = qt.value === 'mc' ? 'block' : 'none'; };
-      
-      div.createOption = (text="", isCorrect=false) => {
-        const optWrap = content.querySelector('[data-options]'); const opt = document.createElement("div"); opt.className="mc-option"; opt.style.display="flex"; opt.style.gap="8px"; opt.style.marginBottom="8px";
-        opt.innerHTML = `<input type="text" data-text value="${text}"><label style="display:flex;align-items:center;gap:4px;margin:0;"><input type="checkbox" data-correct ${isCorrect?'checked':''}>Juist</label><button type="button" data-remove class="btn btn-danger" style="padding:8px;">X</button>`;
-        opt.querySelector('[data-remove]').onclick = () => { if(optWrap.children.length>1) opt.remove(); }; optWrap.appendChild(opt);
-      };
-      div.createOption(); div.createOption();
-      content.querySelector('[data-add-option]').onclick = () => div.createOption();
-    }
-
-    // Verborgen Hint velden
-    const h = document.createElement("div");
-    h.innerHTML = `<input type="hidden" data-field="aiknowledge"><input type="hidden" data-field="hinttype" value="ai"><input type="hidden" data-field="statichint"><input type="hidden" data-field="hintcost" value="0">`;
-    div.appendChild(h);
-
-    wireBlock(div); return div;
-  }
-
-  function wireBlock(b){
-    b.onclick = () => setSelected(b);
-    b.ondragstart = (e) => { dragged = b; b.classList.add("dragging"); };
-    b.ondragend = () => { b.classList.remove("dragging"); dragged = null; };
-  }
-
-  qsa(".element-btn").forEach(btn => btn.onclick = () => { const b = createBlock(btn.dataset.type); phone.appendChild(b); setSelected(b); });
-  phone.onclick = (e) => { if(e.target.classList.contains("remove")){ const b = e.target.closest(".block"); if(b){ if(selected===b) clearPanel(); b.remove(); } } };
-
-  phone.ondragover = (e) => {
-    if(!dragged) return; e.preventDefault();
-    const after = qsa(".block:not(.dragging)", phone).reduce((acc, child) => { const box = child.getBoundingClientRect(); const offset = e.clientY - (box.top + box.height/2); return offset < 0 && offset > acc.offset ? {offset, el:child} : acc; }, {offset: -Infinity, el: null}).el;
-    after ? phone.insertBefore(dragged, after) : phone.appendChild(dragged);
-  };
-
-  // Right Panel Block Settings
-  const pEmpty = qs("#panel-empty"); const pFields = qs("#panel-fields"); const pDyn = qs("#panel-dynamic");
-  
-  function setSelected(block){
-    selected = block; pEmpty.style.display = "none"; pFields.style.display = "block"; pDyn.innerHTML = "";
-    const type = block.dataset.type; qs("#panel-type").value = type.toUpperCase();
-
-    if (type === "title" || type === "text") {
-      const src = qs(`[data-field="${type}"]`, block);
-      pDyn.innerHTML = `<label>${type}</label><textarea id="p-content" rows="4">${src.innerHTML}</textarea>`;
-      qs("#p-content").oninput = () => src.innerHTML = qs("#p-content").value;
-    }
-
-    if (type === "question") {
-      pDyn.innerHTML = `<div style="background:#fef3c7; padding:12px; border-radius:8px; border:1px solid #fde68a;"><label>Max Punten</label><input type="number" id="p-pts" value="${qs('[data-field="pts"]', block).value}"></div>`;
-      qs("#p-pts").oninput = () => qs('[data-field="pts"]', block).value = qs("#p-pts").value;
-    }
-
-    // Universele hints
-    const sAiK = qs('[data-field="aiknowledge"]', block);
-    if(sAiK){
-      pDyn.innerHTML += `
-        <hr class="sep"><label style="color:var(--primary);">💡 Hint Systeem</label>
-        <select id="p-hint-type"><option value="ai">🤖 AI-Gestuurd</option><option value="static">📝 Statische Tekst</option></select>
-        <div id="w-ai"><label>Verborgen AI Context</label><textarea id="p-aik" rows="3">${qs('[data-field="aiknowledge"]',block).value}</textarea></div>
-        <div id="w-st"><label>Hint Tekst</label><textarea id="p-sh" rows="3">${qs('[data-field="statichint"]',block).value}</textarea></div>
-        <label>Hint Kosten (0 is gratis)</label><input type="number" id="p-hcost" value="${qs('[data-field="hintcost"]',block).value}">
-      `;
-      const sHt = qs('[data-field="hinttype"]', block);
-      qs("#p-hint-type").value = sHt.value;
-      const upd = () => { qs("#w-ai").style.display = qs("#p-hint-type").value === 'ai' ? 'block':'none'; qs("#w-st").style.display = qs("#p-hint-type").value === 'static' ? 'block':'none'; };
-      upd(); qs("#p-hint-type").onchange = () => { sHt.value = qs("#p-hint-type").value; upd(); };
-      qs("#p-aik").oninput = () => qs('[data-field="aiknowledge"]',block).value = qs("#p-aik").value;
-      qs("#p-sh").oninput = () => qs('[data-field="statichint"]',block).value = qs("#p-sh").value;
-      qs("#p-hcost").oninput = () => qs('[data-field="hintcost"]',block).value = qs("#p-hcost").value;
-    }
-  }
-
-  function clearPanel(){ selected=null; pEmpty.style.display="block"; pFields.style.display="none"; pDyn.innerHTML=""; }
 
   function renderPage(idx){
-    qsa(".block", phone).forEach(b=>b.remove()); const pg = pages[idx];
-    if(pg.isMap){
-      phone.innerHTML += `<div class="block" style="border:2px dashed var(--primary); text-align:center; padding:30px;"><h4>🗺️ GPS Kaart Actief</h4><p class="helper">Speler ziet hier de route.</p></div>`;
-      setPageTitleUI(); clearPanel(); return;
+    clearBlocks();
+    const pg = pages[idx];
+
+    // --- MAP PREVIEW-MODUS ---
+    if (pg.isMap === true) {
+      const info = document.createElement("div");
+      info.className = "block";
+      info.dataset.type = "__preview__";
+      info.draggable = false;
+      info.style.borderStyle = "dashed";
+
+      info.innerHTML = `
+        <h4>
+          <span>Kaartpagina</span>
+          <span class="kind">map</span>
+        </h4>
+        <div class="helper">
+          In de speler zie je een live kaart met je huidige locatie.
+          Modules op deze pagina worden genegeerd.
+        </div>
+
+        <div class="map-target-preview"
+          style="margin-top:8px; background:#f9fafb; border:1px solid #e5e7eb;
+                 padding:10px; border-radius:10px;">
+          <div class="helper">Nog geen doel ingesteld.</div>
+        </div>
+
+        <!-- NIEUW: indicatoren voor opties -->
+        <div style="margin-top:10px; font-size:13px; color:#555;">
+          <div>🎯 Doel zichtbaar: <strong>${pg.showTarget ? "ja" : "nee"}</strong></div>
+          <div>⏭ Automatisch door: <strong>${pg.autoNext ? "ja" : "nee"}</strong></div>
+          ${pg.soundUrl
+            ? "<div>📁 Geluid: <code>" + pg.soundUrl + "</code></div>"
+            : ""}
+        </div>
+      `;
+
+      phone.appendChild(info);
+
+      setPageTitleUI();
+      clearPanel();
+      updateMapPreview(); 
+      return;
     }
-    (pg.modules||[]).forEach(m => {
-      const b = createBlock(m.type); phone.appendChild(b);
-      // Vul data in (versimpeld voor overzicht, exact zelfde parsing logic)
-      if(m.type==="title") qs('[data-field="title"]',b).innerHTML = typeof m.data.title==="string"?m.data.title:m.data.title?.[activeLanguage]||"";
-      if(m.type==="text") qs('[data-field="text"]',b).innerHTML = typeof m.data.text==="string"?m.data.text:m.data.text?.[activeLanguage]||"";
-      if(m.type==="image"||m.type==="audio") qs('[data-field="url"]',b).value = m.data.url||"";
-      if(m.type==="question") {
-         qs('[data-field="question"]',b).value = typeof m.data.question==="string"?m.data.question:m.data.question?.[activeLanguage]||"";
-         qs('[data-field="questionType"]',b).value = m.data.questionType||"open";
-         qs('[data-field="questionType"]',b).dispatchEvent(new Event('change'));
-         if(m.data.questionType==="open") qs('[data-field="answer"]',b).value = typeof m.data.answer==="string"?m.data.answer:m.data.answer?.[activeLanguage]||"";
-         else { qs('[data-options]',b).innerHTML=""; (m.data.options||[]).forEach(o=> b.createOption(typeof o.text==="string"?o.text:o.text?.[activeLanguage]||"", o.correct)); }
+
+    // --- NORMALE PAGINA: MODULES ---
+    (pg.modules || []).forEach(m=>{
+      const block = createBlock(m.type);
+      phone.appendChild(block);
+      block._data = JSON.parse(JSON.stringify(m.data || {}));
+
+
+      const data = m.data || {};
+
+
+      if (m.type === "aiphoto") {
+        const instrInput = qs('[data-field="ai-instruction"]', block);
+        const promptInput = qs('[data-field="ai-prompt"]', block);
+        const pointsInput = qs('[data-field="ai-points"]', block);
+        
+        if (instrInput) instrInput.value = typeof data.instruction === "string" ? data.instruction : data.instruction?.[activeLanguage] || "";
+        if (promptInput) promptInput.value = typeof data.prompt === "string" ? data.prompt : data.prompt?.[activeLanguage] || "";
+        if (pointsInput) pointsInput.value = data.points !== undefined ? data.points : 10;
       }
-      if(m.type==="historychat"){
-         qs('[data-field="chat-name"]',b).value = typeof m.data.characterName==="string"?m.data.characterName:m.data.characterName?.[activeLanguage]||"";
-         qs('[data-field="chat-prompt"]',b).value = typeof m.data.systemPrompt==="string"?m.data.systemPrompt:m.data.systemPrompt?.[activeLanguage]||"";
+
+if (m.type === "historychat") {
+        const nameInput = qs('[data-field="chat-name"]', block);
+        const promptInput = qs('[data-field="chat-prompt"]', block);
+        const latInput = qs('[data-field="chat-lat"]', block);
+        const lngInput = qs('[data-field="chat-lng"]', block);
+        const radInput = qs('[data-field="chat-radius"]', block);
+
+        if (nameInput) nameInput.value = typeof data.characterName === "string" ? data.characterName : data.characterName?.[activeLanguage] || "";
+        if (promptInput) promptInput.value = typeof data.systemPrompt === "string" ? data.systemPrompt : data.systemPrompt?.[activeLanguage] || "";
+        if (latInput) latInput.value = data.lat ?? "";
+        if (lngInput) lngInput.value = data.lng ?? "";
+        if (radInput) radInput.value = data.radius ?? 50;
       }
-      if(m.type==="aiphoto"){
-         qs('[data-field="ai-instruction"]',b).value = typeof m.data.instruction==="string"?m.data.instruction:m.data.instruction?.[activeLanguage]||"";
-         qs('[data-field="ai-prompt"]',b).value = typeof m.data.prompt==="string"?m.data.prompt:m.data.prompt?.[activeLanguage]||"";
+
+      if (m.type === "photo") {
+        const url = data?.url;
+      
+        if (url) {
+          const img = document.createElement("img");
+          img.className = "preview";
+          img.src = url;
+          img.style.width = "100%";
+          img.style.borderRadius = "10px";
+          qs(".content", block).appendChild(img);
+        }
       }
-      // Hints
-      if(qs('[data-field="aiknowledge"]',b)) qs('[data-field="aiknowledge"]',b).value = m.data.aiKnowledge||"";
-      if(qs('[data-field="hinttype"]',b)) qs('[data-field="hinttype"]',b).value = m.data.hintType||"ai";
-      if(qs('[data-field="statichint"]',b)) qs('[data-field="statichint"]',b).value = m.data.staticHintText||"";
-      if(qs('[data-field="hintcost"]',b)) qs('[data-field="hintcost"]',b).value = m.data.hintCost||0;
+
+      if (m.type === "title") {
+        const value =
+          typeof data.title === "string"
+            ? data.title
+            : data.title?.[activeLanguage] || "";
+      
+        qs('[data-field="title"]', block).innerHTML = value;
+      }
+
+      if (m.type === "text") {
+        const value =
+          typeof data.text === "string"
+            ? data.text
+            : data.text?.[activeLanguage] || "";
+      
+        qs('[data-field="text"]', block).innerHTML = value;
+      }
+
+      if(m.type==="image"){
+        const url = data?.url || "";
+        const inp = qs('input[data-field="url"]', block);
+        inp.value = url;
+
+        if(url){
+          const img = document.createElement("img");
+          img.className = "preview";
+          img.src = url;
+          img.style.width = "100%";
+          img.style.borderRadius = "10px";
+          qs(".content", block).appendChild(img);
+        } else {
+          const helper = document.createElement("div");
+          helper.className = "helper";
+          helper.textContent = "Voeg een afbeelding URL toe of upload.";
+          qs(".content", block).appendChild(helper);
+        }
+      }
+
+      if(m.type==="question"){
+        qs('[data-field="question"]', block).value =
+          typeof data.question === "string"
+            ? data.question
+            : data.question?.[activeLanguage] || "";
+        qs('[data-field="questionType"]', block).value = data?.questionType || "open";
+      
+        const openWrap = qs('[data-open]', block);
+        const mcWrap   = qs('[data-mc]', block);
+      
+        if(data?.questionType === "mc"){
+          openWrap.style.display = "none";
+          mcWrap.style.display = "block";
+      
+          const optWrap = qs('[data-options]', block);
+            optWrap.innerHTML = "";
+            
+            (data.options || []).forEach((option) => {
+              const div = document.createElement("div");
+              div.className = "mc-option";
+              div.setAttribute("data-option", "");
+              div.draggable = true;
+            
+              div.innerHTML = `
+                <label style="font-size:12px; font-weight:600;">Juist</label>
+                <div style="display:flex; gap:10px; align-items:center;">
+                  <span class="drag-handle">☰</span>
+                  <input type="text" data-text />
+                  <input type="checkbox" data-correct />
+                </div>
+              `;
+            
+              div.querySelector('[data-text]').value =
+                typeof option.text === "string"
+                  ? option.text
+                  : option.text?.[activeLanguage] || "";
+            
+              div.querySelector('[data-correct]').checked = !!option.correct;
+            
+              optWrap.appendChild(div);
+            });
+        } else {
+          openWrap.style.display = "block";
+          mcWrap.style.display = "none";
+          qs('[data-field="answer"]', block).value =
+            typeof data.answer === "string"
+              ? data.answer
+              : data.answer?.[activeLanguage] || "";
+        }
+      
+        qs('[data-field="goodPage"]', block).value =
+          Number.isInteger(data?.goodPage) ? data.goodPage : "";
+        qs('[data-field="badPage"]', block).value =
+          Number.isInteger(data?.badPage) ? data.badPage : "";
+      }
+
+      if(m.type==="location"){
+        qs('[data-field="lat"]',    block).value = data?.lat ?? "";
+        qs('[data-field="lng"]',    block).value = data?.lng ?? "";
+        qs('[data-field="radius"]', block).value = data?.radius ?? 50;
+      }
     });
-    setPageTitleUI(); clearPanel();
+
+    setPageTitleUI();
+    clearPanel();
   }
 
-  function collect(){
-    return qsa(".block:not([style*='dashed'])", phone).map(b => {
-      const type = b.dataset.type; let data = {};
-      if(type==="title"||type==="text") data[type] = {[activeLanguage]: qs(`[data-field="${type}"]`,b).innerHTML};
-      if(type==="image"||type==="audio"||type==="photo") data.url = qs('[data-field="url"]',b)?.value||"";
-      if(type==="question"){
-        data.question = {[activeLanguage]: qs('[data-field="question"]',b).value};
-        data.questionType = qs('[data-field="questionType"]',b).value;
-        if(data.questionType==="open") data.answer = {[activeLanguage]: qs('[data-field="answer"]',b).value};
-        else data.options = qsa('.mc-option',b).map(o=>({ text: {[activeLanguage]: o.querySelector('[data-text]').value}, correct: !!o.querySelector('[data-correct]').checked }));
-        data.maxPoints = Number(qs('[data-field="pts"]',b).value)||10;
+function savePageSettings() {
+  const pg = pages[currentPage];
+
+  if (typeof pg.title !== "object" || pg.title === null) {
+    pg.title = {};
+  }
+  
+  pg.title[activeLanguage] =
+    qs("#page-title-input").value || "";
+  pg.showNext     = qs("#page-shownext").checked;
+  pg.isMap        = qs("#page-ismap").checked;
+
+  // nieuwe velden
+  pg.showTarget   = qs("#page-showtarget").checked;
+  pg.autoNext     = qs("#page-autonext").checked;
+  pg.playSoundOnStart = qs("#page-playsound-start").checked;
+  pg.soundUrl     = qs("#page-soundurl").value;
+
+  // target velden
+  pg.targetLat    = qs("#page-target-lat").value !== "" ? Number(qs("#page-target-lat").value) : null;
+  pg.targetLng    = qs("#page-target-lng").value !== "" ? Number(qs("#page-target-lng").value) : null;
+  pg.targetRadius = qs("#page-target-radius").value !== "" ? Number(qs("#page-target-radius").value) : 50;
+}
+
+function switchPage(nextIndex){
+    savePageSettings();
+    pages[currentPage].modules = collect();
+    currentPage = nextIndex;
+    renderPageList();
+    renderPage(currentPage);
+}
+
+function addLanguage(lang) {
+  availableLanguages.push(lang);
+  puzzleMeta.languages = availableLanguages;
+
+  puzzleMeta.defaultLanguage = puzzleMeta.defaultLanguage || activeLanguage;
+
+  pages.forEach(page => {
+    if (typeof page.title === "string") {
+      page.title = {
+        [puzzleMeta.defaultLanguage]: page.title
+      };
+    }
+    page.title[lang] = "";
+
+    page.modules.forEach(m => {
+      for (const key in m.data) {
+        if (typeof m.data[key] === "string") {
+          m.data[key] = {
+            [puzzleMeta.defaultLanguage]: m.data[key],
+            [lang]: ""
+          };
+        }
       }
-      if(type==="historychat"){
-        data.characterName = {[activeLanguage]: qs('[data-field="chat-name"]',b).value};
-        data.systemPrompt = {[activeLanguage]: qs('[data-field="chat-prompt"]',b).value};
+    });
+  });
+
+  updateLanguageSelect();
+  activeLanguage = lang;
+  renderPage(currentPage);
+}
+
+function updateLanguageSelect() {
+  const sel = qs("#language-select");
+  sel.innerHTML = "";
+
+  availableLanguages.forEach(l => {
+    const opt = document.createElement("option");
+    opt.value = l;
+    opt.textContent = l.toUpperCase();
+    sel.appendChild(opt);
+  });
+
+  sel.value = activeLanguage;
+}
+
+function movePage(fromIndex, toIndex){
+  const moved = pages.splice(fromIndex, 1)[0];
+  pages.splice(toIndex, 0, moved);
+
+  // Current page correct houden
+  if (currentPage === fromIndex) {
+    currentPage = toIndex;
+  } else if (
+    currentPage > fromIndex &&
+    currentPage <= toIndex
+  ) {
+    currentPage--;
+  } else if (
+    currentPage < fromIndex &&
+    currentPage >= toIndex
+  ) {
+    currentPage++;
+  }
+
+  renderPageList();
+  renderPage(currentPage);
+}
+
+  function addPage(){
+    pages.push({
+      title:"Nieuwe pagina",
+      showNext:true,
+      isMap:false,
+      showTarget:true,
+      autoNext:false,
+      playSound:false,
+      soundUrl:"",
+      modules:[]
+    });
+    currentPage = pages.length - 1;
+    renderPageList();
+    renderPage(currentPage);
+  }
+
+  function deletePage(){
+    if(pages.length <= 1){
+      const warn = qs("#page-warning");
+      warn.style.display = "block";
+      setTimeout(()=> warn.style.display="none", 1800);
+      return;
+    }
+
+    pages.splice(currentPage, 1);
+    currentPage = Math.max(0, currentPage - 1);
+
+    renderPageList();
+    renderPage(currentPage);
+  }
+function createBlock(type){
+    const div = document.createElement("div");
+    div.className = "block";
+    div.draggable = true;
+    div.dataset.type = type;
+
+    div.innerHTML = `
+      <button class="remove" type="button">×</button>
+      <h4>
+        <span>${type[0].toUpperCase() + type.slice(1)}</span>
+        <span class="kind">${type}</span>
+      </h4>
+      <div class="content"></div>
+    `;
+
+    const content = qs(".content", div);
+
+if (type === "historychat") {
+        content.innerHTML = `
+          <div style="background: #fdf2f2; padding: 10px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #fecaca;">
+            <strong style="color: #991b1b; display: flex; align-items: center; gap: 6px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+              Historische Chat
+            </strong>
+          </div>
+          
+          <label>Naam van het personage:</label>
+          <input data-field="chat-name" placeholder="Bijv: Visboer Jos (1820)">
+
+          <label style="margin-top: 8px; display: block;">Karakter omschrijving (AI Instructie):</label>
+          <div class="helper">Beschrijf hoe de AI moet reageren.</div>
+          <textarea data-field="chat-prompt" rows="3" placeholder="Bijv: Je bent een visboer uit 1820..."></textarea>
+
+          <div style="margin-top: 12px; padding: 12px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;">
+            <strong style="font-size: 13px; display:block; margin-bottom: 4px; color: #374151;">📍 Locatie-slot (Optioneel)</strong>
+            <div class="helper" style="margin-bottom: 8px;">Speler kan pas chatten als deze binnen de straal is. Laat leeg om de chat altijd open te houden.</div>
+            <div class="form-row">
+              <input type="number" step="0.000001" data-field="chat-lat" placeholder="Lat (bijv. 52.92)">
+              <input type="number" step="0.000001" data-field="chat-lng" placeholder="Lng (bijv. 6.79)">
+            </div>
+            <label style="margin-top: 6px;">Straal (meters)</label>
+            <input type="number" step="1" data-field="chat-radius" placeholder="50" value="50">
+          </div>
+        `;
       }
-      if(type==="aiphoto"){
-        data.instruction = {[activeLanguage]: qs('[data-field="ai-instruction"]',b).value};
-        data.prompt = {[activeLanguage]: qs('[data-field="ai-prompt"]',b).value};
-        data.points = Number(qs('[data-field="ai-points"]',b).value)||10;
+
+
+    if (type === "title") {
+      content.innerHTML = `
+        <div contenteditable="true"
+             data-field="title"
+             style="
+               font-size:22px;
+               font-weight:800;
+               line-height:1.3;
+             ">
+          Nieuwe titel
+        </div>
+      `;
+    }
+
+    if(type === "text"){
+      content.innerHTML = `
+        <div contenteditable="true" data-field="text">Nieuwe tekst</div>
+      `;
+    }
+
+    if (type === "audio") {
+      content.innerHTML = `
+        <label>Geluidsbestand</label>
+    
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+          <input
+            type="text"
+            data-field="url"
+            placeholder="/uploads/geluid.mp3"
+            style="flex:1;"
+          >
+    
+          <button
+            type="button"
+            class="btn-upload"
+            style="white-space:nowrap;"
+          >
+            Uploaden
+          </button>
+    
+          <input
+            type="file"
+            accept="audio/*"
+            class="file-hidden"
+            style="display:none;"
+          >
+        </div>
+    
+        <audio controls style="width:100%; display:none;"></audio>
+    
+        <div class="helper">
+          Upload een geluidsbestand of plak een bestaande link.
+        </div>
+      `;
+    }
+
+    if (type === "team-name") {
+      content.innerHTML = `
+        <div class="helper">
+          Speler vult hier de teamnaam in.
+          Deze naam geldt voor het hele team.
+        </div>
+      `;
+    }
+
+    if (type === "photo") {
+      content.innerHTML = `
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+          <button type="button" class="btn-camera">
+            📸 Maak foto
+          </button>
+    
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            class="file-hidden"
+            style="display:none;"
+          >
+        </div>
+    
+        <input type="hidden" data-field="url">
+    
+        <div class="helper">
+          De speler maakt een foto met de camera.
+        </div>
+      `;
+    }
+
+    if(type === "image"){
+      content.innerHTML = `
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+          <input type="url" data-field="url" placeholder="Afbeeldings-URL" style="flex:1;">
+          <button type="button" class="btn-upload" style="white-space:nowrap;">Uploaden</button>
+          <input type="file" accept="image/*" class="file-hidden" style="display:none;">
+        </div>
+        <div class="helper">Voeg een URL toe of upload een afbeelding.</div>
+      `;
+    }
+
+    if(type === "question"){
+      content.innerHTML = `
+        <label>Vraag:</label>
+        <input data-field="question">
+    
+        <label>Vraagtype:</label>
+        <select data-field="questionType">
+          <option value="open">Open vraag</option>
+          <option value="mc">Multiple choice</option>
+        </select>
+    
+        <div data-mc style="display:none; margin-top:8px;">
+          <label>Antwoordopties</label>
+        
+          <div data-options></div>
+        
+          <button
+            type="button"
+            data-add-option
+            style="
+              margin-top:6px;
+              background:#eef2ff;
+              border:1px dashed #6366f1;
+              border-radius:8px;
+              padding:6px;
+              font-weight:600;
+              cursor:pointer;
+            "
+          >
+            + Antwoord toevoegen
+          </button>
+        </div>
+    
+        <div data-open>
+          <label>Antwoord:</label>
+          <input data-field="answer">
+        </div>
+    
+        <input type="hidden" data-field="goodPage">
+        <input type="hidden" data-field="badPage">
+      `;
+    }
+
+    if(type === "location"){
+      content.innerHTML = `
+        <div class="form-row">
+          <input type="number" step="0.000001" placeholder="Lat" data-field="lat">
+          <input type="number" step="0.000001" placeholder="Lng" data-field="lng">
+        </div>
+        <input type="number" step="1" placeholder="Radius" data-field="radius" value="50">
+      `;
+    }
+
+
+if (type === "aiphoto") {
+      content.innerHTML = `
+        <div style="display:flex; gap:8px; margin-bottom:12px;">
+          <button type="button" class="btn-camera" disabled style="opacity: 0.5; background: #e5e7eb; border: 1px solid #d1d5db; color: #6b7280;">
+            📸 AI Controle Foto
+          </button>
+        </div>
+        
+        <label style="font-weight: 700; color: #111827;">Instructie voor de speler:</label>
+        <div class="helper" style="margin-bottom:4px;">Wat leest de speler op zijn telefoon?</div>
+        <input data-field="ai-instruction" placeholder="Bijv: Maak een foto van een rood voertuig" style="margin-bottom: 12px; background: #f9fafb;">
+
+        <label style="font-weight: 700; color: #4f46e5;">Geheime AI-Prompt:</label>
+        <div class="helper" style="margin-bottom:4px;">Wat moet de AI controleren? (De speler ziet dit niet)</div>
+        <input data-field="ai-prompt" placeholder="Bijv: Een rode auto, fiets of scooter" style="border-color: #c7d2fe;">
+        
+        <label style="margin-top: 12px; display: block; font-weight: 700;">Maximum te verdienen punten:</label>
+        <input type="number" data-field="ai-points" value="10" style="width: 80px;">
+      `;
+    }
+
+    wireBlock(div);
+    return div;
+  }
+
+  function addBlock(type){
+    const block = createBlock(type);
+    phone.appendChild(block);
+    setSelected(block);
+  }
+
+  // Sidebar buttons
+  qsa(".element-btn").forEach(btn=>{
+    btn.addEventListener("click", () => addBlock(btn.dataset.type));
+  });
+
+  function getAfterEl(container, y){
+    const blocks = qsa(".block:not(.dragging)", container);
+
+    return blocks.reduce((closest, child)=>{
+      const box = child.getBoundingClientRect();
+      const offset = y - (box.top + box.height / 2);
+
+      if(offset < 0 && offset > closest.offset){
+        return { offset, element: child };
       }
+      return closest;
+    }, { offset:-Infinity, element:null }).element;
+  }
+
+  phone.addEventListener("dragover", (e)=>{
+    if(!dragged) return;
+    e.preventDefault();
+
+    const after = getAfterEl(phone, e.clientY);
+    if(after == null) phone.appendChild(dragged);
+    else phone.insertBefore(dragged, after);
+  });
+
+  function wireBlock(block){
+    /* =========================
+       DRAG & DROP
+    ========================== */
+    block.addEventListener("dragstart", (e) => {
+      dragged = block;
+      block.classList.add("dragging");
+  
+      if (e.dataTransfer) {
+        e.dataTransfer.setData("text/plain", "");
+        e.dataTransfer.effectAllowed = "move";
+      }
+    });
+  
+    block.addEventListener("dragend", () => {
+      block.classList.remove("dragging");
+      dragged = null;
+    });
+  
+    /* =========================
+       INPUT PREVIEW (IMAGE + AUDIO)
+    ========================== */
+    block.addEventListener("input", (e) => {
+      if (!e.target.matches('input[data-field="url"]')) return;
+  
+      const url = e.target.value.trim();
+  
+      /* IMAGE PREVIEW */
+      if (block.dataset.type === "image") {
+        let img = block.querySelector("img.preview");
+        let helper = block.querySelector(".helper");
+  
+        if (url) {
+          if (!img) {
+            img = document.createElement("img");
+            img.className = "preview";
+            img.style.width = "100%";
+            img.style.borderRadius = "10px";
+  
+            if (helper) helper.replaceWith(img);
+            else block.querySelector(".content").appendChild(img);
+          }
+          img.src = url;
+        } else if (img) {
+          const h = document.createElement("div");
+          h.className = "helper";
+          h.textContent = "Voeg een afbeelding URL toe of upload.";
+          img.replaceWith(h);
+        }
+      }
+  
+      /* ✅ AUDIO PREVIEW */
+      if (block.dataset.type === "audio") {
+        const audio = block.querySelector("audio");
+        if (!audio) return;
+  
+        if (url) {
+          audio.src = url;
+          audio.style.display = "block";
+        } else {
+          audio.removeAttribute("src");
+          audio.style.display = "none";
+        }
+      }
+    });
+  
+    /* =========================
+       UPLOAD (IMAGE + AUDIO)
+    ========================== */
+    const uploadBtn = block.querySelector(".btn-upload");
+    const fileInput = block.querySelector(".file-hidden");
+    const urlInput  = block.querySelector('input[data-field="url"]');
+  
+    if (uploadBtn && fileInput && urlInput) {
+      uploadBtn.addEventListener("click", () => fileInput.click());
+  
+      fileInput.addEventListener("change", async () => {
+        const file = fileInput.files?.[0];
+        if (!file) return;
+  
+        const fd = new FormData();
+        fd.append("file", file);
+  
+        try {
+          const res = await fetch("/admin-upload-media", {
+            method: "POST",
+            body: fd
+          });
+          if (!res.ok) throw new Error(await res.text());
+  
+          const json = await res.json();
+          urlInput.value = json.url;
+          urlInput.dispatchEvent(new Event("input"));
+  
+          toast("Upload voltooid ✅");
+        }
+        catch (err) {
+          console.error(err);
+          alert("Upload mislukt");
+        }
+        finally {
+          fileInput.value = "";
+        }
+      });
+    }
+  
+    /* =========================
+       PHOTO MODULE (CAMERA)
+    ========================== */
+    const cameraBtn  = block.querySelector(".btn-camera");
+    const cameraFile = block.querySelector(".file-hidden");
+    const photoUrl   = block.querySelector('[data-field="url"]');
+  
+    if (cameraBtn && cameraFile && photoUrl) {
+      cameraBtn.addEventListener("click", () => cameraFile.click());
+  
+      cameraFile.addEventListener("change", async () => {
+        const file = cameraFile.files?.[0];
+        if (!file) return;
+  
+        let img = block.querySelector("img.preview");
+        if (!img) {
+          img = document.createElement("img");
+          img.className = "preview";
+          img.style.width = "100%";
+          img.style.borderRadius = "10px";
+          block.querySelector(".content").appendChild(img);
+        }
+        img.src = URL.createObjectURL(file);
+  
+        const fd = new FormData();
+        fd.append("file", file);
+  
+        try {
+          const res = await fetch("/admin-upload-media", {
+            method: "POST",
+            body: fd
+          });
+          if (!res.ok) throw new Error(await res.text());
+  
+          const json = await res.json();
+          photoUrl.value = json.url;
+  
+          toast("Foto geüpload 📸");
+        }
+        catch (err) {
+          console.error(err);
+          alert("Upload mislukt");
+        }
+        finally {
+          cameraFile.value = "";
+        }
+      });
+    }
+  
+    /* =========================
+       BLOCK SELECTIE
+    ========================== */
+    block.addEventListener("click", () => {
+      setSelected(block);
+    });
+  }
+
+  phone.addEventListener("click", (e)=>{
+    if(e.target.classList.contains("remove")){
+      const bl = e.target.closest(".block");
+      if(bl){
+        if(selected === bl) clearPanel();
+        bl.remove();
+      }
+    }
+  });
+
+  document.addEventListener("dragstart", ()=> document.body.style.userSelect = "none");
+  document.addEventListener("dragend",   ()=> document.body.style.userSelect = "");
+const pEmpty = qs("#panel-empty");
+  const pFields = qs("#panel-fields");
+  const pType = qs("#panel-type");
+  const pDyn = qs("#panel-dynamic");
+
+  function buildPageSelect(id){
+    const sel = document.createElement("select");
+    sel.id = id;
+
+    const opt0 = document.createElement("option");
+    opt0.value = "";
+    opt0.textContent = "— kies pagina —";
+    sel.appendChild(opt0);
+
+    pages.forEach((p, idx) => {
+      const opt = document.createElement("option");
+      opt.value = String(idx);
+      const title =
+        typeof p.title === "string"
+          ? p.title
+          : p.title?.[activeLanguage]
+            || p.title?.[puzzleMeta.defaultLanguage]
+            || `Pagina ${idx+1}`;
       
-      data.aiKnowledge = qs('[data-field="aiknowledge"]',b)?.value||"";
-      data.hintType = qs('[data-field="hinttype"]',b)?.value||"ai";
-      data.staticHintText = qs('[data-field="statichint"]',b)?.value||"";
-      data.hintCost = Number(qs('[data-field="hintcost"]',b)?.value)||0;
+      opt.textContent = `${idx+1}. ${title}`;
+      sel.appendChild(opt);
+    });
+
+    return sel;
+  }
+
+  function setSelected(block){
+
+    selected = block;
+
+    pEmpty.style.display = "none";
+    pFields.style.display = "block";
+    pDyn.innerHTML = "";
+
+    const type = block.dataset.type;
+    pType.value = type;
+
+    if (type === "title") {
+      const src = qs('[data-field="title"]', block);
+    
+      pDyn.innerHTML = `
+        <label>Titel</label>
+        <textarea id="p-title" rows="2"></textarea>
+      `;
+    
+      const ta = qs("#p-title");
+      ta.value = src?.innerHTML || "";
+    
+      ta.oninput = () => {
+        if (src) src.innerHTML = ta.value;
+      };
+    }
+
+    // TEXT BLOCK
+    if(type === "text"){
+      const src = qs('[data-field="text"]', block);
+
+      pDyn.innerHTML = `
+        <label>Tekst</label>
+        <textarea id="p-text" rows="4"></textarea>
+      `;
+
+      const ta = qs("#p-text");
+      ta.value = src?.innerHTML || "";
+
+      ta.oninput = () => {
+        if(src) src.innerHTML = ta.value;
+      };
+    }
+
+    // IMAGE BLOCK
+    if(type === "image"){
+      const src = qs('input[data-field="url"]', block);
+
+      pDyn.innerHTML = `
+        <label>Afbeeldings‑URL</label>
+        <input id="p-url" type="url" placeholder="https://...">
+      `;
+
+      const inp = qs("#p-url");
+      inp.value = src?.value || "";
+
+      inp.oninput = () => {
+        if(src){
+          src.value = mapGoogleDriveUrl(inp.value);
+          src.dispatchEvent(new Event("input"));
+        }
+      };
+    }
+
+    // QUESTION BLOCK
+    if (type === "question") {
+      const q        = qs('[data-field="question"]', block);
+      const qt       = qs('[data-field="questionType"]', block);
+      const openWrap = qs('[data-open]', block);
+      const mcWrap   = qs('[data-mc]', block);
+      const optWrap  = qs('[data-options]', block);
+      const addBtn   = qs('[data-add-option]', block);
+    
+      const goodHidden = qs('[data-field="goodPage"]', block);
+      const badHidden  = qs('[data-field="badPage"]', block);
+    
+      pDyn.innerHTML = "";
+    
+      /* ===== VRAAG ===== */
+      pDyn.innerHTML += `
+        <label>Vraag</label>
+        <input id="p-q">
+      `;
+      qs("#p-q").value = q.value || "";
+      qs("#p-q").oninput = () => q.value = qs("#p-q").value;
+    
+      /* ===== VRAAGTYPE ===== */
+      pDyn.innerHTML += `
+        <label>Vraagtype</label>
+        <select id="p-qt">
+          <option value="open">Open vraag</option>
+          <option value="mc">Multiple choice</option>
+        </select>
+      `;
+      qs("#p-qt").value = qt.value || "open";
+    
+      const syncType = () => {
+        const v = qs("#p-qt").value;
+        qt.value = v;
+        openWrap.style.display = v === "open" ? "block" : "none";
+        mcWrap.style.display   = v === "mc"   ? "block" : "none";
+      };
+      qs("#p-qt").onchange = syncType;
+      syncType();
+    
+      /* ===== MULTIPLE CHOICE OPTIES ===== */
+      function createOption(text = "", correct = false) {
+        const div = document.createElement("div");
+        div.className = "mc-option";
+        div.setAttribute("data-option", "");
+        div.draggable = true;
+        div.style.display = "flex";
+        div.style.flexDirection = "column";
+        div.style.gap = "6px";
+        div.style.marginBottom = "12px";
+      
+        div.innerHTML = `
+          <label style="font-size:12px; font-weight:600; color:#6b7280;">
+            Juist
+          </label>
+      
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span class="drag-handle" title="Sleep om te sorteren">☰</span>
+      
+            <input
+              type="text"
+              data-text
+              placeholder="Antwoord"
+              style="flex:1; padding:8px 10px; border-radius:8px; border:1px solid #d1d5db;"
+            >
+      
+            <input
+              type="checkbox"
+              data-correct
+              style="width:18px; height:18px;"
+            >
+      
+            <button
+              type="button"
+              data-remove
+              title="Antwoord verwijderen"
+              style="
+                background:#fee2e2;
+                color:#991b1b;
+                border:1px solid #fecaca;
+                border-radius:6px;
+                width:28px;
+                height:28px;
+                font-weight:700;
+                cursor:pointer;
+              "
+            >
+              ✕
+            </button>
+          </div>
+        `;
+      
+        const textInput  = div.querySelector('[data-text]');
+        const correctBox = div.querySelector('[data-correct]');
+        const removeBtn  = div.querySelector('[data-remove]');
+      
+        textInput.value = text;
+        correctBox.checked = !!correct;
+      
+        // ❌ verwijderen (minimaal 1 optie behouden)
+        removeBtn.onclick = () => {
+          const wrap = div.parentElement;
+          if (!wrap) return;
+      
+          if (wrap.querySelectorAll('[data-option]').length <= 1) {
+            alert("Je moet minimaal één antwoord hebben.");
+            return;
+          }
+          div.remove();
+        };
+      
+        return div;
+      }
+    
+      if (optWrap.children.length === 0) {
+        optWrap.appendChild(createOption());
+        optWrap.appendChild(createOption());
+      }
+    
+      addBtn.onclick = () => {
+        optWrap.appendChild(createOption());
+      };
+
+      let draggedOption = null;
+
+      optWrap.addEventListener("dragstart", (e) => {
+        const opt = e.target.closest(".mc-option");
+        if (!opt) return;
+        draggedOption = opt;
+        opt.classList.add("dragging");
+        e.dataTransfer.effectAllowed = "move";
+      });
+      
+      optWrap.addEventListener("dragend", () => {
+        if (draggedOption) draggedOption.classList.remove("dragging");
+        draggedOption = null;
+      });
+      
+      optWrap.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        const after = getDragAfterElement(optWrap, e.clientY);
+        if (!draggedOption) return;
+      
+        if (after == null) {
+          optWrap.appendChild(draggedOption);
+        } else {
+          optWrap.insertBefore(draggedOption, after);
+        }
+      });
+      
+      function getDragAfterElement(container, y) {
+        const items = [...container.querySelectorAll(".mc-option:not(.dragging)")];
+      
+        return items.reduce((closest, child) => {
+          const box = child.getBoundingClientRect();
+          const offset = y - box.top - box.height / 2;
+          if (offset < 0 && offset > closest.offset) {
+            return { offset, element: child };
+          }
+          return closest;
+        }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
+      }
+
+      /* ===== DOORSTUREN BIJ GOED / FOUT ===== */
+    
+      // GOOD PAGE
+      const lblGood = document.createElement("label");
+      lblGood.textContent = "Bij goed antwoord → ga naar pagina";
+    
+      const selGood = buildPageSelect("p-good");
+      selGood.value = goodHidden.value ?? "";
+      selGood.onchange = () => goodHidden.value = selGood.value;
+    
+      // BAD PAGE
+      const lblBad = document.createElement("label");
+      lblBad.textContent = "Bij fout antwoord → ga naar pagina";
+    
+      const selBad = buildPageSelect("p-bad");
+      selBad.value = badHidden.value ?? "";
+      selBad.onchange = () => badHidden.value = selBad.value;
+    
+      const navWrap = document.createElement("div");
+      navWrap.style.marginTop = "12px";
+      navWrap.append(lblGood, selGood, lblBad, selBad);
+    
+      pDyn.appendChild(navWrap);
+    }
+
+    // LOCATION BLOCK
+    if(type === "location"){
+      const lat = qs('input[data-field="lat"]', block);
+      const lng = qs('input[data-field="lng"]', block);
+      const r   = qs('input[data-field="radius"]', block);
+
+      pDyn.innerHTML = `
+        <div class="form-row">
+          <div>
+            <label>Lat</label>
+            <input id="p-lat" type="number" step="0.000001">
+          </div>
+          <div>
+            <label>Lng</label>
+            <input id="p-lng" type="number" step="0.000001">
+          </div>
+        </div>
+
+        <label>Radius</label>
+        <input id="p-r" type="number" step="1">
+      `;
+
+      qs("#p-lat").value = lat?.value || "";
+      qs("#p-lng").value = lng?.value || "";
+      qs("#p-r").value   = r?.value   || 50;
+
+      qs("#p-lat").oninput = () => { if(lat) lat.value = qs("#p-lat").value; };
+      qs("#p-lng").oninput = () => { if(lng) lng.value = qs("#p-lng").value; };
+      qs("#p-r").oninput   = () => { if(r)   r.value   = qs("#p-r").value;   };
+    }
+  }
+
+  function clearPanel(){
+    selected = null;
+    pEmpty.style.display = "block";
+    pFields.style.display = "none";
+    pDyn.innerHTML = "";
+  }
+function collect(){
+    const blocks = qsa(".block", phone).filter(b => {
+      const t = (b.dataset.type || "").trim();
+      return t && t !== "__preview__";
+    });
+
+    return blocks.map(b => {
+      const type = b.dataset.type;
+      let data = {};   // ✅ LET i.p.v. CONST
+
+      if (type === "title") {
+        data.title = {
+          ...(b._data?.title || {})
+        };
+      
+        data.title[activeLanguage] =
+          qs('[data-field="title"]', b)?.innerHTML || "";
+      }
+
+      if (type === "text") {
+        data.text = {
+          ...(b._data?.text || {})
+        };
+      
+        data.text[activeLanguage] =
+          qs('[data-field="text"]', b)?.innerHTML || "";
+      }
+    
+      if (type === "image") {
+        data.url =
+          qs('input[data-field="url"]', b)?.value?.trim() || "";
+      }
+
+      if (type === "audio") {
+        data.url =
+          qs('input[data-field="url"]', b)?.value?.trim() || "";
+      }
+    
+      if (type === "question") {
+        data.question = {
+          ...(b._data?.question || {})
+        };
+      
+        data.question[activeLanguage] =
+          qs('[data-field="question"]', b)?.value || "";
+            data.questionType =
+          qs('[data-field="questionType"]', b)?.value || "open";
+    
+        if (data.questionType === "open") {
+          data.answer = {
+            ...(b._data?.answer || {})
+          };
+          data.answer[activeLanguage] =
+            qs('[data-field="answer"]', b)?.value || "";
+        } else {
+          data.options = qsa('[data-option]', b).map((opt, i) => {
+            const textObj = {
+              ...(b._data?.options?.[i]?.text || {})
+            };
+          
+            textObj[activeLanguage] =
+              opt.querySelector('[data-text]')?.value || "";
+          
+            return {
+              text: textObj,
+              correct: !!opt.querySelector('[data-correct]')?.checked
+            };
+          });
+        }
+    
+        data.goodPage =
+          Number(qs('[data-field="goodPage"]', b)?.value) || null;
+        data.badPage =
+          Number(qs('[data-field="badPage"]', b)?.value) || null;
+      }
+    
+      if (type === "photo") {
+        data.url =
+          qs('[data-field="url"]', b)?.value || "";
+      }
+
+      if (type === "aiphoto") {
+        data.instruction = { ...(b._data?.instruction || {}) };
+        data.instruction[activeLanguage] = qs('[data-field="ai-instruction"]', b)?.value || "";
+
+        data.prompt = { ...(b._data?.prompt || {}) };
+        data.prompt[activeLanguage] = qs('[data-field="ai-prompt"]', b)?.value || "";
+
+        data.points = Number(qs('[data-field="ai-points"]', b)?.value) || 10;
+      }
+
+
+if (type === "historychat") {
+        data.characterName = { ...(b._data?.characterName || {}) };
+        data.characterName[activeLanguage] = qs('[data-field="chat-name"]', b)?.value || "";
+
+        data.systemPrompt = { ...(b._data?.systemPrompt || {}) };
+        data.systemPrompt[activeLanguage] = qs('[data-field="chat-prompt"]', b)?.value || "";
+
+        const lat = qs('[data-field="chat-lat"]', b)?.value;
+        const lng = qs('[data-field="chat-lng"]', b)?.value;
+        const rad = qs('[data-field="chat-radius"]', b)?.value;
+
+        data.lat = lat !== "" && lat !== undefined ? Number(lat) : null;
+        data.lng = lng !== "" && lng !== undefined ? Number(lng) : null;
+        data.radius = rad !== "" && rad !== undefined ? Number(rad) : 50;
+      }
+
+      // ✅ TEAM NAME MODULE
+      if (type === "team-name") {
+        data = {}; // dit mag nu wel
+      }
+    
+      if (type === "location") {
+        const lat = qs('input[data-field="lat"]', b)?.value;
+        const lng = qs('input[data-field="lng"]', b)?.value;
+        const rad = qs('input[data-field="radius"]', b)?.value;
+    
+        data.lat    = lat !== "" ? Number(lat) : null;
+        data.lng    = lng !== "" ? Number(lng) : null;
+        data.radius = rad !== "" ? Number(rad) : 50;
+      }
+    
       return { type, data };
     });
   }
 
-  function savePageSettings(){
-    const pg = pages[currentPage]; if(!pg.title) pg.title={};
-    pg.title[activeLanguage] = qs("#page-title-input").value;
-    pg.showNext = qs("#page-shownext").checked;
-    pg.isMap = qs("#page-ismap").checked;
-    pg.showTarget = qs("#page-showtarget").checked;
-    pg.autoNext = qs("#page-autonext").checked;
-    pg.playSoundOnStart = qs("#page-playsound-start").checked;
-    pg.soundUrl = qs("#page-soundurl").value;
-    pg.targetLat = qs("#page-target-lat").value ? Number(qs("#page-target-lat").value) : null;
-    pg.targetLng = qs("#page-target-lng").value ? Number(qs("#page-target-lng").value) : null;
-    pg.targetRadius = qs("#page-target-radius").value ? Number(qs("#page-target-radius").value) : 50;
-  }
-
-  qs("#add-page-btn").onclick = () => { pages.push({ title:{[activeLanguage]:"Nieuwe Pagina"}, showNext:true, isMap:false, modules:[]}); currentPage=pages.length-1; renderPageList(); renderPage(currentPage); };
-  qs("#delete-page-btn").onclick = () => { if(pages.length>1){ pages.splice(currentPage,1); currentPage=Math.max(0, currentPage-1); renderPageList(); renderPage(currentPage); } else { qs("#page-warning").style.display="block"; setTimeout(()=>qs("#page-warning").style.display="none", 2000); } };
-  
-  // LIVE LISTENERS PAGE UI
-  qs("#page-title-input").oninput = (e) => { pages[currentPage].title[activeLanguage] = e.target.value; qs("#page-title-label").textContent = e.target.value; renderPageList(); };
-  qs("#page-ismap").onchange = (e) => { pages[currentPage].isMap = e.target.checked; qs("#map-target-settings").style.display = e.target.checked ? "block" : "none"; renderPage(currentPage); };
-
-qs("#btn-save").onclick = async () => {
-    savePageSettings(); 
+  async function saveAll(){
+    savePageSettings();
     pages[currentPage].modules = collect();
-    
-    // Lees live de thema-instellingen uit het rechter menu
-    const themeData = {
-      preset: qs("#auto-theme-preset")?.value || 'standard',
-      primaryColor: qs("#auto-theme-color")?.value || '#4f46e5'
-    };
 
-    try {
-      const res = await fetch(`/admin-builder/${phone.dataset.id}/save-all`, {
-        method:"POST", 
+    const id = phone.dataset.id;
+
+    try{
+      const res = await fetch(`/admin-builder/${id}/save-all`, {
+        method:"POST",
         headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ 
-          pages: pages, 
-          languages: availableLanguages, 
-          defaultLanguage: activeLanguage,
-          theme: themeData // <-- Hier sturen we het thema direct en veilig mee!
+        body: JSON.stringify({
+          pages,
+          languages: availableLanguages,
+          defaultLanguage: puzzleMeta.defaultLanguage || activeLanguage
         })
       });
-      if(!res.ok) throw new Error(); 
-      toast("✅ Puzzeltocht succesvol opgeslagen!");
-    } catch { 
-      toast("❌ Fout bij opslaan.", true); 
+
+      if(!res.ok) throw new Error(await res.text());
+      toast("Opgeslagen ✅");
     }
-  };
-  qs("#btn-reset").onclick = () => location.reload();
-
-  renderPageList(); renderPage(currentPage);
-})();
-</script>
-
-<script>
-const themePreset = document.getElementById('auto-theme-preset');
-const themeColor = document.getElementById('auto-theme-color');
-const phonePreview = document.getElementById('phone');
-
-function updateLivePreview() {
-  if(!themePreset || !phonePreview) return;
-  const preset = themePreset.value;
-  const color = themeColor.value;
-  
-  // Update de kleur variabele
-  phonePreview.style.setProperty('--primary', color);
-  
-  // Standaard styling reset
-  phonePreview.style.background = '#f8fafc';
-  phonePreview.style.color = '#0f172a';
-  phonePreview.style.fontFamily = 'Inter, sans-serif';
-  phonePreview.style.backgroundImage = 'none';
-
-  // Sfeer toepassing in de builder
-  if (preset === 'medieval') {
-    phonePreview.style.background = '#e2d1b3 url("https://www.transparenttextures.com/patterns/papyros.png")';
-    phonePreview.style.fontFamily = 'Georgia, serif';
-    phonePreview.style.color = '#3e2723';
-  } else if (preset === 'future') {
-    phonePreview.style.background = '#020617';
-    phonePreview.style.color = '#38bdf8';
-    phonePreview.style.fontFamily = 'Courier New, monospace';
-  } else if (preset === 'iceage') {
-    phonePreview.style.background = '#f0f9ff';
-    phonePreview.style.color = '#0c4a6e';
+    catch(err){
+      console.error(err);
+      toast("Opslaan mislukt ❌", true);
+    }
   }
-}
 
-// Luister naar veranderingen
-if(themePreset) themePreset.addEventListener('change', updateLivePreview);
-if(themeColor) themeColor.addEventListener('input', updateLivePreview);
+  function resetPage(){
+    location.reload();
+  }
 
-// Roep hem 1x aan bij het opstarten
-setTimeout(updateLivePreview, 500);
+  qs("#btn-save").addEventListener("click", saveAll);
+  qs("#btn-reset").addEventListener("click", resetPage);
+
+  qs("#add-page-btn").addEventListener("click", addPage);
+  qs("#delete-page-btn").addEventListener("click", deletePage);
+
+  // PAGE INPUT HANDLERS
+  qs("#page-title-input").addEventListener("input", () => {
+    pages[currentPage].title = pages[currentPage].title || {};
+    pages[currentPage].title[activeLanguage] =
+      qs("#page-title-input").value;
+  
+    qs("#page-title-label").textContent =
+      qs("#page-title-input").value;
+  
+    renderPageList();
+  });
+
+  qs("#page-shownext").addEventListener("change", ()=>{
+    pages[currentPage].showNext = !!qs("#page-shownext").checked;
+  });
+
+  qs("#page-ismap").addEventListener("change", () => {
+    const isMap = !!qs("#page-ismap").checked;
+    pages[currentPage].isMap = isMap;
+
+    // Extra opties tonen of verbergen
+    qs("#map-extra-options").style.display = isMap ? "block" : "none";
+
+    renderPage(currentPage);
+  });
+
+  // NIEUW: SHOW TARGET
+  qs("#page-showtarget").addEventListener("change", ()=>{
+    pages[currentPage].showTarget = !!qs("#page-showtarget").checked;
+    if(pages[currentPage].isMap) updateMapPreview();
+  });
+
+  // NIEUW: AUTO NEXT
+  qs("#page-autonext").addEventListener("change", ()=>{
+    pages[currentPage].autoNext = !!qs("#page-autonext").checked;
+    if(pages[currentPage].isMap) updateMapPreview();
+  });
+
+  // NIEUW: PLAY SOUND
+  qs("#page-playsound-start").addEventListener("change", () => {
+    const checked = qs("#page-playsound-start").checked;
+    pages[currentPage].playSoundOnStart = checked;
+  
+    // toon/verberg geluidsbestand
+    qs("#sound-file-section").style.display = checked ? "block" : "none";
+  });
+
+  // NIEUW: SOUND URL
+  qs("#page-soundurl").addEventListener("input", ()=>{
+    pages[currentPage].soundUrl = qs("#page-soundurl").value;
+    if(pages[currentPage].isMap) updateMapPreview();
+  });
+
+  // TARGET INPUTS
+  qs("#page-target-lat").addEventListener("input", (e)=>{
+    const v = e.target.value;
+    pages[currentPage].targetLat = v !== "" ? Number(v) : null;
+    updateMapPreview();
+  });
+
+  qs("#page-target-lng").addEventListener("input", (e)=>{
+    const v = e.target.value;
+    pages[currentPage].targetLng = v !== "" ? Number(v) : null;
+    updateMapPreview();
+  });
+
+  qs("#page-target-radius").addEventListener("input", (e)=>{
+    const v = e.target.value;
+    pages[currentPage].targetRadius = v !== "" ? Number(v) : 50;
+    updateMapPreview();
+  });
+
+
+  // --- MINI MAP PREVIEW (tekst + canvas) ---
+  function updateMapPreview(){
+    const pg = pages[currentPage];
+    if(!pg?.isMap) return;
+
+    const wrap = phone.querySelector(".map-target-preview");
+    if(!wrap) return;
+
+    const hasCoords = (
+      pg.targetLat !== null && pg.targetLat !== "" &&
+      pg.targetLng !== null && pg.targetLng !== ""
+    );
+
+    if(!hasCoords){
+      wrap.innerHTML = `<div class="helper">Nog geen doel ingesteld.</div>`;
+      return;
+    }
+
+    const lat = Number(pg.targetLat);
+    const lng = Number(pg.targetLng);
+    const radius = Number(pg.targetRadius || 50);
+
+    const latTxt = isFinite(lat) ? lat.toFixed(6) : "—";
+    const lngTxt = isFinite(lng) ? lng.toFixed(6) : "—";
+
+    wrap.innerHTML = `
+      <div style="display:flex; gap:12px; align-items:center;">
+        <canvas id="map-mini" width="160" height="160"
+          style="border:1px solid #e5e7eb; border-radius:10px; background:#fff;">
+        </canvas>
+
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <div><strong>Doellocatie</strong></div>
+
+          <div style="font-family: ui-monospace, monospace;">
+            Lat: ${latTxt}<br>
+            Lng: ${lngTxt}
+          </div>
+
+          <div>Radius: <strong>${radius}</strong> meter</div>
+
+          <div class="helper">
+            De speler gaat automatisch verder als je binnen de radius komt (indien optie aanstaat).
+          </div>
+        </div>
+      </div>
+    `;
+
+    const cv = wrap.querySelector("#map-mini");
+    const ctx = cv?.getContext("2d");
+
+    if(ctx){
+      ctx.clearRect(0,0,cv.width,cv.height);
+
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0,0,cv.width,cv.height);
+
+      ctx.fillStyle = "#eef2ff";
+      ctx.strokeStyle = "#6366f1";
+      ctx.lineWidth = 2;
+
+      const rMin = 10, rMax = 70;
+      const pxRadius = Math.max(rMin, Math.min(rMax, radius / 5));
+      const cx = cv.width/2;
+      const cy = cv.height/2;
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, pxRadius, 0, Math.PI*2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = "#111827";
+      ctx.beginPath();
+      ctx.arc(cx, cy, 3, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+// --- TOAST MECHANISME ---
+  function toast(msg, error=false){
+    const t = document.createElement("div");
+    t.textContent = msg;
+
+    Object.assign(t.style, {
+      position: 'fixed',
+      right: '20px',
+      bottom: '20px',
+      background: error ? '#ef4444' : 'var(--primary)',
+      color: '#fff',
+      padding: '10px 14px',
+      borderRadius: '12px',
+      boxShadow: '0 8px 24px rgba(0,0,0,.2)',
+      zIndex: '9999',
+      fontSize: '14px'
+    });
+
+    document.body.appendChild(t);
+
+    setTimeout(() => t.remove(), 2000);
+  }
+  // --- SOUND UPLOAD LOGICA ---
+  const soundUploadBtn = qs("#btn-sound-upload");
+  const soundFileInput = qs("#file-sound-upload");
+  const soundUrlInput  = qs("#page-soundurl");
+
+  if (soundUploadBtn && soundFileInput && soundUrlInput) {
+
+    // Open file selector
+    soundUploadBtn.addEventListener("click", () => {
+      soundFileInput.click();
+    });
+
+    // Upload bestand
+    soundFileInput.addEventListener("change", async () => {
+      const file = soundFileInput.files?.[0];
+      if (!file) return;
+
+      const fd = new FormData();
+      fd.append("file", file); // zelfde endpoint werkt voor audio
+
+      try {
+        const res = await fetch("/admin-upload-media", {
+          method: "POST",
+          body: fd
+        });
+
+        if (!res.ok) throw new Error(await res.text());
+
+        const json = await res.json();
+        soundUrlInput.value = json.url;
+
+        // opslaan in live data
+        pages[currentPage].soundUrl = json.url;
+
+        toast("Geluid geüpload 🎵");
+      }
+      catch (err) {
+        console.error(err);
+        alert("Upload mislukt");
+      }
+      finally {
+        soundFileInput.value = "";
+      }
+    });
+  }
+
+  // INIT
+  updateLanguageSelect();
+  renderPageList();
+  renderPage(currentPage);
+
+  function playSoundIfNeeded() {
+    const pg = pages[currentPage];
+    if (!pg?.playSoundOnStart) return;
+    if (!pg?.soundUrl) return;
+
+    const audio = new Audio(pg.soundUrl);
+    audio.play().catch(err => {
+      console.warn("Autoplay geblokkeerd door browser:", err);
+    });
+  }
+
+})(); // einde IIFE
 </script>
+</div> <!-- einde .builder-wrap -->
