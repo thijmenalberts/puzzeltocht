@@ -527,14 +527,24 @@ if (type === "historychat") {
         else data.options = qsa('.mc-option',b).map(o=>({ text: {[activeLanguage]: o.querySelector('[data-text]').value}, correct: !!o.querySelector('[data-correct]').checked }));
         data.maxPoints = Number(qs('[data-field="pts"]',b).value)||10;
       }
+
       if(type==="historychat"){
-        data.characterName = {[activeLanguage]: qs('[data-field="chat-name"]',b).value};
-        data.systemPrompt = {[activeLanguage]: qs('[data-field="chat-prompt"]',b).value};
+        data.characterName = {[activeLanguage]: qs('[data-field="chat-name"]',b)?.value || ""};
+        data.systemPrompt = {[activeLanguage]: qs('[data-field="chat-prompt"]',b)?.value || ""};
+        
+        const lat = qs('[data-field="chat-lat"]', b)?.value; 
+        const lng = qs('[data-field="chat-lng"]', b)?.value; 
+        const rad = qs('[data-field="chat-radius"]', b)?.value;
+        data.lat = lat !== "" ? Number(lat) : null; 
+        data.lng = lng !== "" ? Number(lng) : null; 
+        data.radius = rad !== "" ? Number(rad) : 50;
+        data.maxTurns = Number(qs('[data-field="chat-max-turns"]', b)?.value) || 3;
       }
+      
       if(type==="aiphoto"){
-        data.instruction = {[activeLanguage]: qs('[data-field="ai-instruction"]',b).value};
-        data.prompt = {[activeLanguage]: qs('[data-field="ai-prompt"]',b).value};
-        data.points = Number(qs('[data-field="ai-points"]',b).value)||10;
+        data.instruction = {[activeLanguage]: qs('[data-field="ai-instruction"]',b)?.value || ""};
+        data.prompt = {[activeLanguage]: qs('[data-field="ai-prompt"]',b)?.value || ""};
+        data.points = Number(qs('[data-field="ai-points"]',b)?.value) || 10;
       }
       
       data.aiKnowledge = qs('[data-field="aiknowledge"]',b)?.value||"";
