@@ -8,13 +8,47 @@ class ArtifactEngine {
         this.wakeLock = null;
         this.sceneStartTime = Date.now();
         this.currentSceneId = document.body.dataset.sceneId || "unknown";
+        this.puzzleId = document.body.dataset.puzzleId || "unknown";
+        this.triggerFired = false; // Voorkomt dubbele calls
     }
 
-    async boot() {
+    // Aangepast: Boot accepteert nu de triggers uit de EJS view
+    async boot(triggers = []) {
         console.log("🚀 Booting Artifact Engine...");
+        
+        // Browser-beleid: we moeten een fysieke tap hebben om Audio & Spraak te starten
+        this.createImmersionOverlay(() => {
+            this.activateSystems(triggers);
+        });
+    }
+
+    createImmersionOverlay(onUnlock) {
+        const overlay = document.createElement("div");
+        overlay.style.cssText = `
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #000; color: #0f0; display: flex; align-items: center; 
+            justify-content: center; z-index: 99999; font-family: monospace;
+            cursor: pointer; flex-direction: column;
+        `;
+        overlay.innerHTML = `
+            <h2>[ VERBINDING MAKEN MET ARTEFACT ]</h2>
+            <p style="opacity: 0.7; font-size: 0.8rem; margin-top: 20px;">Druk op het scherm om te kalibreren</p>
+        `;
+        
+        document.body.appendChild(overlay);
+        
+        overlay.addEventListener("click", () => {
+            overlay.style.transition = "opacity 0.5s ease";
+            overlay.style.opacity = "0";
+            setTimeout(() => overlay.remove(), 500);
+            onUnlock();
+        });
+    }
+
+    async activateSystems(triggers) {
         await this.requestWakeLock();
         this.startDirectorPulse();
-        this.initSensors();
+        this.initSensors(triggers);
         this.playAtmosphere();
     }
 
@@ -66,6 +100,92 @@ class ArtifactEngine {
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start();
+    }
+
+    // ==========================================
+    // 5. DE ZINTUIGEN (Zero-UI Triggers)
+    // ==========================================
+    initSensors(triggers) {
+        console.log("Detecting environment for triggers...", triggers);
+        if (!triggers || triggers.length === 0) return;
+        
+        triggers.forEach(trigger => {
+            if (trigger.type === 'speech_match') this.startListening(trigger);
+            if (trigger.type === 'orientation') this.startCompass(trigger);
+            // Voeg hier later 'camera_vision' of 'gps_proximity' aan toe
+        });
+    }
+
+    startListening(trigger) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) return console.warn("Speech API not supported");
+        
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.lang = 'nl-NL';
+        recognition.interimResults = false;
+        
+        recognition.onresult = (event) => {
+            const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
+            console.log("Overhoord:", transcript);
+            
+            if (transcript.includes(trigger.targetValue.toLowerCase())) {
+                this.vibrate("success");
+                this.completeScene(trigger);
+                recognition.stop();
+            }
+        };
+        
+        // Als de microfoon stopt (bijv door stilte), start hem opnieuw
+        recognition.onend = () => { if (!this.triggerFired) recognition.start(); };
+        recognition.start();
+    }
+
+    startCompass(trigger) {
+        // Let op: vereist HTTPS. iOS vereist vaak extra permissies, hier vereenvoudigd.
+        window.addEventListener('deviceorientation', (e) => {
+            if (this.triggerFired || !e.alpha) return;
+            
+            // alpha is rotatie 0-360 (0 is noord)
+            const diff = Math.abs(e.alpha - parseInt(trigger.targetValue));
+            
+            // Is de telefoon in de juiste richting gewezen? (met margin of error)
+            if (diff < trigger.tolerance || diff > (360 - trigger.tolerance)) {
+                this.vibrate("success");
+                this.completeScene(trigger);
+            }
+        });
+    }
+
+    // ==========================================
+    // 6. VOLTOOIING & TRANSTITIE
+    // ==========================================
+    async completeScene(trigger) {
+        if (this.triggerFired) return;
+        this.triggerFired = true;
+        
+        // Kraak het scherm (visueel bewijs dat het werkte)
+        document.body.style.transition = "filter 0.5s, transform 0.5s";
+        document.body.style.filter = "invert(1) hue-rotate(180deg) blur(2px)";
+        document.body.style.transform = "scale(0.98)";
+
+        // Registreer via de nieuwe API backend route
+        const res = await fetch("/api/scene/trigger", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                puzzleId: this.puzzleId,
+                sceneIndex: this.currentSceneId,
+                triggerType: trigger.type,
+                targetValue: trigger.targetValue
+            })
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+            // Wacht heel even voor de immersie en laad dan de nieuwe pagina in
+            setTimeout(() => window.location.href = data.nextUrl, 1200);
+        }
     }
 
     // 4. De AI Director (Constant monitoren en ingrijpen)

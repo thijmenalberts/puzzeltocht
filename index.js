@@ -615,6 +615,38 @@ app.post("/api/director/pulse", express.json(), async (req, res) => {
 });
 
 // ==========================================
+// GAME ENGINE: ZERO-UI SENSOR TRIGGERS
+// ==========================================
+app.post("/api/scene/trigger", express.json(), async (req, res) => {
+  const { puzzleId, sceneIndex, triggerType, targetValue } = req.body;
+  
+  if (!req.session.teamName) return res.status(401).json({ error: "Unauthorized" });
+
+  try {
+    const puzzle = await Puzzle.findById(puzzleId);
+    if (!puzzle) return res.status(404).json({ error: "Puzzel niet gevonden" });
+
+    const nextIndex = parseInt(sceneIndex) + 1;
+    
+    // Server-side progressie ontgrendelen
+    if (!req.session.maxPage) req.session.maxPage = {};
+    if ((req.session.maxPage[puzzleId] || 0) < nextIndex) {
+      req.session.maxPage[puzzleId] = nextIndex;
+    }
+
+    // Het logboek is cruciaal voor de AI ceremonie aan het eind
+    const time = new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+    req.session.logbook.push(`[${time}] 🔮 Onzichtbare sensor geactiveerd: [${triggerType}] -> Team gaat naar scene ${nextIndex}.`);
+
+    // Vertel de client dat ze de overgangs-animatie mogen starten
+    res.json({ success: true, nextUrl: `/puzzle/${puzzleId}/${nextIndex}` });
+  } catch (error) {
+    console.error("Trigger Error:", error);
+    res.status(500).json({ error: "Fout bij het verwerken van het artefact." });
+  }
+});
+
+// ==========================================
 // GAME ENGINE: FASE 3 (HYBRIDE HINT ENGINE)
 // ==========================================
 app.post("/api/get-hint", express.json(), async (req, res) => {
