@@ -538,15 +538,32 @@ function renderPageList(){
   qs("#page-title-input").oninput = (e) => { pages[currentPage].title[activeLanguage] = e.target.value; qs("#page-title-label").textContent = e.target.value; renderPageList(); };
   qs("#page-ismap").onchange = (e) => { pages[currentPage].isMap = e.target.checked; qs("#map-target-settings").style.display = e.target.checked ? "block" : "none"; renderPage(currentPage); };
 
-  qs("#btn-save").onclick = async () => {
-    savePageSettings(); pages[currentPage].modules = collect();
-    try{
+qs("#btn-save").onclick = async () => {
+    savePageSettings(); 
+    pages[currentPage].modules = collect();
+    
+    // Lees live de thema-instellingen uit het rechter menu
+    const themeData = {
+      preset: qs("#auto-theme-preset")?.value || 'standard',
+      primaryColor: qs("#auto-theme-color")?.value || '#4f46e5'
+    };
+
+    try {
       const res = await fetch(`/admin-builder/${phone.dataset.id}/save-all`, {
-        method:"POST", headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ pages, languages: availableLanguages, defaultLanguage: activeLanguage })
+        method:"POST", 
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ 
+          pages: pages, 
+          languages: availableLanguages, 
+          defaultLanguage: activeLanguage,
+          theme: themeData // <-- Hier sturen we het thema direct en veilig mee!
+        })
       });
-      if(!res.ok) throw new Error(); alert("✅ Puzzeltocht succesvol opgeslagen!");
-    } catch { alert("❌ Fout bij opslaan."); }
+      if(!res.ok) throw new Error(); 
+      toast("✅ Puzzeltocht succesvol opgeslagen!");
+    } catch { 
+      toast("❌ Fout bij opslaan.", true); 
+    }
   };
   qs("#btn-reset").onclick = () => location.reload();
 
