@@ -26,249 +26,94 @@
     --chat-text-user: #ffffff;
   }
 
-  /* 1. ABSOLUTE BASIS FIXES VOOR INTERACTIE & MOBILE FIRST APP-GEVOEL */
-  body { padding: clamp(12px, 3vw, 24px) clamp(10px, 3vw, 16px); margin: 0; min-height: 100vh; overflow-x: hidden; position: relative; -webkit-tap-highlight-color: transparent; }
-  * { box-sizing: border-box; }
+  /* BASIS RESET */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
   
-  /* De Kaart Basis: Responsieve breedte en JUICY pop-in animatie */
-  .card { 
-    padding: clamp(16px, 5vw, 24px); margin-bottom: clamp(16px, 5vw, 24px); 
-    position: relative; transition: all 0.3s ease; width: 100%; max-width: 600px; 
-    margin-left: auto; margin-right: auto; z-index: 10; word-wrap: break-word;
-    animation: cardPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) backwards;
+  body { 
+    background: #2a312a; /* Donkere mos/natuur achtergrond */
+    background-image: radial-gradient(circle at 50% 0%, #3a423a, #1a1e1a);
+    font-family: 'Georgia', serif; /* Klassiek en leesbaar */
+    color: #e2e8f0;
+    min-height: 100vh;
+    overflow-x: hidden;
+    padding-bottom: 60px;
   }
-  @keyframes cardPop { 0% { opacity: 0; transform: translateY(30px) scale(0.95); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+
+  /* HUNEBED MODULES (De 3D Keien) */
+  .module {
+    background-color: #57534e; /* Stenen grijs */
+    background-image: url('https://www.transparenttextures.com/patterns/stucco.png');
+    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px; /* Organische steen vorm */
+    padding: 30px 25px;
+    margin: 20px auto 35px auto;
+    max-width: 600px;
+    width: 90%;
+    box-shadow: 
+      8px 12px 20px rgba(0,0,0,0.5), /* Drop shadow (diepte op de grond) */
+      inset -5px -10px 20px rgba(0,0,0,0.5), /* Schaduw onderkant steen */
+      inset 5px 5px 15px rgba(255,255,255,0.1); /* Highlight bovenkant steen */
+    border: 2px solid #292524;
+    text-align: center; /* Simplistisch en gecentreerd */
+    position: relative;
+    animation: popIn 0.6s ease-out backwards;
+  }
+  @keyframes popIn { 0% { opacity: 0; transform: translateY(20px) scale(0.98); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+
+  /* Variatie in stenen */
+  .module:nth-child(even) {
+    border-radius: 15px 255px 15px 225px / 225px 15px 255px 15px;
+  }
+
+  h2.title-module {
+    font-size: 28px; color: #d6d3d1; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+    font-weight: normal; margin-bottom: 10px;
+  }
+
+  p { font-size: 16px; line-height: 1.6; margin-bottom: 15px; }
+
+  /* STENEN KNOPPEN */
+  .btn {
+    display: block; width: 100%; padding: 16px; margin: 15px 0;
+    background-color: #44403c; background-image: url('https://www.transparenttextures.com/patterns/stucco.png');
+    border-radius: 50px;
+    box-shadow: 4px 6px 10px rgba(0,0,0,0.5), inset -2px -4px 10px rgba(0,0,0,0.4), inset 2px 2px 8px rgba(255,255,255,0.1);
+    border: 1px solid #1c1917; color: #fff; font-family: inherit; font-weight: bold; font-size: 16px;
+    text-transform: uppercase; letter-spacing: 1px; cursor: pointer; transition: 0.1s;
+  }
+  .btn:active {
+    transform: translateY(4px); box-shadow: 1px 2px 5px rgba(0,0,0,0.5), inset -2px -4px 10px rgba(0,0,0,0.4);
+  }
+  .btn.accent { background-color: var(--primary); /* Accent steen */ }
+
+  /* INPUTS (Uitgehakt in de steen) */
+  input[type="text"], input[type="email"], input[type="number"], select, textarea {
+    width: 100%; padding: 14px; margin-bottom: 15px;
+    background: rgba(0,0,0,0.3); border: 2px solid #292524; border-radius: 10px;
+    color: #fff; font-size: 16px; font-family: sans-serif;
+    box-shadow: inset 3px 3px 8px rgba(0,0,0,0.6); outline: none;
+  }
+  input::placeholder, textarea::placeholder { color: rgba(255,255,255,0.4); }
   
-  /* FLUID TYPOGRAPHY: Schrijft vloeiend mee met het scherm, altijd leesbaar! */
-  h1, h2, h3, p, label, span, .card > div { position: relative; z-index: 20; line-height: 1.4; }
-  h2 { font-size: clamp(22px, 6vw, 28px); margin-top: 0; }
-  h3 { font-size: clamp(18px, 5vw, 24px); margin-top: 0; }
-  p, label { font-size: clamp(15px, 4vw, 17px); }
+  /* MEERKEUZE UITGEHAKT */
+  .mc-option {
+    display: block; padding: 14px; text-align: left;
+    background: rgba(0,0,0,0.2); border-radius: 10px; margin-bottom: 10px;
+    border: 1px solid rgba(0,0,0,0.5); cursor: pointer;
+  }
+  .mc-option input[type="radio"] { display: none; }
+  .mc-option:has(input:checked) { background: rgba(0,0,0,0.5); border: 1px solid var(--primary); }
 
-  /* MOBILE OPTIMIZED INPUTS: 16px voorkomt auto-zoom op iOS! Grote tik-zones. */
-  .btn, input, select, textarea, button { position: relative !important; z-index: 100 !important; pointer-events: auto !important; }
-  input, select, textarea { font-size: 16px !important; padding: clamp(12px, 4vw, 16px) !important; border-radius: 12px !important; width: 100%; box-shadow: inset 0 2px 5px rgba(0,0,0,0.05); }
-  .btn { display: block; width: 100%; text-align: center; padding: 14px; cursor: pointer; font-size: clamp(16px, 4.5vw, 18px); border: none; min-height: 56px; white-space: normal; margin-bottom: 12px; transition: transform 0.1s ease, box-shadow 0.1s ease; user-select: none; }
-  .btn:active { transform: scale(0.96) !important; }
-
-  .card::before, .card::after, body::before, body::after { pointer-events: none !important; z-index: 5 !important; }
-  
-  /* WOW-FACTOR: Vignette die over het HELE scherm heen valt (bevriezing, grot-randen, etc.) */
-  .theme-vignette { position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 90; }
-
-  /* 2. DE CSS THEMA ENGINE */
-
-  /* --- THEMA: IJSTIJD (IJs & Sneeuw) --- */
-  <% if (theme === 'iceage') { %>
-    body { background: #082f49; color: #0c4a6e; overflow-x: hidden; }
-    
-    .theme-vignette { box-shadow: inset 0 0 50px rgba(255,255,255,0.5), inset 0 0 15px rgba(186, 230, 253, 0.8); border: 2px solid rgba(255,255,255,0.2); }
-    /* Gelaagde 3D Realistische Sneeuwstorm */
-    body::before { 
-      content: ""; position: fixed; top: -100vh; left: -100vw; width: 300vw; height: 300vh; z-index: 0; pointer-events: none;
-      background-image: 
-        radial-gradient(circle, rgba(255,255,255,0.9) 2px, transparent 3px),
-        radial-gradient(circle, rgba(255,255,255,0.7) 1.5px, transparent 2px),
-        radial-gradient(circle, rgba(255,255,255,0.5) 3px, transparent 4px),
-        radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 2px);
-      background-size: 100px 100px, 150px 150px, 200px 200px, 80px 80px;
-      background-position: 0 0, 40px 60px, 130px 20px, 20px 40px;
-      animation: realSnow 8s linear infinite;
-      filter: drop-shadow(0 0 3px rgba(255,255,255,0.8));
-    }
-    body::after { 
-      content: ""; position: fixed; top: -100vh; left: -100vw; width: 300vw; height: 300vh; z-index: 20; pointer-events: none;
-      background-image: 
-        radial-gradient(circle, rgba(255,255,255,0.9) 3px, transparent 4px),
-        radial-gradient(circle, rgba(255,255,255,0.6) 5px, transparent 7px);
-      background-size: 300px 300px, 400px 400px;
-      background-position: 0 0, 150px 200px;
-      animation: realSnowForeground 5s linear infinite;
-      filter: blur(1px);
-    }
-    @keyframes realSnow { 
-      0% { transform: translateY(0) translateX(0); } 
-      100% { transform: translateY(100vh) translateX(15vw); } 
-    }
-    @keyframes realSnowForeground { 
-      0% { transform: translateY(0) translateX(0); } 
-      100% { transform: translateY(100vh) translateX(-10vw); } 
-    }
-
-    .card { background: rgba(255, 255, 255, 0.85); border: 2px solid #bae6fd; border-radius: 16px; backdrop-filter: blur(10px); box-shadow: 0 0 30px rgba(186, 230, 253, 0.4), inset 0 0 20px rgba(255,255,255,0.8); }
-    
-    /* IJspegels met Base64 SVG (Laden direct in) */
-    .card::after { content: ""; position: absolute; top: -2px; left: 0; width: 100%; height: 25px; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20" preserveAspectRatio="none"><path d="M0,0 L5,20 L10,0 L18,12 L28,0 L40,18 L55,0 L70,10 L80,0 L92,15 L100,0 Z" fill="%23e0f2fe"/></svg>'); }
-
-    .btn { background: linear-gradient(180deg, #7dd3fc, #0284c7); border-radius: 100px; border: 2px solid #bae6fd; box-shadow: 0 6px 0 #0369a1, inset 0 4px 10px rgba(255,255,255,0.5); color: white; font-weight: 900; text-shadow: 0 2px 2px rgba(0,0,0,0.3); }
-    .btn:active { transform: translateY(6px); box-shadow: 0 0px 0 #0369a1; margin-bottom: 18px; }
-
-  /* --- THEMA: MIDDELEEUWEN (Perkament & Waszegels) --- */
-  <% } else if (theme === 'medieval') { %>
-    body { background: #1a120e url('https://www.transparenttextures.com/patterns/wood-pattern.png'); font-family: 'Georgia', serif; color: #3e2723; }
-    
-    /* Statische rand + Taverne / Perkament overlay op schermranden */
-    .theme-vignette { box-shadow: inset 0 0 60px rgba(0,0,0,0.8); }
-    body::after { content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: radial-gradient(circle, transparent 20%, rgba(0,0,0,0.85) 100%); pointer-events: none; z-index: 5; }
-    
-    /* Bewegende Ridder Silhouette (Geen laadfouten!) */
-    .knight-runner {
-      position: fixed; bottom: 8%; left: -40vw; font-size: clamp(70px, 20vw, 130px); z-index: 1; pointer-events: none;
-      color: transparent; text-shadow: 0 0 0 #0f0a07; opacity: 0.8;
-      animation: ride-across 25s linear infinite; filter: drop-shadow(0 5px 15px rgba(0,0,0,0.9));
-    }
-    @keyframes ride-across {
-      0%   { left: -40vw; transform: scaleX(-1); }
-      100% { left: 140vw; transform: scaleX(-1); }
-    }
-    
-    .card { background: #f4e4bc url('https://www.transparenttextures.com/patterns/papyros.png'); border: 2px solid #8b4513; box-shadow: 10px 10px 25px rgba(0,0,0,0.7), inset 0 0 40px rgba(139,69,19,0.3); border-radius: 2px 15px 4px 20px; }
-    .title-module { border-bottom: 2px solid #8b4513; padding-bottom: 10px; font-style: italic; color: #4e342e; text-shadow: 1px 1px 0px rgba(255,255,255,0.5); }
-
-    /* Waszegel Knoppen */
-    .btn { background: #8b4513; color: #fff; border-radius: 4px; border: 1px solid #3e2723; text-transform: uppercase; letter-spacing: 1.5px; box-shadow: 4px 4px 0 #3e2723, inset 0 0 10px rgba(0,0,0,0.5); font-weight: 900; }
-    .btn:active { transform: translate(4px, 4px); box-shadow: 0px 0px 0px #3e2723; margin-bottom: 16px; }
-
-  /* --- THEMA: TOEKOMST (Cyberpunk Hologram) --- */
-  <% } else if (theme === 'future') { %>
-    body { background: #020617; color: #38bdf8; font-family: 'Courier New', monospace; }
-    .theme-vignette { box-shadow: inset 0 0 40px rgba(56, 189, 248, 0.3); border: 2px solid rgba(56, 189, 248, 0.15); margin: 6px; border-radius: 20px; }
-    body::before { content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; pointer-events: none; z-index: 90; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); background-size: 100% 3px, 3px 100%; opacity: 0.5; }
-    body::after { content: ""; position: fixed; top: -50%; left: 0; width: 100%; height: 20%; z-index: 91; pointer-events: none; background: linear-gradient(transparent, rgba(56, 189, 248, 0.4), transparent); animation: scanline 6s linear infinite; }
-    @keyframes scanline { 0% { top: -20%; } 100% { top: 120%; } }
-    
-    .card { background: rgba(2, 6, 23, 0.85); border: 1px solid var(--primary); box-shadow: 0 0 20px rgba(var(--primary), 0.3), inset 0 0 20px rgba(var(--primary), 0.1); border-radius: 0; position: relative; overflow: hidden; }
-    .card::after { content: ""; position: absolute; top:0; left:-100%; width:50%; height:100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent); animation: shine 4s infinite; }
-    @keyframes shine { 0% { left: -100%; } 20% { left: 200%; } 100% { left: 200%; } }
-    
-    .btn { background: transparent; border: 1px solid var(--primary); color: var(--primary); text-transform: uppercase; font-weight: 900; box-shadow: inset 0 0 15px rgba(56, 189, 248, 0.1); letter-spacing: 2px; transition: 0.1s; }
-    .btn:hover, .btn:active { background: var(--primary); color: #020617; box-shadow: 0 0 25px var(--primary), inset 0 0 20px rgba(255,255,255,0.5); }
-
-  /* --- THEMA: HOLBEWONER (Oertijd & Fakkel) --- */
-  <% } else if (theme === 'caveman') { %>
-    @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&display=swap');
-
-    body { 
-      background: linear-gradient(rgba(28, 25, 23, 0.75), rgba(28, 25, 23, 0.95)), url('https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Hunebed_D27.jpg/1024px-Hunebed_D27.jpg') no-repeat center bottom fixed; 
-      background-size: cover;
-      color: #e7e5e4; 
-      font-family: 'Caveat', cursive, sans-serif;
-      font-size: clamp(18px, 5vw, 24px); /* Responsieve, grotere base-text */
-      line-height: 1.5;
-    }
-    
-    .theme-vignette { box-shadow: inset 0 0 100px 20px rgba(0,0,0,0.9); }
-
-    /* Rustige, trage vuurgloed zonder irritante snelle flikkering */
-    body::after {
-      content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100vh;
-      background: radial-gradient(circle at 50% 50%, rgba(255, 120, 0, 0.1) 0%, rgba(0,0,0,0.85) 85%);
-      pointer-events: none; z-index: 5;
-      animation: slowGlow 6s infinite alternate ease-in-out;
-    }
-
-    /* 100% Betrouwbare Silhouetten in plaats van web-afbeeldingen */
-    .mammoth-runner {
-      position: fixed; bottom: 8%; left: -50vw; font-size: clamp(90px, 25vw, 160px); z-index: 1; pointer-events: none;
-      color: transparent; text-shadow: 0 0 0 #0f0a07; opacity: 0.9;
-      animation: run-across 20s linear infinite; filter: drop-shadow(0 0 10px rgba(0,0,0,0.9));
-    }
-    .caveman-runner {
-      position: fixed; bottom: 8%; left: -50vw; font-size: clamp(60px, 18vw, 110px); z-index: 1; pointer-events: none;
-      color: transparent; text-shadow: 0 0 0 #0f0a07; opacity: 0.9;
-      animation: run-across 20s linear infinite; animation-delay: 1.5s; filter: drop-shadow(0 0 10px rgba(0,0,0,0.9));
-    }
-    @keyframes run-across {
-      0%   { left: -50vw; transform: scaleX(-1) translateY(0); }
-      25%  { transform: scaleX(-1) translateY(-8px); }
-      50%  { transform: scaleX(-1) translateY(0); }
-      75%  { transform: scaleX(-1) translateY(-8px); }
-      100% { left: 140vw; transform: scaleX(-1) translateY(0); }
-    }
-
-    @keyframes slowGlow {
-      0%   { opacity: 0.9; background: radial-gradient(circle at 50% 50%, rgba(255, 120, 0, 0.1) 0%, rgba(0,0,0,0.85) 85%); }
-      100% { opacity: 1; background: radial-gradient(circle at 50% 50%, rgba(255, 140, 0, 0.15) 0%, rgba(0,0,0,0.9) 85%); }
-    }
-    
-    .card { 
-      background: #44403c url('https://www.transparenttextures.com/patterns/concrete-wall.png'); 
-      border: 5px solid #292524; 
-      border-radius: 25px 15px 30px 10px / 15px 25px 10px 30px; 
-      box-shadow: 10px 12px 0px rgba(0,0,0,0.6), inset -4px -4px 15px rgba(0,0,0,0.4), inset 4px 4px 10px rgba(255,255,255,0.05); 
-      position: relative;
-      margin-bottom: 35px;
-    }
-    
-    .title-module {
-      background: #292524 url('https://www.transparenttextures.com/patterns/concrete-wall.png');
-      padding: 15px 20px;
-      border-radius: 40px 30px 50px 20px / 20px 30px 10px 40px;
-      box-shadow: 6px 8px 0px rgba(0,0,0,0.7);
-      border: 4px solid #1c1917;
-      text-align: center;
-      color: #fb923c;
-      text-shadow: 2px 2px 4px #7f1d1d, 0 0 15px rgba(249, 115, 22, 0.4);
-      letter-spacing: 2px;
-      transform: rotate(-2deg);
-      margin: -10px -10px 20px -10px; /* Overlap voor het hunebed-effect */
-    }
-
-    .btn { 
-      background: #78350f url('https://www.transparenttextures.com/patterns/wood-pattern.png'); 
-      border: 4px solid #431407; 
-      border-radius: 10px 15px 10px 12px; 
-      color: #ffedd5; 
-      font-family: 'Caveat', cursive, sans-serif;
-      font-weight: 700; 
-      box-shadow: 4px 6px 0px #431407, inset 2px 2px 5px rgba(255,255,255,0.1); 
-      text-transform: uppercase;
-      text-shadow: 2px 2px 0px #431407;
-      transition: transform 0.1s, box-shadow 0.1s, margin 0.1s;
-    }
-    .btn:active { 
-      transform: translate(2px, 4px) !important; 
-      box-shadow: 2px 2px 0px #431407 !important; 
-      margin-bottom: 12px !important; 
-    }
-
-    input[type="text"], input[type="number"], input[type="email"], select, textarea {
-      /* Dwingt schone leesbaarheid af op mobiel ondanks thema! */
-      font-family: system-ui, -apple-system, sans-serif !important;
-      font-weight: 600;
-      background: #e7e5e4 !important;
-      border: 3px solid #292524 !important;
-      color: #1c1917 !important;
-    }
-
-    :root {
-      --chat-bg: #292524; --chat-header-bg: #44403c; --chat-header-text: #fca5a5;
-      --chat-text-ai: #e7e5e4; --chat-bubble-ai: #57534e;
-      --chat-bubble-user: #9a3412; --chat-text-user: #ffedd5;
-    }
-
-  /* --- THEMA: STANDAARD (Modern Apple Stijl) --- */
-  <% } else { %>
-    body { background: #f5f5f7; color: #1d1d1f; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif; }
-    .card { background: #ffffff; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); box-shadow: 0 10px 20px rgba(0,0,0,0.03); }
-    .btn { background: var(--primary); border-radius: 12px; color: white; font-weight: 600; }
-  <% } %>
+  /* SIMPELE SCORE WEERGAVE BOVENAAN */
+  .stone-tag {
+    display: inline-block; padding: 8px 20px; background: #44403c;
+    border-radius: 0 0 20px 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    border: 1px solid #1c1917; border-top: none; font-weight: bold; font-family: sans-serif;
+  }
 
   </style>
 </head>
 
 <body>
-
-<!-- Magische Overlay voor de THEMA 'WOW'-factor! -->
-<div class="theme-vignette"></div>
-
-<% if (theme === 'caveman') { %>
-  <!-- Betrouwbare Silhouetten zonder inlaad fouten -->
-  <div class="mammoth-runner">🐘</div>
-  <div class="caveman-runner">🏃</div>
-<% } else if (theme === 'medieval') { %>
-  <div class="knight-runner">🏇</div>
-<% } %>
 
 <%
   if (!page) return;
@@ -277,26 +122,15 @@
   var t = (value) => typeof value === "string" ? value : value?.[activeLanguage] || value?.[fallback] || "";
 %>
 
-<form id="language-form" style="margin-bottom:16px;" onchange="this.submit()" method="POST" action="/puzzle/set-language">
-  <label style="display:flex; align-items:center; gap:8px;">
-    <strong>Taal:</strong>
-    <select name="language" class="no-lock" style="width: auto; padding: 8px;">
-      <% (puzzle.languages || ['nl']).forEach(l => { %>
-        <option value="<%= l %>" <%= l === activeLanguage ? "selected" : "" %>><%= l.toUpperCase() %></option>
-      <% }) %>
-    </select>
-  </label>
-  <input type="hidden" name="redirect" value="/puzzle/<%= puzzle._id %>/<%= pageIndex %>">
-</form>
-
-<% if (session?.teamName) { %>
-  <div style="position: sticky; top: clamp(5px, 2vw, 12px); max-width: 600px; margin: 0 auto clamp(16px, 4vw, 24px) auto; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: white; padding: clamp(10px, 3vw, 14px) clamp(16px, 4vw, 20px); display: flex; justify-content: space-between; align-items: center; border-radius: 16px; z-index: 100; box-shadow: 0 10px 30px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.1);">
-    <strong style="font-size: clamp(14px, 4vw, 16px); margin: 0; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 60%;">👥 <%= session.teamName %></strong>
-    <strong style="color: #fbbf24; margin: 0; background: rgba(255,255,255,0.15); padding: 6px 14px; border-radius: 20px; flex-shrink: 0;">
-      🏆 <span id="ui-score" style="font-weight: 900;"><%= session.totalScore || 0 %></span> pt
-    </strong>
+<!-- Bovenste status (als stenen label) -->
+<div style="text-align: center; margin-bottom: 20px;">
+  <div class="stone-tag">
+    <span style="opacity:0.7;">Team: <%= session?.teamName || 'Gast' %></span> | 
+    <span style="color: #fbbf24;">Punten: <span id="ui-score"><%= session?.totalScore || 0 %></span></span>
   </div>
-<% } %>
+</div>
+
+<div id="artifact-viewport">
 
 <% if (typeof isCompleted !== 'undefined' && isCompleted) { %>
   <div style="background: #e5e7eb; color: #4b5563; padding: 12px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: bold; border: 2px dashed #9ca3af;">
@@ -311,9 +145,9 @@
 <% } %>
 
 <% if (page.isMap) { %>
-  <div class="card" style="padding: 10px;">
+  <div class="module" style="padding: 10px;">
     <div id="map"></div>
-    <div class="feedback" id="mapFeedback" style="padding: 10px 5px; text-align: center;">📍 Locatie bepalen…</div>
+    <div class="feedback" id="mapFeedback" style="padding: 15px; font-weight: bold; color: #d6d3d1;">Locatie bepalen...</div>
   </div>
 <% } %>
 
@@ -322,43 +156,48 @@
   <% var qId = "q-" + pageIndex + "-" + qIndex; %>
 
   <% if (mod.type === "title") { %>
-    <div class="card"><h2 class="title-module"><%= t(mData.title) %></h2></div>
+    <div class="module" style="background: transparent; border: none; box-shadow: none; padding-bottom: 0;">
+      <h2 class="title-module"><%= t(mData.title) %></h2>
+    </div>
   <% } %>
 
   <% if (mod.type === "text") { %>
-    <div class="card" style="line-height: 1.6;"><%- t(mData.text) %></div>
+    <div class="module">
+      <p><%- t(mData.text) %></p>
+    </div>
   <% } %>
 
   <% if (mod.type === "image") { %>
-    <div class="card"><img src="<%= mData.url || '' %>" class="img-thumb" onclick="openImage(this.src)"></div>
+    <div class="module" style="padding: 15px;">
+      <img src="<%= mData.url || '' %>" style="width: 100%; border-radius: 10px; display: block; filter: sepia(0.3);" onclick="openImage(this.src)">
+    </div>
   <% } %>
 
   <% if (mod.type === "audio") { %>
-    <div class="card">
+    <div class="module">
+      <p style="font-weight: bold; color: #d6d3d1;">Geluidsfragment</p>
       <audio controls preload="none" style="width:100%;"><source src="<%= mData.url || '' %>"></audio>
     </div>
   <% } %>
 
   <% if (mod.type === "team-name") { %>
-    <div class="card" style="border: 2px solid #4f46e5;">
-      <h3 style="margin-top:0; color:#4f46e5;">Start de Speurtocht</h3>
-      <label style="font-weight: bold; font-size: 14px;">Jullie Teamnaam:</label>
-      <input type="text" id="team-name-input" class="no-lock" placeholder="Bijv. De Snelle Slakken" value="<%= session?.teamName || '' %>" style="margin-bottom: 10px;">
-      <label style="font-weight: bold; font-size: 14px;">E-mailadres (Voor de resultaten):</label>
-      <input type="email" id="team-email-input" class="no-lock" placeholder="team@voorbeeld.nl" value="<%= session?.teamEmail || '' %>" style="margin-bottom: 15px;">
-      <button class="btn no-lock" style="background: #4f46e5; color: white;" onclick="saveTeamName()">Speurtocht Starten!</button>
+    <div class="module">
+      <h3 style="margin-bottom:15px; color:#fbbf24;">Start de Tocht</h3>
+      <input type="text" id="team-name-input" class="no-lock" placeholder="Kies een teamnaam" value="<%= session?.teamName || '' %>">
+      <input type="email" id="team-email-input" class="no-lock" placeholder="E-mail (voor uitslag)" value="<%= session?.teamEmail || '' %>">
+      <button class="btn accent no-lock" onclick="saveTeamName()">Starten</button>
       <div class="feedback" id="teamname-feedback" style="margin-top: 10px;"></div>
     </div>
   <% } %>
 
   <% if (mod.type === "photo") { %>
-    <div class="card">
-      <h3 style="margin-top:0;">📸 Maak een foto</h3>
+    <div class="module">
+      <h3 style="margin-bottom:15px; color:#d6d3d1;">Foto Opdracht</h3>
       <input type="file" accept="image/*" capture="environment" onchange="uploadPhoto(this,<%=pageIndex%>,<%=qIndex%>)" style="padding: 0; border: none;">
       <input type="hidden" id="photo-url-<%=pageIndex%>-<%=qIndex%>" value="<%= mData.url || '' %>">
       <div class="feedback" id="photo-feedback-<%=pageIndex%>-<%=qIndex%>"></div>
       <% if (mData.url) { %><img src="<%= mData.url %>" class="photo-preview" onclick="openImage(this.src)"><% } %>
-      <button class="btn" style="margin-top:15px; background: #eef2ff; color: #4f46e5; border: 2px solid #c7d2fe;" onclick="setAsTeamPhoto(document.getElementById('photo-url-<%=pageIndex%>-<%=qIndex%>').value)">⭐ Gebruik als profielfoto</button>
+      <button class="btn secondary" style="margin-top:15px;" onclick="setAsTeamPhoto(document.getElementById('photo-url-<%=pageIndex%>-<%=qIndex%>').value)">Stel in als profielfoto</button>
     </div>
   <% } %>
 
@@ -436,63 +275,63 @@
   <% } %>
 
   <% if (mod.type === 'aiphoto') { %>
-    <div class="module" id="ai-mod-<%= qIndex %>" data-prompt="<%= t(mData.prompt) %>" data-maxpoints="<%= mData.points || 10 %>" style="border-color: var(--accent);">
-      <h3 style="margin-top: 0; font-weight: 300; color: var(--accent);">[ VISUAL AI ANALYSIS ]</h3>
+    <div class="module" id="ai-mod-<%= qIndex %>" data-prompt="<%= t(mData.prompt) %>" data-maxpoints="<%= mData.points || 10 %>">
+      <h3 style="margin-top: 0; color: #fbbf24;">Foto Beoordeling</h3>
       <p><%= t(mData.instruction) %></p>
       
       <input type="file" accept="image/*" capture="environment" class="ai-file-input" style="display: none;">
-      <button type="button" class="btn accent ai-camera-btn">[ INITIATE SCAN ]</button>
+      <button type="button" class="btn accent ai-camera-btn">Maak Foto & Controleer</button>
       
-      <div class="ai-status feedback" style="display: none; margin-top:15px; font-family: monospace;"></div>
-      <img class="ai-preview" style="display: none; width: 100%; margin-top: 15px; border: 1px solid var(--accent);">
+      <div class="ai-status feedback" style="display: none; margin-top:15px; font-weight:bold;"></div>
+      <img class="ai-preview" style="display: none; width: 100%; border-radius: 10px; margin-top: 15px; border: 2px solid #1c1917;">
     </div>
   <% } %>
 
 <% if (mod.type === 'historychat') { %>
-  <div class="module" data-maxturns="<%= mData.maxTurns || 3 %>" style="padding:0;">
-    <div style="padding: 15px; background: rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.1);">
-        <strong style="display: block; font-weight:300; letter-spacing:1px;">LINK: <%= t(mData.characterName) %></strong>
+  <div class="module" data-maxturns="<%= mData.maxTurns || 3 %>">
+    <div style="border-bottom: 1px solid rgba(0,0,0,0.3); padding-bottom: 10px; margin-bottom: 15px;">
+        <strong style="display: block; font-size: 18px; color: #fbbf24;">Personage: <%= t(mData.characterName) %></strong>
     </div>
-    <div id="chat-win-<%= qIndex %>" style="height: 300px; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; font-family:monospace; font-size:14px;">
-      <div style="color: var(--accent); align-self: flex-start; max-width: 85%;">[ CONNECTED ]</div>
+    <div id="chat-win-<%= qIndex %>" style="height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; text-align: left; padding-right: 5px;">
+      <div style="color: #a3e635; align-self: flex-start; max-width: 85%;">Verbonden...</div>
       
-      <div id="typing-indicator-<%= qIndex %>" style="display: none; color: var(--text-muted);">
-        > Receiving transmission...
+      <div id="typing-indicator-<%= qIndex %>" style="display: none; opacity: 0.6; font-style: italic;">
+        Aan het typen...
       </div>
     </div>
-    <div style="padding: 15px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; gap: 10px;">
-      <input type="text" id="chat-input-<%= qIndex %>" placeholder="> Input query..." style="margin:0;">
-      <button id="chat-btn-<%= qIndex %>" class="btn secondary" style="width: auto; padding: 0 20px;">[ TX ]</button>
+    <div style="margin-top: 15px; display: flex; gap: 10px;">
+      <input type="text" id="chat-input-<%= qIndex %>" placeholder="Stel een vraag..." style="margin:0; flex:1;">
+      <button id="chat-btn-<%= qIndex %>" class="btn secondary" style="width: auto; padding: 0 20px; margin:0;">Stuur</button>
     </div>
   </div>
 <% } %>
 
   <% if (mod.type === 'feedback') { %>
-    <div class="module" style="text-align: center; border-color: var(--accent);">
-      <h2 style="font-weight: 300;">[ SEQUENCE COMPLETE ]</h2>
-      <p>Data is veiliggesteld. Geef finale log-input voor archivering.</p>
+    <div class="module" style="text-align: center;">
+      <h2 style="margin-bottom: 10px;">Einde van de Puzzeltocht</h2>
+      <p>Hoe vonden jullie het? Schrijf hier jullie reactie (leuk voor de AI!).</p>
       
-      <textarea id="finale-feedback" rows="4" placeholder="> Wat was de status van de missie?"></textarea>
+      <textarea id="finale-feedback" rows="4" placeholder="Typ hier..."></textarea>
       
       <button id="btn-finale" class="btn accent" onclick="triggerFinale('<%= puzzle._id %>')">
-        [ END PROTOCOL ]
+        Afronden & Verslag Maken
       </button>
 
-      <div id="finale-loading" style="display: none; margin-top: 20px; font-family: monospace;">
-        > Verwerken van logfiles... Een moment geduld.
+      <div id="finale-loading" style="display: none; margin-top: 20px; font-style: italic;">
+        Verwerken... Een moment geduld alstublieft.
       </div>
 
       <div id="finale-result" style="display: none; margin-top: 25px; text-align: left;">
-        <h3 style="font-weight: 300; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">[ DIRECTOR REPORT ]</h3>
-        <div id="finale-text" style="color: var(--text-muted); line-height: 1.7; font-size: 16px; margin-bottom: 20px; white-space: pre-wrap;"></div>
+        <h3 style="border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; margin-bottom:15px; color:#fbbf24;">Eindverslag</h3>
+        <div id="finale-text" style="line-height: 1.7; font-size: 16px; margin-bottom: 20px; white-space: pre-wrap;"></div>
         
-        <div style="border: 1px solid var(--accent); padding: 20px; text-align: center; margin-bottom: 20px; background: rgba(var(--accent-rgb), 0.05);">
-          <strong style="display: block; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: var(--accent);">Eindscore</strong>
-          <div style="font-size: 48px; font-weight: 300; line-height: 1; margin: 10px 0;"><span id="finale-score">0</span></div>
-          <div style="font-size: 14px; color: var(--text-muted);">Tijd: <span id="finale-time">0</span> min</div>
+        <div style="border: 2px solid #292524; background: rgba(0,0,0,0.2); border-radius: 10px; padding: 20px; text-align: center; margin-bottom: 20px;">
+          <strong style="display: block; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #a3e635;">Eindscore</strong>
+          <div style="font-size: 48px; font-weight: bold; line-height: 1; margin: 10px 0; color: #fff;"><span id="finale-score">0</span></div>
+          <div style="font-size: 14px; opacity:0.8;">Tijd: <span id="finale-time">0</span> min</div>
         </div>
 
-        <a href="/leaderboard/<%= puzzle._id %>" class="btn secondary" style="text-decoration: none;">[ OPEN HALL OF FAME ]</a>
+        <a href="/leaderboard/<%= puzzle._id %>" class="btn secondary" style="text-decoration: none;">Bekijk Leaderboard</a>
       </div>
     </div>
   <% } %>
@@ -501,24 +340,24 @@
 
 <!-- SENSOR HUD: Visualiseert de hardware triggers -->
 <% if (page.triggers && page.triggers.length > 0) { %>
-  <div class="sensor-visualizer">
-     <p style="font-family: monospace; font-size: 12px; letter-spacing: 2px; color: var(--accent);">[ HARDWARE SENSORS ACTIEF ]</p>
+  <div class="module" style="text-align: center;">
+     <p style="font-size: 14px; font-weight: bold; color: #fbbf24;">Kompas & Sensoren Actief</p>
      
      <% const hasCompass = page.triggers.find(t => t.type === 'orientation'); %>
      <% if (hasCompass) { %>
-        <div class="compass-ring" id="ui-compass"></div>
+        <div class="compass-ring" id="ui-compass" style="margin: 15px auto;"></div>
         <p style="font-size:12px; margin-top:15px;">Kalibreer de richting...</p>
      <% } %>
 
      <% const hasMic = page.triggers.find(t => t.type === 'speech_match'); %>
      <% if (hasMic) { %>
-        <div class="mic-waves" style="display:none;" id="ui-mic"><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="mic-waves" style="display:none; justify-content:center; margin: 15px auto;" id="ui-mic"><span></span><span></span><span></span><span></span><span></span></div>
         <p style="font-size:12px; margin-top:15px;" id="ui-mic-text">Wachten op stem-input...</p>
      <% } %>
   </div>
 <% } else if (page.showNext && pageIndex + 1 < puzzle.pages.length) { %>
   <!-- Fallback als er geen hardware triggers zijn maar we wel door mogen -->
-  <a class="btn secondary no-lock" href="/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>" style="text-decoration:none;">[ PROCEED TO NEXT SECTOR ]</a>
+  <a class="btn secondary no-lock" href="/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>" style="text-decoration:none;">Volgende</a>
 <% } %>
 
 </div> <!-- End Artifact Viewport -->
@@ -607,7 +446,7 @@ async function startTimedChallenge(idx, questionId, limit, pSec, pPts, maxPts) {
 async function handleCorrectAnswer(btn, idx, questionId, maxPts, limit, pSec, pPts, isTimed, questionText) {
   btn.disabled = true;
   const fb = document.getElementById(`fb-${idx}`);
-  fb.innerHTML = "> Input geaccepteerd. Opslaan..."; fb.style.color = "#4ade80";
+  fb.innerHTML = "Antwoord geaccepteerd..."; fb.style.color = "#4ade80";
   
   try {
     let res;
@@ -625,7 +464,7 @@ async function handleCorrectAnswer(btn, idx, questionId, maxPts, limit, pSec, pP
     }
     const data = await res.json();
     updateGlobalScore(data.totalScore);
-    fb.innerHTML = `> Succes. (+${isTimed ? data.earnedPoints : maxPts} CRDT)`;
+    fb.innerHTML = `✅ Correct! (+${isTimed ? data.earnedPoints : maxPts} pt)`;
     
     setTimeout(() => {
       const form = document.getElementById(`form-${idx}`);
@@ -635,7 +474,7 @@ async function handleCorrectAnswer(btn, idx, questionId, maxPts, limit, pSec, pP
     }, 1500);
 
   } catch(e) {
-    fb.innerHTML = "> ERR: Netwerk timeout. Input was geldig."; fb.style.color="#ef4444";
+    fb.innerHTML = "⚠️ Fout bij opslaan. Antwoord was goed."; fb.style.color="#fca5a5";
   }
 }
 
@@ -643,12 +482,12 @@ function verifyMC(btn, idx, questionId, maxPts, limit, pSec, pPts, isTimed, qTex
   const form = document.getElementById(`form-${idx}`);
   const fb = document.getElementById(`fb-${idx}`);
   const checked = form.querySelector('input:checked');
-  if(!checked) { fb.innerHTML = "> ERR: Geen optie geselecteerd."; fb.style.color = "#ef4444"; return; }
+  if(!checked) { fb.innerHTML = "Kies een antwoord."; fb.style.color = "#fca5a5"; return; }
   
   if (checked.value === "true") {
     handleCorrectAnswer(btn, idx, questionId, maxPts, limit, pSec, pPts, isTimed, qText);
   } else {
-    fb.innerHTML = "> ERR: Ongeldige input."; fb.style.color = "#ef4444";
+    fb.innerHTML = "Helaas, niet juist."; fb.style.color = "#fca5a5";
   }
 }
 
@@ -660,7 +499,7 @@ function verifyOpen(btn, idx, questionId, maxPts, limit, pSec, pPts, isTimed, qT
   if(ans === correct && ans !== "") {
     handleCorrectAnswer(btn, idx, questionId, maxPts, limit, pSec, pPts, isTimed, qText);
   } else {
-    fb.innerHTML = "> ERR: Match gefaald."; fb.style.color = "#ef4444";
+    fb.innerHTML = "Helaas, niet juist."; fb.style.color = "#fca5a5";
   }
 }
 
@@ -675,10 +514,10 @@ async function executeStaticHint(btn, idx, staticTextEn, cost, qText, qId) {
     });
     const data = await res.json();
     if (data.limitReached) btn.style.display = 'none';
-    document.getElementById(`hint-res-${idx}`).innerHTML = "> DECRYPTED: " + (data.hint || "N/A");
+    document.getElementById(`hint-res-${idx}`).innerHTML = "Hint: " + (data.hint || "Geen hint gevonden.");
     updateGlobalScore(data.newScore);
-    if (!data.limitReached) { btn.disabled = false; btn.innerHTML = "[ DECRYPT EXTRA BLOCK (+2 CRDT) ]"; }
-  } catch(e) { btn.disabled = false; btn.innerHTML = "> ERR RETRY"; }
+    if (!data.limitReached) { btn.disabled = false; btn.innerHTML = "Nog een hint (+2 pt)"; }
+  } catch(e) { btn.disabled = false; btn.innerHTML = "Probeer opnieuw"; }
 }
 
 async function executeAiHint(btn, idx, aiKnowledgeEn, cost, qText, qId) {
@@ -690,7 +529,7 @@ async function executeAiHint(btn, idx, aiKnowledgeEn, cost, qText, qId) {
   
   btn.disabled = true; input.disabled = true; btn.innerHTML = "⏳";
   const resDiv = document.getElementById(`hint-res-${idx}`);
-  resDiv.innerHTML = "> Querying AI Core...";
+  resDiv.innerHTML = "Aan het nadenken...";
 
   try {
     const res = await fetch('/api/get-hint', {
@@ -703,10 +542,10 @@ async function executeAiHint(btn, idx, aiKnowledgeEn, cost, qText, qId) {
        input.style.display = 'none'; btn.style.display = 'none';
     }
     
-    resDiv.innerHTML = "> " + (data.hint || "De AI gaf een leeg antwoord.");
+    resDiv.innerHTML = "" + (data.hint || "Geen antwoord van assistent.");
     updateGlobalScore(data.newScore);
-    if (!data.limitReached) { btn.innerHTML = "[ QUERY AGN (2/2) ]"; btn.disabled = false; input.disabled = false; input.value = ""; }
-  } catch(e) { resDiv.innerHTML = "> ERR: Core offline."; btn.disabled = false; input.disabled = false; btn.innerHTML = "[ QUERY ]"; }
+    if (!data.limitReached) { btn.innerHTML = "Stel nog een vraag (2/2)"; btn.disabled = false; input.disabled = false; input.value = ""; }
+  } catch(e) { resDiv.innerHTML = "Systeem offline."; btn.disabled = false; input.disabled = false; btn.innerHTML = "Stel Vraag"; }
 }
 
 async function triggerFinale(puzzleId) {
@@ -741,7 +580,7 @@ async function triggerFinale(puzzleId) {
       }());
     }
   } catch (e) {
-    loading.innerHTML = "> ERR: Director offline.";
+    loading.innerHTML = "Fout bij ophalen van het verslag.";
   }
 }
 
@@ -757,9 +596,9 @@ document.querySelectorAll('.ai-file-input').forEach(input => {
     const statusDiv = mod.querySelector('.ai-status');
     const previewImg = mod.querySelector('.ai-preview');
 
-    btn.disabled = true; btn.innerHTML = "[ UPLOADING... ]";
-    statusDiv.style.display = "block"; statusDiv.style.color = "var(--accent)";
-    statusDiv.innerHTML = "> Analyzing image matrices...";
+    btn.disabled = true; btn.innerHTML = "Uploaden...";
+    statusDiv.style.display = "block"; statusDiv.style.color = "#fbbf24";
+    statusDiv.innerHTML = "De foto wordt beoordeeld...";
     previewImg.src = URL.createObjectURL(file); previewImg.style.display = "block";
 
     const fd = new FormData();
@@ -775,16 +614,16 @@ document.querySelectorAll('.ai-file-input').forEach(input => {
 
       if (result.match) {
         statusDiv.style.color = "#4ade80";
-        statusDiv.innerHTML = `> Match found! Confidence: ${result.score}%<br>> ${result.pointsAwarded}/${result.maxPoints} CRDT added.<br>> ${result.reason}`;
+        statusDiv.innerHTML = `✅ Goedgekeurd! (Zekerheid: ${result.score}%)<br>+${result.pointsAwarded}/${result.maxPoints} pt<br><span style="font-weight:normal;">${result.reason}</span>`;
         btn.style.display = "none"; 
       } else {
-        statusDiv.style.color = "#ef4444";
-        statusDiv.innerHTML = "> Match failed.<br>> " + result.reason;
-        btn.disabled = false; btn.innerHTML = "[ RETRY SCAN ]";
+        statusDiv.style.color = "#fca5a5";
+        statusDiv.innerHTML = "❌ Afgekeurd.<br><span style="font-weight:normal;">" + result.reason + "</span>";
+        btn.disabled = false; btn.innerHTML = "Probeer opnieuw";
       }
     } catch (err) {
-      statusDiv.style.color = "#ef4444"; statusDiv.innerHTML = "> ERR: " + err.message;
-      btn.disabled = false; btn.innerHTML = "[ RETRY SCAN ]";
+      statusDiv.style.color = "#fca5a5"; statusDiv.innerHTML = "⚠️ Fout: " + err.message;
+      btn.disabled = false; btn.innerHTML = "Probeer opnieuw";
     }
   });
 });
@@ -798,7 +637,7 @@ document.querySelectorAll('[id^="chat-btn-"]').forEach(btn => {
     if(!msg) return;
 
     input.value = ''; input.disabled = true; btn.disabled = true;
-    win.innerHTML += `<div style="color: #fff; align-self: flex-end; max-width: 85%;">> ${msg}</div>`;
+    win.innerHTML += `<div style="color: #fff; align-self: flex-end; max-width: 85%; background:rgba(0,0,0,0.3); padding:10px; border-radius:10px;">${msg}</div>`;
     win.scrollTop = win.scrollHeight;
 
     try {
@@ -825,7 +664,7 @@ document.querySelectorAll('[id^="chat-btn-"]').forEach(btn => {
       indicator.style.display = 'none'; // Verberg typen zodra API klaar is
       const data = await res.json();
       
-      win.innerHTML += `<div style="color: var(--accent); align-self: flex-start; max-width: 85%;">> ${data.reply || "..."}</div>`;
+      win.innerHTML += `<div style="color: #fbbf24; align-self: flex-start; max-width: 85%; background:rgba(0,0,0,0.5); padding:10px; border-radius:10px;">${data.reply || "..."}</div>`;
       win.appendChild(indicator); // Zet indicator weer helemaal onderaan (verborgen)
       
       if (data.closeChat) {
@@ -838,7 +677,7 @@ document.querySelectorAll('[id^="chat-btn-"]').forEach(btn => {
 
     } catch(e) { 
       document.getElementById(`typing-indicator-${idx}`).style.display = 'none';
-      win.innerHTML += `<div style="color:#ef4444; text-align:center; font-size:12px;">ERR: Link interrupted.</div>`; 
+      win.innerHTML += `<div style="color:#fca5a5; text-align:center; font-size:12px;">Verbinding verbroken.</div>`; 
     }
     
     input.disabled = false; btn.disabled = false; win.scrollTop = win.scrollHeight;
@@ -848,14 +687,14 @@ document.querySelectorAll('[id^="chat-btn-"]').forEach(btn => {
 async function uploadPhoto(input, pIdx, mIdx) {
   const file = input.files?.[0]; if (!file) return;
   const fb = document.getElementById(`photo-feedback-${pIdx}-${mIdx}`);
-  const fd = new FormData(); fd.append("file", file); fb.textContent = "> Uploading..."; fb.style.color = "var(--text-muted)";
+  const fd = new FormData(); fd.append("file", file); fb.textContent = "Uploaden..."; fb.style.color = "#d6d3d1";
   try {
     const res = await fetch("/upload-photo", { method: "POST", body: fd });
     if (!res.ok) throw new Error();
     const json = await res.json();
     document.getElementById(`photo-url-${pIdx}-${mIdx}`).value = json.url;
-    fb.textContent = "> Image stored."; fb.style.color = "#4ade80";
-  } catch { fb.textContent = "> ERR: Upload failed."; fb.style.color = "#ef4444"; }
+    fb.textContent = "Foto opgeslagen."; fb.style.color = "#4ade80";
+  } catch { fb.textContent = "Upload mislukt."; fb.style.color = "#fca5a5"; }
 }
 
 async function setAsTeamPhoto(url) {

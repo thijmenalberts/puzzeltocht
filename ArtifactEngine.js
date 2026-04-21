@@ -26,24 +26,17 @@ class ArtifactEngine {
         const overlay = document.createElement("div");
         overlay.style.cssText = `
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: #050505; color: #fff; display: flex; align-items: center; 
-            justify-content: center; z-index: 99999; font-family: monospace;
+            background: #292524; color: #e7e5e4; display: flex; align-items: center; 
+            justify-content: center; z-index: 99999; font-family: 'Georgia', serif;
             cursor: pointer; flex-direction: column;
         `;
         overlay.innerHTML = `
-            <div style="width: 80px; height: 80px; border-radius: 50%; border: 2px dashed rgba(255,255,255,0.2); border-top-color: #fff; animation: spin 2s linear infinite; margin-bottom: 30px;"></div>
-            <h2 style="letter-spacing: 4px; font-weight: 300; font-size: 14px; text-transform: uppercase;">Systeem Gevergrendeld</h2>
-            <p style="opacity: 0.5; font-size: 0.7rem; margin-top: 20px; letter-spacing: 2px;">Vingerafdruk of tik vereist om te starten</p>
+            <div style="width: 100px; height: 100px; background: url('https://www.transparenttextures.com/patterns/stucco.png'), #57534e; border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; box-shadow: 5px 5px 15px rgba(0,0,0,0.6), inset 5px 5px 10px rgba(255,255,255,0.1), inset -5px -5px 15px rgba(0,0,0,0.5); animation: floatRock 4s ease-in-out infinite; margin-bottom: 30px;"></div>
+            <h2 style="letter-spacing: 2px; font-weight: normal; font-size: 24px; margin: 0;">De Tocht Wacht</h2>
+            <p style="opacity: 0.7; font-size: 16px; margin-top: 15px; font-style: italic;">Raak de steen aan om te ontwaken</p>
             <style>
-                @keyframes spin { 100% { transform: rotate(360deg); } }
-                .pulse-scan {
-                    position: absolute; width: 150px; height: 150px; border-radius: 50%;
-                    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-                    animation: pulse 2s infinite;
-                }
-                @keyframes pulse { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
+                @keyframes floatRock { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-15px) rotate(3deg); } }
             </style>
-            <div class="pulse-scan"></div>
         `;
         
         document.body.appendChild(overlay);
@@ -52,7 +45,7 @@ class ArtifactEngine {
             // Speel een high-tech sound
             try {
                 const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator(); osc.frequency.value = 800;
+                const osc = ctx.createOscillator(); osc.frequency.value = 150; // Diepe, organische bas
                 osc.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + 0.1);
             } catch(e){}
 
