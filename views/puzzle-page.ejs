@@ -2,7 +2,7 @@
 <html lang="<%= lang || puzzle.defaultLanguage || 'nl' %>">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -373,63 +373,61 @@
     %>
     
     <% if (isTimed) { %>
-      <div id="prep-screen-<%= qIndex %>" class="card" style="border: 3px solid #f59e0b; text-align: center; padding: 30px 20px;">
-        <div style="font-size: 50px; margin-bottom: 10px;">⏱️</div>
-        <h3 style="color: #d97706; margin-top:0; font-size: 22px;">Tijdsgebonden Opdracht</h3>
-        <p style="color: #475569; font-size: 16px;">Je hebt <strong><%= limit %> seconden</strong>. Hierna verdien je steeds minder punten!<br><small style="opacity: 0.7; font-size: 13px;">(De pagina opnieuw laden heeft geen zin 😉)</small></p>
-        <button class="btn" style="background: #f59e0b; margin-top: 20px; font-size: 18px;" onclick="startTimedChallenge('<%= qIndex %>', '<%= qId %>', <%= limit %>, <%= pSec %>, <%= pPts %>, <%= maxPts %>)">🚀 Start de Tijd!</button>
+      <div id="prep-screen-<%= qIndex %>" class="module" style="border-color: #f59e0b; text-align: center;">
+        <h3 style="color: #f59e0b; font-weight: 300;">[ TIME CRITICAL ]</h3>
+        <p>Je hebt <%= limit %>s voordat de data vervalt.</p>
+        <button class="btn accent" style="background: #f59e0b;" onclick="startTimedChallenge('<%= qIndex %>', '<%= qId %>', <%= limit %>, <%= pSec %>, <%= pPts %>, <%= maxPts %>)">[ INITIATE OVERRIDE ]</button>
       </div>
     <% } %>
 
-    <div class="card" id="question-content-<%= qIndex %>" style="<%= isTimed ? 'display:none;' : '' %>">
+    <div class="module" id="question-content-<%= qIndex %>" style="<%= isTimed ? 'display:none;' : '' %>">
       <% if (isTimed) { %>
-        <div style="background: #fffbeb; color: #d97706; padding: 12px 16px; font-weight: 800; border-radius: 8px; margin-bottom: 18px; border: 2px solid #fde68a; display: flex; justify-content: space-between; font-size: 18px;">
-          <span>⏱️ <span id="timer-clock-<%= qIndex %>">00:00</span></span>
-          <span>Potentieel: <strong id="timer-pts-<%= qIndex %>"><%= maxPts %></strong> pt</span>
+        <div style="display: flex; justify-content: space-between; color: #f59e0b; font-family: monospace; margin-bottom: 20px; border-bottom: 1px solid rgba(245, 158, 11, 0.3); padding-bottom: 10px;">
+          <span>T:<span id="timer-clock-<%= qIndex %>">00:00</span></span>
+          <span>YLD:<span id="timer-pts-<%= qIndex %>"><%= maxPts %></span></span>
         </div>
       <% } %>
       
-      <strong style="display:block; margin-bottom: 15px; font-size:18px; line-height: 1.4;"><%= t(mData.question) %></strong>
+      <strong style="display:block; margin-bottom: 20px; font-size:18px;"><%= t(mData.question) %></strong>
 
       <% if (mData.questionType === "mc") { %>
         <div id="form-<%= qIndex %>" data-good="<%= mData.goodPage ?? '' %>" data-bad="<%= mData.badPage ?? '' %>" data-puzzle="<%= puzzle._id %>">
           <% (mData.options || []).forEach((opt,i)=>{ %>
-            <label style="background: #f9fafb; padding: 14px; border-radius: 10px; border: 1px solid #e5e7eb; transition: 0.2s;">
-              <input type="radio" name="mc-<%=qIndex%>" value="<%= !!opt.correct %>" style="width: 20px; height: 20px;"> 
-              <span style="font-size: 16px;"><%= t(opt.text) %></span>
+            <label class="mc-option">
+              <input type="radio" name="mc-<%=qIndex%>" value="<%= !!opt.correct %>"> 
+              <span>> <%= t(opt.text) %></span>
             </label>
           <% }) %>
-          <button class="btn" style="margin-top:18px;" onclick="verifyMC(this, '<%= qIndex %>', '<%= qId %>', <%= maxPts %>, <%= limit %>, <%= pSec %>, <%= pPts %>, <%= isTimed %>, '<%= qTextClean %>')">Controleer Antwoord</button>
+          <button class="btn secondary" style="margin-top:15px;" onclick="verifyMC(this, '<%= qIndex %>', '<%= qId %>', <%= maxPts %>, <%= limit %>, <%= pSec %>, <%= pPts %>, <%= isTimed %>, '<%= qTextClean %>')">[ VERIFY ]</button>
           <div class="feedback" id="fb-<%= qIndex %>"></div>
         </div>
       <% } else { %>
         <div id="form-<%= qIndex %>">
-          <input type="text" id="open-ans-<%= qIndex %>" placeholder="Jouw antwoord..." style="background: #f9fafb; padding: 14px; font-size: 16px;">
+          <input type="text" id="open-ans-<%= qIndex %>" placeholder="> Voer input in...">
           <input type="hidden" id="open-correct-<%= qIndex %>" value="<%= t(mData.answer) %>">
           <input type="hidden" id="good-<%= qIndex %>" value="<%= mData.goodPage ?? '' %>">
           <input type="hidden" id="bad-<%= qIndex %>" value="<%= mData.badPage ?? '' %>">
-          <button class="btn" style="margin-top:15px;" onclick="verifyOpen(this, '<%= qIndex %>', '<%= qId %>', <%= maxPts %>, <%= limit %>, <%= pSec %>, <%= pPts %>, <%= isTimed %>, '<%= qTextClean %>')">Controleer Antwoord</button>
+          <button class="btn secondary" style="margin-top:10px;" onclick="verifyOpen(this, '<%= qIndex %>', '<%= qId %>', <%= maxPts %>, <%= limit %>, <%= pSec %>, <%= pPts %>, <%= isTimed %>, '<%= qTextClean %>')">[ VERIFY ]</button>
           <div class="feedback" id="fb-<%= qIndex %>"></div>
         </div>
       <% } %>
 
       <% if (Number(mData.hintCost) > 0) { %>
-         <div class="hint-container">
-           <button class="hint-btn" onclick="document.getElementById('hint-box-<%= qIndex %>').style.display='block'; this.style.display='none';">
-             💡 Hint Nodig? (-<%= mData.hintCost %> pt)
+         <div class="hint-container" style="margin-top: 25px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+           <button class="btn secondary" style="font-size: 12px; padding: 10px;" onclick="document.getElementById('hint-box-<%= qIndex %>').style.display='block'; this.style.display='none';">
+             [ REQUEST ASSISTANCE (-<%= mData.hintCost %> CRDT) ]
            </button>
            
-           <div id="hint-box-<%= qIndex %>" style="display:none; background: #fffbeb; padding: 15px; border-radius: 10px; border: 1px solid #fcd34d;">
+           <div id="hint-box-<%= qIndex %>" style="display:none;">
               <% if (mData.hintType === 'static') { %>
-                <button class="btn" style="background: #d97706; padding: 10px;" onclick="executeStaticHint(this, '<%= qIndex %>', '<%= encodeURIComponent(mData.staticHintText) %>', <%= mData.hintCost %>, '<%= qTextClean %>', '<%= qId %>')">🔓 Koop Hint (-<%= mData.hintCost %> pt)</button>
+                <button class="btn accent" onclick="executeStaticHint(this, '<%= qIndex %>', '<%= encodeURIComponent(mData.staticHintText) %>', <%= mData.hintCost %>, '<%= qTextClean %>', '<%= qId %>')">[ DECRYPT STATIC LOG ]</button>
               <% } else { %>
-                <p style="margin-top:0; color: #92400e; font-size: 14px;">Stel een specifieke vraag aan de AI Hint-Meester (-<%= mData.hintCost %> pt):</p>
-                <div style="display:flex; gap:8px;">
-                  <input type="text" id="hint-in-<%= qIndex %>" placeholder="Waar loop je vast?" style="border-color: #fcd34d;">
-                  <button class="btn" style="background: #d97706; width: auto; padding: 10px 16px;" onclick="executeAiHint(this, '<%= qIndex %>', '<%= encodeURIComponent(mData.aiKnowledge) %>', <%= mData.hintCost %>, '<%= qTextClean %>', '<%= qId %>')">Vraag</button>
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                  <input type="text" id="hint-in-<%= qIndex %>" placeholder="> Query details...">
+                  <button class="btn accent" onclick="executeAiHint(this, '<%= qIndex %>', '<%= encodeURIComponent(mData.aiKnowledge) %>', <%= mData.hintCost %>, '<%= qTextClean %>', '<%= qId %>')">[ QUERY AI CORE ]</button>
                 </div>
               <% } %>
-              <div id="hint-res-<%= qIndex %>" style="margin-top: 12px; font-size: 15px; font-weight: 600; color: #b45309; line-height: 1.5;"></div>
+              <div id="hint-res-<%= qIndex %>" style="margin-top: 12px; font-family: monospace; color: var(--accent);"></div>
            </div>
          </div>
       <% } %>
@@ -438,80 +436,125 @@
   <% } %>
 
   <% if (mod.type === 'aiphoto') { %>
-    <div class="card" id="ai-mod-<%= qIndex %>" data-prompt="<%= t(mData.prompt) %>" data-maxpoints="<%= mData.points || 10 %>" style="border: 2px solid #c7d2fe; background: #fafafa;">
-      <h3 style="margin-top: 0; color: #4f46e5;">✨ AI Opdracht</h3>
-      <p style="margin-bottom: 15px; font-size: 16px;"><strong>Opdracht:</strong> <%= t(mData.instruction) %></p>
+    <div class="module" id="ai-mod-<%= qIndex %>" data-prompt="<%= t(mData.prompt) %>" data-maxpoints="<%= mData.points || 10 %>" style="border-color: var(--accent);">
+      <h3 style="margin-top: 0; font-weight: 300; color: var(--accent);">[ VISUAL AI ANALYSIS ]</h3>
+      <p><%= t(mData.instruction) %></p>
       
       <input type="file" accept="image/*" capture="environment" class="ai-file-input" style="display: none;">
-      <button type="button" class="btn ai-camera-btn" style="background: #4f46e5;">📸 Maak Foto & Controleer</button>
+      <button type="button" class="btn accent ai-camera-btn">[ INITIATE SCAN ]</button>
       
-      <div class="ai-status feedback" style="display: none; padding: 14px; border-radius: 8px;"></div>
-      <img class="ai-preview" style="display: none; width: 100%; border-radius: 10px; margin-top: 15px; border: 1px solid #e5e7eb;">
+      <div class="ai-status feedback" style="display: none; margin-top:15px; font-family: monospace;"></div>
+      <img class="ai-preview" style="display: none; width: 100%; margin-top: 15px; border: 1px solid var(--accent);">
     </div>
   <% } %>
 
 <% if (mod.type === 'historychat') { %>
-  <div class="card" data-maxturns="<%= mData.maxTurns || 3 %>" style="border: 2px solid var(--chat-header-bg); padding: 0; overflow: hidden;">
-    <div style="background: var(--chat-header-bg); padding: 15px; display: flex; align-items: center; gap: 12px;">
-      <div style="width: 45px; height: 45px; background: rgba(0,0,0,0.2); color: var(--chat-header-text); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px;">🎭</div>
-      <div>
-        <strong style="display: block; color: var(--chat-header-text); font-size: 18px;"><%= t(mData.characterName) %></strong>
-      </div>
+  <div class="module" data-maxturns="<%= mData.maxTurns || 3 %>" style="padding:0;">
+    <div style="padding: 15px; background: rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <strong style="display: block; font-weight:300; letter-spacing:1px;">LINK: <%= t(mData.characterName) %></strong>
     </div>
-    <div id="chat-win-<%= qIndex %>" style="height: 50vh; max-height: 400px; overflow-y: auto; padding: 15px; background: var(--chat-bg); display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth;">
-      <div style="background: var(--chat-bubble-ai); color: var(--chat-text-ai); padding: 12px; border-radius: 12px 12px 12px 0; align-self: flex-start; max-width: 85%;">Gegroet! Heb je een vraag?</div>
+    <div id="chat-win-<%= qIndex %>" style="height: 300px; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; font-family:monospace; font-size:14px;">
+      <div style="color: var(--accent); align-self: flex-start; max-width: 85%;">[ CONNECTED ]</div>
       
-      <div id="typing-indicator-<%= qIndex %>" class="typing-indicator" style="display: none;">
-        <span></span><span></span><span></span>
+      <div id="typing-indicator-<%= qIndex %>" style="display: none; color: var(--text-muted);">
+        > Receiving transmission...
       </div>
     </div>
-    <div style="padding: 12px; border-top: 1px solid var(--chat-header-bg); display: flex; gap: 10px; background: var(--chat-bg);">
-      <input type="text" id="chat-input-<%= qIndex %>" placeholder="Stel je vraag..." style="background: rgba(255,255,255,0.5); border-radius: 20px; color: var(--chat-text-ai);">
-      <button id="chat-btn-<%= qIndex %>" style="background: var(--chat-header-bg); color: var(--chat-header-text); border: none; width: 50px; border-radius: 25px; cursor: pointer; font-weight: bold;">➤</button>
+    <div style="padding: 15px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; gap: 10px;">
+      <input type="text" id="chat-input-<%= qIndex %>" placeholder="> Input query..." style="margin:0;">
+      <button id="chat-btn-<%= qIndex %>" class="btn secondary" style="width: auto; padding: 0 20px;">[ TX ]</button>
     </div>
   </div>
 <% } %>
 
   <% if (mod.type === 'feedback') { %>
-    <div class="card" style="border: 3px solid #06b6d4; background: #ecfeff; text-align: center; padding: 30px 20px; box-shadow: 0 10px 25px rgba(6, 182, 212, 0.2);">
-      <h2 style="color: #0891b2; margin-bottom: 10px; font-size: 28px;">🎉 Jullie zijn er!</h2>
-      <p style="color: #155e75; font-size: 16px; margin-bottom: 20px;">Hoe vonden jullie deze speurtocht? Wat was het leukste of meest frustrerende moment?</p>
+    <div class="module" style="text-align: center; border-color: var(--accent);">
+      <h2 style="font-weight: 300;">[ SEQUENCE COMPLETE ]</h2>
+      <p>Data is veiliggesteld. Geef finale log-input voor archivering.</p>
       
-      <textarea id="finale-feedback" rows="4" placeholder="Typ hier jullie reactie (leuk voor de AI!)..." style="border: 2px solid #67e8f9; margin-bottom: 15px;"></textarea>
+      <textarea id="finale-feedback" rows="4" placeholder="> Wat was de status van de missie?"></textarea>
       
-      <button id="btn-finale" class="btn" style="background: #0891b2; font-size: 18px;" onclick="triggerFinale('<%= puzzle._id %>')">
-        ✨ Sluit af & Genereer Reisverslag
+      <button id="btn-finale" class="btn accent" onclick="triggerFinale('<%= puzzle._id %>')">
+        [ END PROTOCOL ]
       </button>
 
-      <div id="finale-loading" style="display: none; margin-top: 20px; color: #0891b2; font-weight: bold; font-size: 16px;">
-        <span style="font-size: 30px; display: block; animation: spin 1.5s linear infinite; margin-bottom: 10px;">⏳</span>
-        De AI Ceremoniemeester analyseert jullie logboek...
+      <div id="finale-loading" style="display: none; margin-top: 20px; font-family: monospace;">
+        > Verwerken van logfiles... Een moment geduld.
       </div>
 
-      <div id="finale-result" style="display: none; margin-top: 25px; background: white; border-radius: 12px; padding: 20px; text-align: left; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
-        <h3 style="color: #111827; margin-top: 0; font-size: 22px; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">📜 Het Oordeel</h3>
-        <div id="finale-text" style="color: #374151; line-height: 1.7; font-size: 16px; margin-bottom: 20px; white-space: pre-wrap;"></div>
+      <div id="finale-result" style="display: none; margin-top: 25px; text-align: left;">
+        <h3 style="font-weight: 300; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">[ DIRECTOR REPORT ]</h3>
+        <div id="finale-text" style="color: var(--text-muted); line-height: 1.7; font-size: 16px; margin-bottom: 20px; white-space: pre-wrap;"></div>
         
-        <div style="background: #fef3c7; border: 2px solid #fde68a; border-radius: 10px; padding: 20px; text-align: center; margin-bottom: 20px;">
-          <strong style="display: block; color: #92400e; font-size: 16px; text-transform: uppercase; letter-spacing: 1px;">Eindscore</strong>
-          <div style="font-size: 48px; font-weight: 900; color: #b45309; line-height: 1;"><span id="finale-score">0</span><span style="font-size: 24px;">pt</span></div>
-          <div style="color: #92400e; font-size: 15px; margin-top: 5px; font-weight: bold;">Geklaard in <span id="finale-time">0</span> minuten</div>
+        <div style="border: 1px solid var(--accent); padding: 20px; text-align: center; margin-bottom: 20px; background: rgba(var(--accent-rgb), 0.05);">
+          <strong style="display: block; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: var(--accent);">Eindscore</strong>
+          <div style="font-size: 48px; font-weight: 300; line-height: 1; margin: 10px 0;"><span id="finale-score">0</span></div>
+          <div style="font-size: 14px; color: var(--text-muted);">Tijd: <span id="finale-time">0</span> min</div>
         </div>
 
-        <a href="/leaderboard/<%= puzzle._id %>" class="btn" style="background: #f59e0b; text-decoration: none;">🏆 Bekijk de Hall of Fame</a>
+        <a href="/leaderboard/<%= puzzle._id %>" class="btn secondary" style="text-decoration: none;">[ OPEN HALL OF FAME ]</a>
       </div>
     </div>
   <% } %>
 
 <% }) %> 
 
-<% if (page.showNext && pageIndex + 1 < puzzle.pages.length) { %>
-  <a class="btn secondary no-lock" href="/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>">Volgende pagina →</a>
+<!-- SENSOR HUD: Visualiseert de hardware triggers -->
+<% if (page.triggers && page.triggers.length > 0) { %>
+  <div class="sensor-visualizer">
+     <p style="font-family: monospace; font-size: 12px; letter-spacing: 2px; color: var(--accent);">[ HARDWARE SENSORS ACTIEF ]</p>
+     
+     <% const hasCompass = page.triggers.find(t => t.type === 'orientation'); %>
+     <% if (hasCompass) { %>
+        <div class="compass-ring" id="ui-compass"></div>
+        <p style="font-size:12px; margin-top:15px;">Kalibreer de richting...</p>
+     <% } %>
+
+     <% const hasMic = page.triggers.find(t => t.type === 'speech_match'); %>
+     <% if (hasMic) { %>
+        <div class="mic-waves" style="display:none;" id="ui-mic"><span></span><span></span><span></span><span></span><span></span></div>
+        <p style="font-size:12px; margin-top:15px;" id="ui-mic-text">Wachten op stem-input...</p>
+     <% } %>
+  </div>
+<% } else if (page.showNext && pageIndex + 1 < puzzle.pages.length) { %>
+  <!-- Fallback als er geen hardware triggers zijn maar we wel door mogen -->
+  <a class="btn secondary no-lock" href="/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>" style="text-decoration:none;">[ PROCEED TO NEXT SECTOR ]</a>
 <% } %>
+
+</div> <!-- End Artifact Viewport -->
 
 <div class="img-overlay" id="imgOverlay" onclick="this.style.display='none'"><img id="overlayImg"></div>
 
 <script>
+// =========================================
+// HUD SENSOR LOGICA (Luistert naar ArtifactEngine)
+// =========================================
+window.addEventListener('sensor-compass-update', (e) => {
+    const ring = document.getElementById('ui-compass');
+    if(ring) {
+        // Draai de ring visueel mee
+        ring.style.transform = `rotate(${-e.detail.degrees}deg)`;
+        // Als je in de buurt komt, geef een glow!
+        if(e.detail.targetDiff < 20) {
+            ring.style.boxShadow = '0 0 20px var(--accent), inset 0 0 20px var(--accent)';
+            ring.style.borderColor = 'var(--accent)';
+        } else {
+            ring.style.boxShadow = 'none';
+            ring.style.borderColor = 'rgba(255,255,255,0.1)';
+        }
+    }
+});
+
+window.addEventListener('sensor-mic-status', (e) => {
+    const mic = document.getElementById('ui-mic');
+    const txt = document.getElementById('ui-mic-text');
+    if(mic) { mic.style.display = 'flex'; txt.innerText = "Luisteren naar commando..."; }
+});
+
+// =========================================
+// REST VAN DE STANDAARD FUNCTIES (Aangepast aan Dark Theme)
+// =========================================
+
 function openImage(src){ document.getElementById("overlayImg").src = src; document.getElementById("imgOverlay").style.display = "flex"; }
 function updateGlobalScore(newScore) {
   const el = document.getElementById("ui-score");
@@ -564,7 +607,7 @@ async function startTimedChallenge(idx, questionId, limit, pSec, pPts, maxPts) {
 async function handleCorrectAnswer(btn, idx, questionId, maxPts, limit, pSec, pPts, isTimed, questionText) {
   btn.disabled = true;
   const fb = document.getElementById(`fb-${idx}`);
-  fb.innerHTML = "✅ Correct! Score verwerken..."; fb.style.color = "#166534";
+  fb.innerHTML = "> Input geaccepteerd. Opslaan..."; fb.style.color = "#4ade80";
   
   try {
     let res;
@@ -582,7 +625,7 @@ async function handleCorrectAnswer(btn, idx, questionId, maxPts, limit, pSec, pP
     }
     const data = await res.json();
     updateGlobalScore(data.totalScore);
-    fb.innerHTML = `✅ Goed! (+${isTimed ? data.earnedPoints : maxPts} pt)`;
+    fb.innerHTML = `> Succes. (+${isTimed ? data.earnedPoints : maxPts} CRDT)`;
     
     setTimeout(() => {
       const form = document.getElementById(`form-${idx}`);
@@ -592,7 +635,7 @@ async function handleCorrectAnswer(btn, idx, questionId, maxPts, limit, pSec, pP
     }, 1500);
 
   } catch(e) {
-    fb.innerHTML = "⚠️ Netwerkfout bij opslaan. Je antwoord was wel goed!";
+    fb.innerHTML = "> ERR: Netwerk timeout. Input was geldig."; fb.style.color="#ef4444";
   }
 }
 
@@ -600,12 +643,12 @@ function verifyMC(btn, idx, questionId, maxPts, limit, pSec, pPts, isTimed, qTex
   const form = document.getElementById(`form-${idx}`);
   const fb = document.getElementById(`fb-${idx}`);
   const checked = form.querySelector('input:checked');
-  if(!checked) { fb.innerHTML = "Kies eerst een antwoord."; fb.style.color = "#991b1b"; return; }
+  if(!checked) { fb.innerHTML = "> ERR: Geen optie geselecteerd."; fb.style.color = "#ef4444"; return; }
   
   if (checked.value === "true") {
     handleCorrectAnswer(btn, idx, questionId, maxPts, limit, pSec, pPts, isTimed, qText);
   } else {
-    fb.innerHTML = "❌ Helaas, dat is niet juist."; fb.style.color = "#991b1b";
+    fb.innerHTML = "> ERR: Ongeldige input."; fb.style.color = "#ef4444";
   }
 }
 
@@ -617,7 +660,7 @@ function verifyOpen(btn, idx, questionId, maxPts, limit, pSec, pPts, isTimed, qT
   if(ans === correct && ans !== "") {
     handleCorrectAnswer(btn, idx, questionId, maxPts, limit, pSec, pPts, isTimed, qText);
   } else {
-    fb.innerHTML = "❌ Fout antwoord, probeer het nog eens!"; fb.style.color = "#991b1b";
+    fb.innerHTML = "> ERR: Match gefaald."; fb.style.color = "#ef4444";
   }
 }
 
@@ -632,10 +675,10 @@ async function executeStaticHint(btn, idx, staticTextEn, cost, qText, qId) {
     });
     const data = await res.json();
     if (data.limitReached) btn.style.display = 'none';
-    document.getElementById(`hint-res-${idx}`).innerHTML = "💡 " + (data.hint || "De Hint-Meester kon even geen antwoord vinden.");
+    document.getElementById(`hint-res-${idx}`).innerHTML = "> DECRYPTED: " + (data.hint || "N/A");
     updateGlobalScore(data.newScore);
-    if (!data.limitReached) { btn.disabled = false; btn.innerHTML = "🔓 Koop nog een hint (+2 pt extra)"; }
-  } catch(e) { btn.disabled = false; btn.innerHTML = "⚠️ Fout, probeer opnieuw"; }
+    if (!data.limitReached) { btn.disabled = false; btn.innerHTML = "[ DECRYPT EXTRA BLOCK (+2 CRDT) ]"; }
+  } catch(e) { btn.disabled = false; btn.innerHTML = "> ERR RETRY"; }
 }
 
 async function executeAiHint(btn, idx, aiKnowledgeEn, cost, qText, qId) {
@@ -647,7 +690,7 @@ async function executeAiHint(btn, idx, aiKnowledgeEn, cost, qText, qId) {
   
   btn.disabled = true; input.disabled = true; btn.innerHTML = "⏳";
   const resDiv = document.getElementById(`hint-res-${idx}`);
-  resDiv.innerHTML = "<em>Hint-Meester denkt na...</em>";
+  resDiv.innerHTML = "> Querying AI Core...";
 
   try {
     const res = await fetch('/api/get-hint', {
@@ -660,10 +703,10 @@ async function executeAiHint(btn, idx, aiKnowledgeEn, cost, qText, qId) {
        input.style.display = 'none'; btn.style.display = 'none';
     }
     
-    resDiv.innerHTML = "🤖 " + (data.hint || "De AI gaf een leeg antwoord. Probeer het opnieuw.");
+    resDiv.innerHTML = "> " + (data.hint || "De AI gaf een leeg antwoord.");
     updateGlobalScore(data.newScore);
-    if (!data.limitReached) { btn.innerHTML = "Vraag (Kans 2/2)"; btn.disabled = false; input.disabled = false; input.value = ""; }
-  } catch(e) { resDiv.innerHTML = "⚠️ De AI is even offline."; btn.disabled = false; input.disabled = false; btn.innerHTML = "Vraag"; }
+    if (!data.limitReached) { btn.innerHTML = "[ QUERY AGN (2/2) ]"; btn.disabled = false; input.disabled = false; input.value = ""; }
+  } catch(e) { resDiv.innerHTML = "> ERR: Core offline."; btn.disabled = false; input.disabled = false; btn.innerHTML = "[ QUERY ]"; }
 }
 
 async function triggerFinale(puzzleId) {
@@ -698,7 +741,7 @@ async function triggerFinale(puzzleId) {
       }());
     }
   } catch (e) {
-    loading.innerHTML = "⚠️ Oeps, de ceremoniemeester is offline gegaan.";
+    loading.innerHTML = "> ERR: Director offline.";
   }
 }
 
@@ -714,9 +757,9 @@ document.querySelectorAll('.ai-file-input').forEach(input => {
     const statusDiv = mod.querySelector('.ai-status');
     const previewImg = mod.querySelector('.ai-preview');
 
-    btn.disabled = true; btn.innerHTML = "🤖 AI jury overlegt...";
-    statusDiv.style.display = "block"; statusDiv.style.background = "#eef2ff"; statusDiv.style.color = "#4f46e5";
-    statusDiv.innerHTML = "De jury analyseert je foto...";
+    btn.disabled = true; btn.innerHTML = "[ UPLOADING... ]";
+    statusDiv.style.display = "block"; statusDiv.style.color = "var(--accent)";
+    statusDiv.innerHTML = "> Analyzing image matrices...";
     previewImg.src = URL.createObjectURL(file); previewImg.style.display = "block";
 
     const fd = new FormData();
@@ -731,17 +774,17 @@ document.querySelectorAll('.ai-file-input').forEach(input => {
       updateGlobalScore(currentScore + result.pointsAwarded);
 
       if (result.match) {
-        statusDiv.style.background = "#dcfce7"; statusDiv.style.color = "#166534";
-        statusDiv.innerHTML = `✅ <strong>Goedgekeurd!</strong> (Jury Score: ${result.score}%)<br>Je verdient <strong>${result.pointsAwarded} / ${result.maxPoints} pt!</strong><br><small>${result.reason}</small>`;
+        statusDiv.style.color = "#4ade80";
+        statusDiv.innerHTML = `> Match found! Confidence: ${result.score}%<br>> ${result.pointsAwarded}/${result.maxPoints} CRDT added.<br>> ${result.reason}`;
         btn.style.display = "none"; 
       } else {
-        statusDiv.style.background = "#fee2e2"; statusDiv.style.color = "#991b1b";
-        statusDiv.innerHTML = "❌ <strong>Helaas!</strong><br>" + result.reason;
-        btn.disabled = false; btn.innerHTML = "📸 Probeer opnieuw";
+        statusDiv.style.color = "#ef4444";
+        statusDiv.innerHTML = "> Match failed.<br>> " + result.reason;
+        btn.disabled = false; btn.innerHTML = "[ RETRY SCAN ]";
       }
     } catch (err) {
-      statusDiv.style.background = "#fee2e2"; statusDiv.style.color = "#991b1b"; statusDiv.innerHTML = "⚠️ Fout: " + err.message;
-      btn.disabled = false; btn.innerHTML = "📸 Probeer opnieuw";
+      statusDiv.style.color = "#ef4444"; statusDiv.innerHTML = "> ERR: " + err.message;
+      btn.disabled = false; btn.innerHTML = "[ RETRY SCAN ]";
     }
   });
 });
@@ -755,7 +798,7 @@ document.querySelectorAll('[id^="chat-btn-"]').forEach(btn => {
     if(!msg) return;
 
     input.value = ''; input.disabled = true; btn.disabled = true;
-    win.innerHTML += `<div style="background: var(--chat-bubble-user); color: var(--chat-text-user); padding: 12px; border-radius: 12px 12px 0 12px; align-self: flex-end; max-width: 85%;">${msg}</div>`;
+    win.innerHTML += `<div style="color: #fff; align-self: flex-end; max-width: 85%;">> ${msg}</div>`;
     win.scrollTop = win.scrollHeight;
 
     try {
@@ -782,7 +825,7 @@ document.querySelectorAll('[id^="chat-btn-"]').forEach(btn => {
       indicator.style.display = 'none'; // Verberg typen zodra API klaar is
       const data = await res.json();
       
-      win.innerHTML += `<div style="background: var(--chat-bubble-ai); color: var(--chat-text-ai); padding: 12px; border-radius: 12px 12px 12px 0; align-self: flex-start; max-width: 85%;">${data.reply || "..."}</div>`;
+      win.innerHTML += `<div style="color: var(--accent); align-self: flex-start; max-width: 85%;">> ${data.reply || "..."}</div>`;
       win.appendChild(indicator); // Zet indicator weer helemaal onderaan (verborgen)
       
       if (data.closeChat) {
@@ -795,7 +838,7 @@ document.querySelectorAll('[id^="chat-btn-"]').forEach(btn => {
 
     } catch(e) { 
       document.getElementById(`typing-indicator-${idx}`).style.display = 'none';
-      win.innerHTML += `<div style="color:red; text-align:center; font-size:12px;">Fout bij laden bericht.</div>`; 
+      win.innerHTML += `<div style="color:#ef4444; text-align:center; font-size:12px;">ERR: Link interrupted.</div>`; 
     }
     
     input.disabled = false; btn.disabled = false; win.scrollTop = win.scrollHeight;
@@ -805,14 +848,14 @@ document.querySelectorAll('[id^="chat-btn-"]').forEach(btn => {
 async function uploadPhoto(input, pIdx, mIdx) {
   const file = input.files?.[0]; if (!file) return;
   const fb = document.getElementById(`photo-feedback-${pIdx}-${mIdx}`);
-  const fd = new FormData(); fd.append("file", file); fb.textContent = "Uploaden…";
+  const fd = new FormData(); fd.append("file", file); fb.textContent = "> Uploading..."; fb.style.color = "var(--text-muted)";
   try {
     const res = await fetch("/upload-photo", { method: "POST", body: fd });
     if (!res.ok) throw new Error();
     const json = await res.json();
     document.getElementById(`photo-url-${pIdx}-${mIdx}`).value = json.url;
-    fb.textContent = "✅ Foto opgeslagen"; fb.style.color = "green";
-  } catch { fb.textContent = "❌ Upload mislukt"; fb.style.color = "red"; }
+    fb.textContent = "> Image stored."; fb.style.color = "#4ade80";
+  } catch { fb.textContent = "> ERR: Upload failed."; fb.style.color = "#ef4444"; }
 }
 
 async function setAsTeamPhoto(url) {

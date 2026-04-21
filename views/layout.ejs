@@ -80,6 +80,8 @@
 <body class="min-h-screen">
 
   <!-- Navigatie -->
+  <% var isImmersiveView = typeof pageIndex !== 'undefined'; %>
+  <% if (!isImmersiveView) { %>
   <header class="sticky top-0 z-30 bg-white/80 backdrop-blur border-b">
     <nav class="mx-auto max-w-md px-4 h-14 flex items-center justify-between">
       <a href="/" class="font-semibold text-lg">Puzzeltocht</a>
@@ -93,6 +95,7 @@
       </div>
     </nav>
   </header>
+  <% } %>
 
   <!-- Pagina-inhoud -->
   <% if (typeof builderPage !== "undefined" && builderPage === true) { %>

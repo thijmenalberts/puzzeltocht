@@ -26,18 +26,36 @@ class ArtifactEngine {
         const overlay = document.createElement("div");
         overlay.style.cssText = `
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: #000; color: #0f0; display: flex; align-items: center; 
+            background: #050505; color: #fff; display: flex; align-items: center; 
             justify-content: center; z-index: 99999; font-family: monospace;
             cursor: pointer; flex-direction: column;
         `;
         overlay.innerHTML = `
-            <h2>[ VERBINDING MAKEN MET ARTEFACT ]</h2>
-            <p style="opacity: 0.7; font-size: 0.8rem; margin-top: 20px;">Druk op het scherm om te kalibreren</p>
+            <div style="width: 80px; height: 80px; border-radius: 50%; border: 2px dashed rgba(255,255,255,0.2); border-top-color: #fff; animation: spin 2s linear infinite; margin-bottom: 30px;"></div>
+            <h2 style="letter-spacing: 4px; font-weight: 300; font-size: 14px; text-transform: uppercase;">Systeem Gevergrendeld</h2>
+            <p style="opacity: 0.5; font-size: 0.7rem; margin-top: 20px; letter-spacing: 2px;">Vingerafdruk of tik vereist om te starten</p>
+            <style>
+                @keyframes spin { 100% { transform: rotate(360deg); } }
+                .pulse-scan {
+                    position: absolute; width: 150px; height: 150px; border-radius: 50%;
+                    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+                    animation: pulse 2s infinite;
+                }
+                @keyframes pulse { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
+            </style>
+            <div class="pulse-scan"></div>
         `;
         
         document.body.appendChild(overlay);
         
         overlay.addEventListener("click", () => {
+            // Speel een high-tech sound
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator(); osc.frequency.value = 800;
+                osc.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + 0.1);
+            } catch(e){}
+
             overlay.style.transition = "opacity 0.5s ease";
             overlay.style.opacity = "0";
             setTimeout(() => overlay.remove(), 500);
@@ -125,6 +143,10 @@ class ArtifactEngine {
         recognition.lang = 'nl-NL';
         recognition.interimResults = false;
         
+        recognition.onstart = () => {
+            window.dispatchEvent(new CustomEvent('sensor-mic-status', { detail: { active: true } }));
+        };
+
         recognition.onresult = (event) => {
             const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
             console.log("Overhoord:", transcript);
@@ -148,6 +170,9 @@ class ArtifactEngine {
             
             // alpha is rotatie 0-360 (0 is noord)
             const diff = Math.abs(e.alpha - parseInt(trigger.targetValue));
+            
+            // Stuur realtime data naar de visuele HUD
+            window.dispatchEvent(new CustomEvent('sensor-compass-update', { detail: { degrees: e.alpha, targetDiff: diff } }));
             
             // Is de telefoon in de juiste richting gewezen? (met margin of error)
             if (diff < trigger.tolerance || diff > (360 - trigger.tolerance)) {
