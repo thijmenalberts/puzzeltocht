@@ -218,25 +218,72 @@ app.post("/admin-upload-media", requireAdmin, uploadMedia.single("file"), (req, 
 });
 
 app.get("/admin-files", requireAdmin, (req, res) => {
-  const baseDir = uploadDir;
-  function readFiles(dir) {
+  function readDirs(dir) {
     if (!fs.existsSync(dir)) return [];
-    return fs.readdirSync(dir).map(name => {
-      const stat = fs.statSync(path.join(dir, name));
-      return { name, isDir: stat.isDirectory(), size: stat.isFile() ? stat.size : null };
-    });
+    return fs.readdirSync(dir)
+      .map(name => {
+        const full = path.join(dir, name);
+        return { name, isDir: fs.statSync(full).isDirectory() };
+      })
+      .filter(e => e.isDir);
   }
-  const rootFiles = readFiles(baseDir).filter(f => !f.isDir);
-  const folders = readFiles(baseDir).filter(f => f.isDir).map(folder => ({
-    name: folder.name, files: readFiles(path.join(baseDir, folder.name)).filter(f => !f.isDir)
-  }));
-  res.render("admin-files", { rootFiles, folders });
+
+  const folders = readDirs(uploadDir);
+
+  // check of er root-bestanden zijn
+  const hasRootFiles = fs.readdirSync(uploadDir).some(name =>
+    fs.statSync(path.join(uploadDir, name)).isFile()
+  );
+
+  res.render("admin-files", {
+    folders,
+    hasRootFiles
+  });
+});
+
+app.get("/admin-files/:folder", requireAdmin, (req, res) => {
+  const { folder } = req.params;
+
+  let dirPath;
+  let displayName = folder;
+
+  if (folder === "__root__") {
+    dirPath = uploadDir;
+    displayName = "Overige bestanden";
+  } else {
+    dirPath = path.join(uploadDir, folder);
+    if (!fs.existsSync(dirPath)) {
+      return res.status(404).send("Map niet gevonden");
+    }
+  }
+
+  const files = fs.readdirSync(dirPath)
+    .map(name => {
+      const full = path.join(dirPath, name);
+      const stat = fs.statSync(full);
+      return stat.isFile()
+        ? { name, size: stat.size }
+        : null;
+    })
+    .filter(Boolean);
+
+  res.render("admin-files-folder", {
+    folder,
+    displayName,
+    files
+  });
 });
 
 app.post("/admin-files/delete", requireAdmin, express.json(), (req, res) => {
   const { folder, file } = req.body;
-  const filePath = path.join(uploadDir, folder, file);
-  if (!filePath.startsWith(uploadDir)) return res.status(400).json({ error: "Ongeldig pad" });
+
+  const folderPath = folder ? path.join(uploadDir, folder) : uploadDir;
+  const filePath = path.join(folderPath, file);
+
+  if (!filePath.startsWith(uploadDir)) {
+    return res.status(400).json({ error: "Ongeldig pad" });
+  }
+
   safeUnlink(filePath);
   res.json({ ok: true });
 });
