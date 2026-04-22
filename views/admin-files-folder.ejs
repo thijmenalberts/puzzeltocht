@@ -92,13 +92,24 @@
           </div>
 
           <!-- Delete -->
-          <button
-            onclick="deleteFile('<%= folder === '__root__' ? '' : folder %>', '<%= file.name %>')"
-            class="delete-btn absolute top-2 right-2 bg-red-500 text-white
-                   p-2 rounded-lg opacity-0 hover:bg-red-600 shadow-lg transition">
-            ✕
-          </button>
+          <div class="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition">
 
+            <!-- Kopieer link -->
+            <button
+              onclick="copyFileLink('<%= folder === '__root__' ? '' : folder %>', '<%= file.name %>')"
+              title="Kopieer bestandslink"
+              class="bg-gray-700 text-white p-2 rounded-lg hover:bg-gray-800 shadow">
+              📋
+            </button>
+          
+            <!-- Verwijderen -->
+            <button
+              onclick="deleteFile('<%= folder === '__root__' ? '' : folder %>', '<%= file.name %>')"
+              title="Verwijderen"
+              class="bg-red-500 text-white p-2 rounded-lg hover:bg-red-600 shadow">
+              ✕
+            </button>
+          </div>
         </div>
 
       <% }) %>
