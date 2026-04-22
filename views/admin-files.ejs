@@ -7,12 +7,9 @@
     max-width: none !important;
     width: 100% !important;
   }
-</style>
 
-<style>
   .file-card:hover .delete-btn { opacity: 1; }
 
-  /* Grotere previews voor desktop */
   .preview-img {
     object-fit: cover;
     height: 160px;
@@ -22,7 +19,7 @@
 
 <section class="max-w-screen-2xl mx-auto p-8">
 
-  <div class="flex justify-between items-center mb-8">
+  <div class="flex justify-between items-center mb-10">
     <h1 class="text-3xl font-black text-gray-900">📂 Mediabeheer</h1>
     <a href="/admin-dashboard"
        class="bg-gray-100 hover:bg-gray-200 text-gray-600 px-4 py-2 rounded-lg font-bold transition-colors">
@@ -30,17 +27,40 @@
     </a>
   </div>
 
-  <% (folders || []).forEach(folder => { %>
-    <div class="mb-14">
-      <h2 class="text-sm font-black text-indigo-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-        <span class="bg-indigo-100 p-1 rounded">📁</span> <%= folder.name %>
-      </h2>
+  <!-- MAPPEN -->
+  <% (folders || []).forEach((folder, index) => { %>
+    <div class="mb-8">
 
-      <!-- Desktop grid: altijd meerdere kolommen -->
-      <div class="grid grid-cols-4 xl:grid-cols-5 gap-6">
+      <!-- MAP HEADER -->
+      <button
+        onclick="toggleFolder(<%= index %>)"
+        class="w-full flex items-center gap-4 bg-white border border-gray-200
+               rounded-xl px-6 py-4 shadow-sm hover:border-indigo-300 transition">
+
+        <span class="text-2xl">📁</span>
+
+        <div class="flex-1 text-left">
+          <p class="font-black text-gray-900"><%= folder.name %></p>
+          <p class="text-xs text-gray-400">
+            <%= folder.files.length %> bestanden
+          </p>
+        </div>
+
+        <svg id="arrow-<%= index %>"
+             class="w-5 h-5 text-gray-400 transition-transform"
+             fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 5l7 7-7 7"/>
+        </svg>
+      </button>
+
+      <!-- MAP INHOUD (VERBORGEN) -->
+      <div id="folder-<%= index %>"
+           class="hidden mt-6 grid grid-cols-4 xl:grid-cols-5 gap-6">
+
         <% folder.files.forEach(file => { %>
-          <div class="file-card relative bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden
-                      hover:border-indigo-300 transition-all">
+          <div class="file-card relative bg-white rounded-xl border border-gray-200
+                      shadow-sm overflow-hidden hover:border-indigo-300 transition-all">
 
             <div class="bg-gray-100 border-b border-gray-100">
               <% if (file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) { %>
@@ -60,74 +80,54 @@
             </div>
 
             <div class="p-4">
-              <p class="text-sm font-bold text-gray-800 truncate" title="<%= file.name %>">
+              <p class="text-sm font-bold text-gray-800 truncate">
                 <%= file.name %>
               </p>
-              <p class="text-xs text-gray-400 font-medium mt-1">
+              <p class="text-xs text-gray-400 mt-1">
                 <%= (file.size / 1024).toFixed(1) %> KB
               </p>
             </div>
 
             <button onclick="deleteFile('<%= folder.name %>', '<%= file.name %>')"
-                    class="delete-btn absolute top-2 right-2 bg-red-500 text-white p-2 rounded-lg
-                           opacity-0 hover:bg-red-600 shadow-lg transition-all">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
-                   viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
-                      d="M6 18L18 6M6 6l12 12"/>
-              </svg>
+                    class="delete-btn absolute top-2 right-2 bg-red-500 text-white
+                           p-2 rounded-lg opacity-0 hover:bg-red-600 shadow-lg">
+              ✕
             </button>
 
           </div>
         <% }) %>
       </div>
+
     </div>
   <% }) %>
 
+  <!-- OVERIGE BESTANDEN -->
   <% if (rootFiles && rootFiles.length > 0) { %>
-    <div>
+    <div class="mt-14">
       <h2 class="text-sm font-black text-gray-400 uppercase tracking-widest mb-4">
         Overige bestanden
       </h2>
-  
+
       <div class="grid grid-cols-4 xl:grid-cols-5 gap-6">
         <% rootFiles.forEach(file => { %>
-          <div class="file-card relative bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden
-                      hover:border-indigo-300 transition-all">
-  
-            <div class="bg-gray-100 border-b border-gray-100">
-              <% if (file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) { %>
-                <img src="/uploads/<%= file.name %>" class="preview-img">
-              <% } else if (file.name.match(/\.(mp3|wav|ogg)$/i)) { %>
-                <div class="h-[160px] flex flex-col items-center justify-center p-3 bg-amber-50">
-                  <span class="text-2xl mb-2">🎵</span>
-                  <audio controls class="w-full opacity-90">
-                    <source src="/uploads/<%= file.name %>">
-                  </audio>
-                </div>
-              <% } else { %>
-                <div class="h-[160px] flex items-center justify-center text-4xl bg-gray-50">
-                  📄
-                </div>
-              <% } %>
+          <div class="file-card relative bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+
+            <div class="bg-gray-100 h-[160px] flex items-center justify-center text-4xl">
+              📄
             </div>
-  
+
             <div class="p-4">
-              <p class="text-sm font-bold text-gray-800 truncate" title="<%= file.name %>">
+              <p class="text-sm font-bold text-gray-800 truncate">
                 <%= file.name %>
               </p>
             </div>
-  
+
             <button onclick="deleteFile('', '<%= file.name %>')"
                     class="delete-btn absolute top-2 right-2 bg-red-500 text-white p-2 rounded-lg
-                           opacity-0 hover:bg-red-600 shadow-lg transition-all">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
-                   viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
-                      d="M6 18L18 6M6 6l12 12"/>
-              </svg>
+                           opacity-0 hover:bg-red-600 shadow-lg">
+              ✕
             </button>
-  
+
           </div>
         <% }) %>
       </div>
@@ -137,20 +137,32 @@
 </section>
 
 <script>
+function toggleFolder(index) {
+  const folder = document.getElementById(`folder-${index}`);
+  const arrow = document.getElementById(`arrow-${index}`);
+
+  const isOpen = !folder.classList.contains('hidden');
+
+  // alles sluiten
+  document.querySelectorAll('[id^="folder-"]').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('[id^="arrow-"]').forEach(el => el.classList.remove('rotate-90'));
+
+  if (!isOpen) {
+    folder.classList.remove('hidden');
+    arrow.classList.add('rotate-90');
+  }
+}
+
 async function deleteFile(folder, file) {
   if (!confirm('Weet je zeker dat je dit bestand wilt verwijderen?')) return;
 
-  try {
-    const res = await fetch('/admin-files/delete', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ folder, file })
-    });
+  const res = await fetch('/admin-files/delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ folder, file })
+  });
 
-    if (res.ok) location.reload();
-    else alert('Verwijderen mislukt');
-  } catch (e) {
-    alert('Netwerkfout');
-  }
+  if (res.ok) location.reload();
+  else alert('Verwijderen mislukt');
 }
 </script>
