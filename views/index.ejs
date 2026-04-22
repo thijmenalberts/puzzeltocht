@@ -6,22 +6,23 @@
   <title>Puzzeltocht – Toegang | Doen We! Events</title>
 </head>
 
-<body class="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#FFF4E6] to-white px-4">
+<body class="min-h-screen bg-gradient-to-b from-[#FFF4E6] to-white flex items-center justify-center px-4">
 
   <main class="w-full max-w-md">
 
-    <section class="relative bg-white rounded-2xl shadow-xl px-8 pt-6 pb-7 space-y-6">
+    <!-- Context -->
+    <p class="mb-3 text-center text-sm text-gray-500">
+      Puzzeltocht • Toegang
+    </p>
 
-      <!-- Oranje accent -->
+    <!-- Card -->
+    <section class="relative bg-white rounded-2xl shadow-xl p-8 space-y-6">
+
+      <!-- Oranje accent bovenrand -->
       <div class="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-[#FF6A00]"></div>
 
-      <!-- Context -->
-      <p class="text-center text-sm text-gray-500">
-        Puzzeltocht · Toegang
-      </p>
-
       <!-- Logo -->
-      <div class="flex justify-center">
+      <div class="flex justify-center pt-2">
         <img
           src="https://puzzeltocht.doenwe.events/uploads/Doen%20we!.png"
           alt="Doen We! Events"
@@ -30,7 +31,7 @@
         />
       </div>
 
-      <!-- Titel + intro -->
+      <!-- Titel + uitleg -->
       <div class="text-center space-y-2">
         <h1 class="text-2xl font-semibold tracking-tight text-gray-900">
           Voer je code in
@@ -41,17 +42,17 @@
         </p>
       </div>
 
-      <!-- Error -->
+      <!-- Foutmelding -->
       <% if (error) { %>
         <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <%= error %>
         </div>
       <% } %>
 
-      <!-- Form -->
-      /check-code
+      <!-- Formulier -->
+      <form action="/check-code" method="POST" class="space-y-4">
 
-        <!-- Input -->
+        <!-- Code -->
         <div>
           <label for="code" class="block text-sm font-medium text-gray-700 mb-1">
             Code
@@ -61,19 +62,19 @@
             name="code"
             type="text"
             required
-            placeholder="Bijvoorbeeld: DW-1234"
             autocomplete="one-time-code"
+            placeholder="Bijvoorbeeld: DW-1234"
             class="w-full rounded-lg border border-gray-300 p-3 text-gray-900
                    focus:outline-none focus:border-[#FF6A00]
                    focus:ring-2 focus:ring-[#FF6A00]/30"
           />
         </div>
 
-        <!-- Primary CTA -->
+        <!-- Primaire CTA -->
         <button
           type="submit"
           class="w-full rounded-lg bg-[#FF6A00] p-3
-                 text-white font-medium
+                 font-medium text-white
                  hover:bg-[#E65F00]
                  transition active:scale-[0.98]
                  focus:outline-none focus:ring-2 focus:ring-[#FF6A00]/40">
@@ -81,22 +82,31 @@
         </button>
 
         <!-- Divider -->
-        <div class="relative py-1">
+        <div class="relative py-2">
           <div class="absolute inset-0 flex items-center">
             <div class="w-full border-t border-gray-200"></div>
           </div>
         </div>
 
-        <!-- Secondary action -->
-        https://www.universe.com/events/puzzeltocht-tickets-KXNLW2
-          Nog geen code? Koop tickets voor de puzzeltocht
-          <span class="inline-block ml-1 transition-transform group-hover:translate-x-1">→</span>
+        <!-- Secundaire actie -->
+        <a
+          href="https://www.universe.com/events/puzzeltocht-tickets-KXNLW2"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="group block w-full rounded-lg border border-gray-200 p-3
+                 text-center text-sm text-gray-700
+                 hover:border-gray-300 hover:bg-gray-50 transition"
+        >
+          Koop tickets voor de puzzeltocht
+          <span class="inline-block ml-1 transform transition group-hover:translate-x-1">
+            →
+          </span>
         </a>
 
       </form>
 
       <!-- Reassurance -->
-      <div class="flex items-center gap-2 justify-center text-xs text-gray-500 pt-1">
+      <div class="flex items-center justify-center gap-2 text-xs text-gray-500 pt-1">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
              viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
