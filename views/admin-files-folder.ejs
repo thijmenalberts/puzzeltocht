@@ -166,13 +166,11 @@ async function copyFileLink(folder, file) {
     ? `/uploads/${folder}/${file}`
     : `/uploads/${file}`;
 
-  const fullUrl = window.location.origin + path;
-
   try {
-    await navigator.clipboard.writeText(fullUrl);
+    await navigator.clipboard.writeText(path);
 
-    // UX feedback
-    alert('Link gekopieerd:\n' + fullUrl);
+    // Kleine feedback (optioneel)
+    alert('Link gekopieerd:\n' + path);
   } catch (err) {
     alert('Kon link niet kopiëren');
   }
