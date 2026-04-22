@@ -160,4 +160,21 @@ async function renameFile(folder, oldName, newName) {
     location.reload();
   }
 }
+
+async function copyFileLink(folder, file) {
+  const path = folder
+    ? `/uploads/${folder}/${file}`
+    : `/uploads/${file}`;
+
+  const fullUrl = window.location.origin + path;
+
+  try {
+    await navigator.clipboard.writeText(fullUrl);
+
+    // UX feedback
+    alert('Link gekopieerd:\n' + fullUrl);
+  } catch (err) {
+    alert('Kon link niet kopiëren');
+  }
+}
 </script>
