@@ -96,6 +96,7 @@
 
             <!-- Kopieer link -->
             <button
+              type="button"
               onclick="copyFileLink('<%= folder === '__root__' ? '' : folder %>', '<%= file.name %>')"
               title="Kopieer bestandslink"
               class="bg-gray-700 text-white p-2 rounded-lg hover:bg-gray-800 shadow">
@@ -104,11 +105,13 @@
           
             <!-- Verwijderen -->
             <button
+              type="button"
               onclick="deleteFile('<%= folder === '__root__' ? '' : folder %>', '<%= file.name %>')"
               title="Verwijderen"
               class="bg-red-500 text-white p-2 rounded-lg hover:bg-red-600 shadow">
               ✕
             </button>
+          
           </div>
         </div>
 
