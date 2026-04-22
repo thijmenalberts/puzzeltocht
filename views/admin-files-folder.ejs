@@ -168,6 +168,21 @@ async function renameFile(folder, oldName, newName) {
   }
 }
 
+<script>
+function showToast(message) {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+
+  toast.textContent = message;
+  toast.classList.remove('opacity-0');
+  toast.classList.add('opacity-100');
+
+  setTimeout(() => {
+    toast.classList.remove('opacity-100');
+    toast.classList.add('opacity-0');
+  }, 2000);
+}
+
 async function copyFileLink(folder, file) {
   const path = folder
     ? `/uploads/${folder}/${file}`
@@ -175,11 +190,9 @@ async function copyFileLink(folder, file) {
 
   try {
     await navigator.clipboard.writeText(path);
-
-    // Kleine feedback (optioneel)
-    alert('Link gekopieerd:\n' + path);
+    showToast('✅ Link gekopieerd');
   } catch (err) {
-    alert('Kon link niet kopiëren');
+    showToast('❌ Kopiëren mislukt');
   }
 }
 </script>
