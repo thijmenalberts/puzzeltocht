@@ -288,6 +288,39 @@ app.post("/admin-files/delete", requireAdmin, express.json(), (req, res) => {
   res.json({ ok: true });
 });
 
+app.post("/admin-files/rename", requireAdmin, express.json(), (req, res) => {
+  const { folder, oldName, newName } = req.body;
+
+  if (!oldName || !newName) {
+    return res.status(400).json({ error: "Ongeldige invoer" });
+  }
+
+  // 🔐 Beperk hernoemen tot dezelfde extensie
+  const oldExt = path.extname(oldName);
+  const newExt = path.extname(newName);
+  if (oldExt !== newExt) {
+    return res.status(400).json({ error: "Bestandsextensie mag niet veranderen" });
+  }
+
+  const baseDir = folder ? path.join(uploadDir, folder) : uploadDir;
+
+  const oldPath = path.join(baseDir, oldName);
+  const newPath = path.join(baseDir, newName);
+
+  // 🔐 Security check
+  if (!oldPath.startsWith(uploadDir) || !newPath.startsWith(uploadDir)) {
+    return res.status(400).json({ error: "Ongeldig pad" });
+  }
+
+  try {
+    fs.renameSync(oldPath, newPath);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("Rename error:", err);
+    res.status(500).json({ error: "Hernoemen mislukt" });
+  }
+});
+
 app.get("/", (req, res) => res.render("index", { error: null }));
 app.post("/check-code", checkCodeLimiter, async (req, res) => {
   try {
