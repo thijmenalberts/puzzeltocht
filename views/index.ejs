@@ -1,31 +1,94 @@
-<section class="space-y-5">
-  <h1 class="text-2xl font-bold">Voer je code in</h1>
-  
-  <% if (error) { %>
-    <p class="text-red-600"><%= error %></p>
-  <% } %>
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Code invoeren – Doen We! Events</title>
+</head>
 
-  <form action="/check-code" method="POST" class="space-y-3">
-    <input
-      type="text"
-      name="code"
-      placeholder="Code"
-      class="w-full border rounded p-3"
-      required
-    />
+<body class="min-h-screen bg-gradient-to-b from-[#FFF3E8] to-white flex items-center justify-center px-4">
 
-    <button class="btn-primary w-full p-3">
-      Verder
-    </button>
+  <main class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 space-y-6">
 
-    <!-- Nieuwe knop onder "Verder" -->
-    <a
-      href="https://www.universe.com/events/puzzeltocht-tickets-KXNLW2"
-      target="_blank"
-      rel="noopener noreferrer"
-      class="block text-center border border-gray-300 rounded p-3 text-gray-700 hover:bg-gray-100"
-    >
-      Koop tickets voor de puzzeltocht
-    </a>
-  </form>
-</section>
+    <!-- Logo -->
+    <div class="flex justify-center">
+      <img
+        src="/images/doenwe-events-logo.svg"
+        alt="Doen We! Events"
+        class="h-14 w-auto"
+      />
+    </div>
+
+    <!-- Titel + uitleg -->
+    <div class="text-center space-y-2">
+      <h1 class="text-2xl md:text-3xl font-semibold tracking-tight text-gray-900">
+        Voer je code in
+      </h1>
+      <p class="text-sm text-gray-600">
+        Deze code heb je ontvangen bij je bestelling of tijdens de puzzeltocht.
+      </p>
+    </div>
+
+    <!-- Foutmelding -->
+    <% if (error) { %>
+      <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <%= error %>
+      </div>
+    <% } %>
+
+    <!-- Formulier -->
+    <form action="/check-code" method="POST" class="space-y-4">
+
+      <!-- Code input -->
+      <div>
+        <label for="code" class="block text-sm font-medium text-gray-700 mb-1">
+          Code
+        </label>
+        <input
+          id="code"
+          name="code"
+          type="text"
+          required
+          autocomplete="one-time-code"
+          placeholder="Bijvoorbeeld: DW-1234"
+          class="w-full rounded-lg border border-gray-300 p-3 text-gray-900
+                 focus:outline-none focus:border-[#FF6A00]
+                 focus:ring-2 focus:ring-[#FF6A00]/30"
+        />
+      </div>
+
+      <!-- Primaire actie -->
+      <button
+        type="submit"
+        class="w-full rounded-lg bg-[#FF6A00] p-3
+               font-medium text-white
+               hover:bg-[#E65F00]
+               transition active:scale-[0.98] focus:outline-none
+               focus:ring-2 focus:ring-[#FF6A00]/40">
+        Verder
+      </button>
+
+      <!-- Divider -->
+      <div class="relative py-2">
+        <div class="absolute inset-0 flex items-center">
+          <div class="w-full border-t border-gray-200"></div>
+        </div>
+      </div>
+
+      <!-- Secundaire actie -->
+      <a
+        href="https://www.universe.com/events/puzzeltocht-tickets-KXNLW2"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="block w-full rounded-lg border border-gray-300 p-3
+               text-center text-gray-700
+               hover:bg-gray-50 transition">
+        Koop tickets voor de puzzeltocht
+      </a>
+
+    </form>
+
+  </main>
+
+</body>
+</html>
