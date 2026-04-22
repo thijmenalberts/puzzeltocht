@@ -1,0 +1,121 @@
+<style>
+  body {
+    max-width: none !important;
+  }
+
+  main, .container {
+    max-width: none !important;
+    width: 100% !important;
+  }
+
+  .file-card:hover .delete-btn {
+    opacity: 1;
+  }
+
+  .preview-img {
+    object-fit: cover;
+    height: 160px;
+    width: 100%;
+  }
+</style>
+
+<section class="max-w-screen-2xl mx-auto p-8">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-10">
+    <div class="flex items-center gap-4">
+      /admin-files" class="bg-gray-100 hover:bg-gray-200 text-gray-700
+                          px-4 py-2 rounded-lg font-bold transition">
+        ← Terug
+      </a>
+
+      <h1 class="text-2xl font-black text-gray-900">
+        📁 <%= displayName %>
+      </h1>
+    </div>
+  </div>
+
+  <% if (files.length === 0) { %>
+    <div class="text-gray-500 italic">
+      Deze map is leeg.
+    </div>
+  <% } else { %>
+
+    <div class="grid grid-cols-4 xl:grid-cols-5 gap-6">
+
+      <% files.forEach(file => { %>
+        <div class="file-card relative bg-white rounded-xl border border-gray-200
+                    shadow-sm overflow-hidden hover:border-indigo-300 transition-all">
+
+          <!-- Preview -->
+          <div class="bg-gray-100 border-b border-gray-100">
+            <% if (file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) { %>
+              <img
+                src="/uploads/<e %>"
+                class="preview-img"
+                alt="<%= file.name %>"
+              >
+            <% } else if (file.name.match(/\.(mp3|wav|ogg)$/i)) { %>
+              <div class="h-[160px] flex flex-col items-center justify-center bg-amber-50 p-3">
+                <span class="text-2xl mb-2">🎵</span>
+                <audio controls class="w-full opacity-90">
+                  <source src="/uploads/<%= folder ===e %>">
+                </audio>
+              </div>
+            <% } else { %>
+              <div class="h-[160px] flex items-center justify-center text-4xl bg-gray-50">
+                📄
+              </div>
+            <% } %>
+          </div>
+
+          <!-- Info -->
+          <div class="p-4">
+            <p class="text-sm font-bold text-gray-800 truncate" title="<%= file.name %>">
+              <%= file.name %>
+            </p>
+            <p class="text-xs text-gray-400 mt-1">
+              <%= (file.size / 1024).toFixed(1) %> KB
+            </p>
+          </div>
+
+          <!-- Delete -->
+          <button
+            onclick="deleteFile('<%= folder === '__root__' ? '' : folder %>', '<%= file.name %>')"
+            class="delete-btn absolute top-2 right-2 bg-red-500 text-white
+                   p-2 rounded-lg opacity-0 hover:bg-red-600 shadow-lg transition">
+            ✕
+          </button>
+
+        </div>
+      <% }) %>
+
+    </div>
+
+  <% } %>
+
+</section>
+
+<script>
+async function deleteFile(folder, file) {
+  if (!confirm('Weet je zeker dat je dit bestand wilt verwijderen?')) {
+    return;
+  }
+
+  try {
+    const res = await fetch('/admin-files/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ folder, file })
+    });
+
+    if (res.ok) {
+      location.reload();
+    } else {
+      alert('Verwijderen mislukt');
+    }
+  } catch (err) {
+    alert('Netwerkfout');
+  }
+}
+</script>
