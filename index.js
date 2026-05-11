@@ -179,14 +179,23 @@ app.use((req, res, next) => {
 // ------------------------------------------
 // 6. THEMA INLADEN
 // ------------------------------------------
+let cachedTheme = null;
+let themeCacheTime = 0;
+const THEME_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 app.use(async (req, res, next) => {
   try {
-    const theme = await Theme.findOne();
-    res.locals.theme = theme || {
-      primaryColor: "#2563eb", backgroundColor: "#ffffff", textColor: "#111827", borderRadius: "0.75rem", fontFamily: "Inter, sans-serif"
-    };
+    const now = Date.now();
+    if (!cachedTheme || (now - themeCacheTime) > THEME_CACHE_TTL) {
+      const theme = await Theme.findOne();
+      cachedTheme = theme || {
+        primaryColor: "#2563eb", backgroundColor: "#ffffff", textColor: "#111827", borderRadius: "0.75rem", fontFamily: "Inter, sans-serif"
+      };
+      themeCacheTime = now;
+    }
+    res.locals.theme = cachedTheme;
   } catch {
-    res.locals.theme = { primaryColor: "#2563eb", backgroundColor: "#ffffff", textColor: "#111827", borderRadius: "0.75rem", fontFamily: "Inter, sans-serif" };
+    res.locals.theme = cachedTheme || { primaryColor: "#2563eb", backgroundColor: "#ffffff", textColor: "#111827", borderRadius: "0.75rem", fontFamily: "Inter, sans-serif" };
   }
   next();
 });
@@ -412,6 +421,7 @@ app.get("/admin/feedback", requireAdmin, async (req, res) => {
 app.post("/admin-theme", requireAdmin, async (req, res) => {
   const { primaryColor, backgroundColor, textColor, borderRadius, fontFamily } = req.body;
   await Theme.findOneAndUpdate({}, { primaryColor, backgroundColor, textColor, borderRadius, fontFamily }, { upsert: true });
+  cachedTheme = null; // Invalidate cache
   res.render("admin-theme", { theme: req.body, saved: true });
 });
 
