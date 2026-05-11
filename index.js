@@ -213,6 +213,11 @@ function requireAdmin(req, res, next) {
   res.redirect("/admin-login");
 }
 
+function requireActiveCode(req, res, next) {
+  if (req.session?.activeCode || req.session?.isAdmin) return next();
+  res.redirect("/");
+}
+
 const checkCodeLimiter = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 minuten
   max: 5,                  // max 5 pogingen
@@ -381,7 +386,7 @@ app.post("/check-code", checkCodeLimiter, async (req, res) => {
   }
 });
 
-app.get("/next", async (req, res) => {
+app.get("/next", requireActiveCode, async (req, res) => {
   const puzzles = await Puzzle.find().sort({ createdAt: -1 });
   res.render("next", { puzzles });
 });
@@ -1011,18 +1016,18 @@ app.post("/team/profile-photo", express.json(), (req, res) => {
   res.json({ ok: true });
 });
 
-app.post("/puzzle/set-language", express.urlencoded({ extended: false }), (req, res) => {
+app.post("/puzzle/set-language", requireActiveCode, express.urlencoded({ extended: false }), (req, res) => {
   if (typeof req.body.language === "string") req.session.language = req.body.language;
   res.redirect(req.body.redirect || "/");
 });
 
-app.get("/puzzle/:id", async (req, res) => {
+app.get("/puzzle/:id", requireActiveCode, async (req, res) => {
   const puzzle = await Puzzle.findById(req.params.id);
   if (!puzzle) return res.status(404).send("Puzzel niet gevonden");
   res.redirect(`/puzzle/${puzzle._id}/0`);
 });
 
-app.get("/puzzle/:id/:page", async (req, res) => {
+app.get("/puzzle/:id/:page", requireActiveCode, async (req, res) => {
   try {
     const puzzle = await Puzzle.findById(req.params.id).lean();
     if (!puzzle) return res.status(404).send("Puzzel niet gevonden");
