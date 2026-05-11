@@ -345,7 +345,7 @@ function renderPageList(){
   function createBlock(type){
     const div = document.createElement("div");
     div.className = "block"; div.draggable = true; div.dataset.type = type;
-    div.innerHTML = `<button class="remove" type="button">×</button><h4><span>${type.toUpperCase()}</span><span class="kind">${type}</span></h4><div class="content"></div>`;
+    div.innerHTML = `<button class="remove" type="button" aria-label="Verwijderen" title="Verwijderen">×</button><h4><span>${type.toUpperCase()}</span><span class="kind">${type}</span></h4><div class="content"></div>`;
     const content = qs(".content", div);
 
     if (type === "title") content.innerHTML = `<div contenteditable="true" data-field="title" style="font-size:20px; font-weight:800;">Nieuwe titel</div>`;
@@ -408,7 +408,7 @@ if (type === "historychat") {
       
       div.createOption = (text="", isCorrect=false) => {
         const optWrap = content.querySelector('[data-options]'); const opt = document.createElement("div"); opt.className="mc-option"; opt.style.display="flex"; opt.style.gap="8px"; opt.style.marginBottom="8px";
-        opt.innerHTML = `<input type="text" data-text value="${text}"><label style="display:flex;align-items:center;gap:4px;margin:0;"><input type="checkbox" data-correct ${isCorrect?'checked':''}>Juist</label><button type="button" data-remove class="btn btn-danger" style="padding:8px;">X</button>`;
+        opt.innerHTML = `<input type="text" data-text value="${text}"><label style="display:flex;align-items:center;gap:4px;margin:0;"><input type="checkbox" data-correct ${isCorrect?'checked':''}>Juist</label><button type="button" data-remove class="btn btn-danger" style="padding:8px;" aria-label="Verwijder optie" title="Verwijder optie">X</button>`;
         opt.querySelector('[data-remove]').onclick = () => { if(optWrap.children.length>1) opt.remove(); }; optWrap.appendChild(opt);
       };
       div.createOption(); div.createOption();

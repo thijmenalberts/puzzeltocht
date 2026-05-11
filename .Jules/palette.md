@@ -1,0 +1,3 @@
+## 2024-10-27 - Icon-only buttons lacking ARIA labels
+**Learning:** Found that some icon-only action buttons (like × or 📋) in the admin panels (`views/admin-builder.ejs` and `views/admin-files-folder.ejs`) lacked `aria-label` and sometimes `title` attributes. Because this app serves an admin audience using EJS templates, ensuring accessibility here is a quick win.
+**Action:** Next time working on admin panels or newly introduced UI components with EJS, proactively ensure all icon-only buttons have descriptive `aria-label` and `title` attributes matching the surrounding language (Dutch in this case).
