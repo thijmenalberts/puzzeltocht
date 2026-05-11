@@ -24,10 +24,12 @@ import Theme from "./models/Theme.js";
 import Team from "./models/Team.js"; 
 import GlobalTeam from "./models/GlobalTeam.js";
 import GameSession from "./models/GameSession.js";
+import UsedCode from "./models/UsedCode.js";
 
 import base from "./models/airtable.js";
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import cookieParser from "cookie-parser";
 
 dotenv.config();
 
@@ -86,8 +88,15 @@ const storage = multer.diskStorage({
 const uploadMedia = multer({
   storage,
   fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith("image/") || file.mimetype.startsWith("audio/")) cb(null, true);
-    else cb(new Error("Alleen afbeeldingen of audio toegestaan"), false);
+    const allowedExts = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".mp3", ".wav", ".ogg", ".m4a"];
+    const ext = path.extname(file.originalname || "").toLowerCase();
+    const isAllowedExt = allowedExts.includes(ext);
+
+    if ((file.mimetype.startsWith("image/") || file.mimetype.startsWith("audio/")) && isAllowedExt) {
+      cb(null, true);
+    } else {
+      cb(new Error("Alleen veilige afbeeldingen of audio toegestaan"), false);
+    }
   },
   limits: { fileSize: 25 * 1024 * 1024 }
 });
@@ -103,8 +112,15 @@ const uploadTeamPhoto = multer({
   }),
   limits: { fileSize: 25 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith("image/")) cb(null, true);
-    else cb(new Error("Alleen afbeeldingen toegestaan"));
+    const allowedExts = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
+    const ext = path.extname(file.originalname || "").toLowerCase();
+    const isAllowedExt = allowedExts.includes(ext);
+
+    if (file.mimetype.startsWith("image/") && isAllowedExt) {
+      cb(null, true);
+    } else {
+      cb(new Error("Alleen veilige afbeeldingen toegestaan"));
+    }
   }
 });
 
@@ -157,6 +173,7 @@ app.use(expressLayouts);
 app.set("layout", "layout");
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
+app.use(cookieParser());
 
 // ------------------------------------------
 // 5. SESSIE (RAILWAY FIX: Timeout limit)
@@ -335,10 +352,26 @@ app.post("/admin-files/rename", requireAdmin, express.json(), (req, res) => {
 app.get("/", (req, res) => res.render("index", { error: null }));
 app.post("/check-code", checkCodeLimiter, async (req, res) => {
   try {
-    const result = await checkCode(req.body.code);
+    const rawCode = req.body.code.trim().toUpperCase();
+    const result = await checkCode(rawCode);
 
     if (!result.valid) return res.render("index", { error: result.error });
     if (result.admin) return res.redirect("/admin-login");
+
+    let deviceId = req.cookies.deviceId;
+    if (!deviceId) {
+      deviceId = crypto.randomBytes(16).toString("hex");
+      res.cookie("deviceId", deviceId, { maxAge: 365 * 24 * 60 * 60 * 1000, httpOnly: true });
+    }
+
+    const usedCodeRecord = await UsedCode.findOne({ code: rawCode });
+    if (usedCodeRecord) {
+      if (usedCodeRecord.deviceId !== deviceId) {
+        return res.render("index", { error: "Deze code is al in gebruik op een ander apparaat." });
+      }
+    } else {
+      await UsedCode.create({ code: rawCode, deviceId });
+    }
 
     // AIRTABLE MAPPING LOGICA
     if (result.airtablePuzzleName) {
