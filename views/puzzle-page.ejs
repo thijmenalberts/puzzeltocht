@@ -841,15 +841,39 @@ async function saveTeamName() {
     if(showTarget){ L.marker(target).addTo(map); L.circle(target,{radius,color:"green",fillOpacity:.15}).addTo(map); }
     const fb = document.getElementById("mapFeedback");
     const nextBtn = document.querySelector(".btn.secondary");
-    navigator.geolocation.watchPosition(p=>{
-      const user = L.latLng(p.coords.latitude,p.coords.longitude); map.setView(user,17);
-      L.marker(user).addTo(map);
-      const d = map.distance(user,target);
-      if(d<=radius){
-        fb.textContent="✅ Doel bereikt!"; fb.style.color="green";
-        if(autoNext && nextBtn) setTimeout(()=>location.href=nextBtn.href,1000);
-      } else { fb.textContent=`Afstand: ${Math.round(d)} meter`; }
-    },()=>{ fb.textContent="Locatie niet beschikbaar"; fb.style.color="red"; });
+
+    // Store user marker globally so we don't recreate it every time
+    let userMarker = null;
+
+    navigator.geolocation.watchPosition(
+      (p) => {
+        const user = L.latLng(p.coords.latitude, p.coords.longitude);
+
+        // Update view conditionally or smoothly
+        map.setView(user, 17, { animate: true });
+
+        if (userMarker) {
+          userMarker.setLatLng(user);
+        } else {
+          userMarker = L.marker(user).addTo(map);
+        }
+
+        const d = map.distance(user, target);
+        if (d <= radius) {
+          fb.textContent = "✅ Doel bereikt!"; fb.style.color = "green";
+          if (autoNext && nextBtn) {
+             setTimeout(() => location.href = nextBtn.href, 1000);
+          }
+        } else {
+          fb.textContent = `Afstand: ${Math.round(d)} meter (Radius: ${radius}m)`;
+        }
+      },
+      (err) => {
+        fb.textContent = "Locatie niet beschikbaar (" + err.message + ")";
+        fb.style.color = "red";
+      },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+    );
   } else { document.getElementById("mapFeedback").textContent = "Geen doellocatie ingesteld voor deze kaart."; }
 </script>
 <% } %>
